@@ -10,12 +10,24 @@ return new class extends Migration
     public function up(): void
     {
         // -------------------------------------------------------------
-        // 1. Tipos ENUM nativos de PostgreSQL
+        // 1. Tipos ENUM nativos de PostgreSQL (Protegidos contra duplicados)
         // -------------------------------------------------------------
-        DB::statement("CREATE TYPE tipo_tramite_enum AS ENUM ('poda', 'tala', 'trasplante', 'conformidad', 'racda')");
-        DB::statement("CREATE TYPE estado_solicitud_enum AS ENUM ('En proceso', 'En inspección', 'Aprobado', 'Rechazado')");
-        DB::statement("CREATE TYPE tipo_racda_enum AS ENUM ('NO_APLICA', 'RACDA_GENERADOR', 'RACDA_MANEJADOR')");
-        DB::statement("CREATE TYPE estado_documento_enum AS ENUM ('PENDIENTE', 'APROBADO', 'OBSERVADO')");
+        $enums = [
+            "tipo_tramite_enum" => "'poda', 'tala', 'trasplante', 'conformidad', 'racda'",
+            "estado_solicitud_enum" => "'En proceso', 'En inspección', 'Aprobado', 'Rechazado'",
+            "tipo_racda_enum" => "'NO_APLICA', 'RACDA_GENERADOR', 'RACDA_MANEJADOR'",
+            "estado_documento_enum" => "'PENDIENTE', 'APROBADO', 'OBSERVADO'",
+        ];
+
+        foreach ($enums as $name => $values) {
+            DB::statement("
+                DO $$ BEGIN
+                    CREATE TYPE {$name} AS ENUM ({$values});
+                EXCEPTION
+                    WHEN duplicate_object THEN NULL;
+                END $$;
+            ");
+        }
 
         // -------------------------------------------------------------
         // 2. Tablas Catálogo / Independientes
@@ -42,20 +54,32 @@ return new class extends Migration
         });
 
         Schema::create('users', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('name');
-            $table->string('email')->unique();
+            $table->id();
+            
+            // Llaves foráneas con nombres personalizados
+            $table->foreignId('role_id')->constrained('roles', 'id_roles')->onDelete('cascade');
+            $table->foreignId('direccion_id')->nullable()->constrained('direcciones', 'id_direccion')->nullOnDelete();
+
+            // Campos unificados
+            $table->string('cedula', 20)->unique();    // Ej: V-12345678 o J-123456789-0
+            $table->string('telefono', 15);            // Ej: 04121234567
+            
+            // Datos personales
+            $table->string('nombre', 100);
+            $table->string('apellido', 100);
+            $table->string('correo')->unique();
+
+            // Auth
             $table->string('password');
             $table->rememberToken();
-            $table->timestampsTz();
+            $table->timestamps();
         });
 
         // -------------------------------------------------------------
         // 3. Perfiles de Usuario
         // -------------------------------------------------------------
         Schema::create('profiles', function (Blueprint $table) {
-            $table->uuid('id_profiles')->primary();
-            $table->foreign('id_profiles')->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignId('id_profiles')->primary()->constrained('users')->cascadeOnDelete();
             
             $table->text('email')->nullable();
             $table->text('nombres');
@@ -79,9 +103,8 @@ return new class extends Migration
         // 4. Denuncias Ambientales
         // -------------------------------------------------------------
         Schema::create('denuncias', function (Blueprint $table) {
-            $table->text('id')->primary();
-            $table->uuid('user_id');
-            $table->foreign('user_id')->references('id')->on('users');
+            $table->uuid('id')->primary();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
 
             $table->text('tipo_contaminacion');
             $table->text('sector');
@@ -98,8 +121,7 @@ return new class extends Migration
         Schema::create('solicitudes', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_expediente')->nullable()->unique();
-            $table->uuid('user_id')->nullable();
-            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->string('sector');
             $table->text('direccion_exacta');
@@ -133,8 +155,7 @@ return new class extends Migration
         // -------------------------------------------------------------
         Schema::create('empresas', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('user_id')->nullable();
-            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->string('rif')->unique();
             $table->text('razon_social');
@@ -204,9 +225,9 @@ return new class extends Migration
         Schema::dropIfExists('direcciones');
         Schema::dropIfExists('roles');
 
-        DB::statement("DROP TYPE IF EXISTS estado_documento_enum");
-        DB::statement("DROP TYPE IF EXISTS tipo_racda_enum");
-        DB::statement("DROP TYPE IF EXISTS estado_solicitud_enum");
-        DB::statement("DROP TYPE IF EXISTS tipo_tramite_enum");
+        DB::statement("DROP TYPE IF EXISTS estado_documento_enum CASCADE");
+        DB::statement("DROP TYPE IF EXISTS tipo_racda_enum CASCADE");
+        DB::statement("DROP TYPE IF EXISTS estado_solicitud_enum CASCADE");
+        DB::statement("DROP TYPE IF EXISTS tipo_tramite_enum CASCADE");
     }
 };

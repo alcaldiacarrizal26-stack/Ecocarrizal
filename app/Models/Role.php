@@ -1,17 +1,24 @@
+<?php
+
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Role extends Model
 {
-    protected $primaryKey = 'id_roles';
-    public $timestamps = false;
+    use HasFactory;
 
-    protected $fillable = ['id_roles', 'nombre', 'descripcion', 'created_at'];
+    protected $table = 'roles';
+    protected $primaryKey = 'id_roles'; // <--- Indicar la clave primaria correcta
 
-    public function profiles(): HasMany
+    protected $fillable = [
+        'nombre',
+        'label',
+    ];
+
+    public function usuarios()
     {
-        return $this->hasMany(Profile::class, 'role_id', 'id_roles');
+        return $this->hasMany(User::class);
     }
 }
