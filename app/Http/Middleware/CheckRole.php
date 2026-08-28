@@ -12,20 +12,20 @@ class CheckRole
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  ...$roles  Nombres de los roles permitidos (ej: 'administrador', 'fiscal')
+     * @param  string  ...$roles  Nombres de los roles permitidos (ej: 'ciudadano', 'administrador')
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
-        // Verificar autenticación y existencia de Profile -> Role
-        if (! $user || ! $user->profile || ! $user->profile->role) {
+        // Verificar autenticación y que el usuario tenga un rol asociado directamente
+        if (! $user || ! $user->role) {
             return response()->json([
-                'message' => 'Acceso denegado: El usuario no posee un perfil o rol asignado.',
+                'message' => 'Acceso denegado: El usuario no posee un rol asignado.',
             ], Response::HTTP_FORBIDDEN);
         }
 
-        $userRole = strtolower(trim($user->profile->role->nombre));
+        $userRole = strtolower(trim($user->role->nombre));
         $allowedRoles = array_map(fn ($role) => strtolower(trim($role)), $roles);
 
         if (! in_array($userRole, $allowedRoles, true)) {

@@ -30,7 +30,6 @@ class AuthController extends Controller
             'contraseña' => ['required', 'string'],
         ]);
 
-        // Pasamos 'correo' para buscar el usuario en la BD y 'password' para que Laravel valide el hash
         $attemptData = [
             'correo'   => $credentials['correo'],
             'password' => $credentials['contraseña'],
@@ -38,8 +37,13 @@ class AuthController extends Controller
 
         if (Auth::attempt($attemptData, $request->boolean('remember'))) {
             $request->session()->regenerate();
+        
+            // Obtenemos el usuario autenticado actual
+            $user = Auth::user();
 
-            return redirect()->intended(route('dashboard'));
+            if ($user->role_id == 4) { // Ciudadano
+               return redirect()->route('ciudadano.dashboard')->with('success', '¡Bienvenido de nuevo, ' . $user->nombre . '!');
+            }
         }
 
         return back()->withErrors([
@@ -88,7 +92,8 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->back()->with('success', '¡Usuario creado exitosamente!');
+        // En login() y register(), reemplaza la línea del redirect por:
+        return redirect()->to('/ciudadano/dashboard')->with('success', '¡Usuario creado exitosamente!');
     }
 
     /**

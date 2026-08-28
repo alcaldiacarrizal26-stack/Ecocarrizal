@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Confianza en el proxy inverso de GitHub Codespaces
+        $middleware->trustProxies(at: '*');
+
         // Registro del alias para el middleware de RBAC
         $middleware->alias([
             'role' => CheckRole::class,

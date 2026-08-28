@@ -20,13 +20,26 @@ class DatabaseSeeder extends Seeder
 
         // 2. Llenar Direcciones (según tu estructura de la alcaldía)
         DB::table('direcciones')->insertOrIgnore([
-            ['id_direccion' => 1, 'nombre_direc' => 'Dirección de Ecosocialismo', 'descripcion_direc' => 'Gestión ambiental municipal', 'created_at' => now()],
-            ['id_direccion' => 2, 'nombre_direc' => 'Ingeniería y Ambiente', 'descripcion_direc' => 'Control de obras y talas', 'created_at' => now()],
+            ['id_direccion' => 1, 'nombre_direc' => 'Dirección de Ambiente', 'descripcion_direc' => 'Control Ambiental', 'created_at' => now()],
+            ['id_direccion' => 2, 'nombre_direc' => 'Dirección de Residuos', 'descripcion_direc' => 'Control Residual de las empresas', 'created_at' => now()],
         ]);
 
         // 3. Crear usuario Administrador por defecto (opcional pero útil)
         DB::table('users')->insertOrIgnore([
-            'id' => 1,
+            'id' => 777,
+            'role_id' => 4,
+            'cedula' => 'V-30541863',
+            'telefono' => '04125994461',
+            'nombre' => 'Cristhian',
+            'apellido' => 'Blanco',
+            'correo' => 'cristhianb397@gmail.com',
+            'password' => Hash::make('Cr1$th14n'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+                DB::table('users')->insertOrIgnore([
+            'id' => 778,
             'role_id' => 1, // Admin
             'direccion_id' => 1,
             'cedula' => 'V-12345678',

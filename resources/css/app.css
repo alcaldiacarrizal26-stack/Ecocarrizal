@@ -1,13 +1,31 @@
-@import 'tailwindcss';
+/* resources/css/app.css */
+/* Tailwind directives are processed during the CSS build step. */
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+:root {
+  --color-primary: #05772a;
+  --color-secondary: #0e7970;
+  --color-mint: #78ad8b;
+  --color-soft-green: #aecbc5;
+  --color-dark-green: #347a4b;
+  --color-teal: #66a198;
+  --color-gray-light: #c5c6c6;
 }
 
-html {
-    scrollbar-gutter: stable;
-}
+/* Clases utilitarias personalizadas usando variables CSS */
+.bg-primary { background-color: var(--color-primary); }
+.text-primary { color: var(--color-primary); }
+.border-primary { border-color: var(--color-primary); }
+.hover\:bg-primary:hover { background-color: var(--color-primary); }
+.hover\:text-primary:hover { color: var(--color-primary); }
+/* Agrega más según necesites */
+.bg-secondary { background-color: var(--color-secondary); }
+.text-secondary { color: var(--color-secondary); }
+.border-secondary { border-color: var(--color-secondary); }
+.bg-mint { background-color: var(--color-mint); }
+.text-mint { color: var(--color-mint); }
+/* etc */
