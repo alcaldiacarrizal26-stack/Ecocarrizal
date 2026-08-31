@@ -1,10 +1,5 @@
 /* resources/css/app.css */
-/* Tailwind directives are processed during the CSS build step. */
-/* stylelint-disable at-rule-no-unknown */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-/* stylelint-enable at-rule-no-unknown */
+@import "tailwindcss";
 
 :root {
   --color-primary: #05772a;
@@ -29,3 +24,7 @@
 .bg-mint { background-color: var(--color-mint); }
 .text-mint { color: var(--color-mint); }
 /* etc */
+
+[x-cloak] { 
+    display: none !important; 
+}

@@ -104,15 +104,31 @@ return new class extends Migration
         // -------------------------------------------------------------
         Schema::create('denuncias', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->string('codigo', 20)->unique()->after('id');
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-
-            $table->text('tipo_contaminacion');
-            $table->text('sector');
-            $table->text('punto_referencia');
+            $table->string('tipo_contaminacion');
+            $table->string('otro_tipo_contaminacion')->nullable();
+            
+            // Columnas de Ubicación
+            $table->string('comuna');
+            $table->string('sector');
+            $table->string('punto_referencia');
+            
+            // Severidad
+            $table->enum('nivel_gravedad', ['baja', 'media', 'alta'])->default('baja');
+            $table->text('justificacion_gravedad')->nullable(); // <-- Debe ser nullable
+            
             $table->text('descripcion');
-            $table->jsonb('evidencias')->nullable();
-
-            $table->timestampTz('created_at')->nullable();
+            $table->json('evidencias');
+            $table->enum('estatus', [
+                'pendiente', 
+                'inspector_asignado', 
+                'en_revision', 
+                'atendido', 
+                'desestimado'
+            ])->default('pendiente');
+            
+            $table->timestamps();
         });
 
         // -------------------------------------------------------------
