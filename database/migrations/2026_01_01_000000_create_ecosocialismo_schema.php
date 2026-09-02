@@ -53,50 +53,31 @@ return new class extends Migration
             $table->timestampTz('locked_until')->nullable();
         });
 
+        // -------------------------------------------------------------
+        // 3. Usuarios (Tabla Unificada de Usuarios)
+        // -------------------------------------------------------------
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             
-            // Llaves foráneas con nombres personalizados
+            // Llaves foráneas
             $table->foreignId('role_id')->constrained('roles', 'id_roles')->onDelete('cascade');
             $table->foreignId('direccion_id')->nullable()->constrained('direcciones', 'id_direccion')->nullOnDelete();
 
-            // Campos unificados
-            $table->string('cedula', 20)->unique();    // Ej: V-12345678 o J-123456789-0
-            $table->string('telefono', 15);            // Ej: 04121234567
-            
-            // Datos personales
+            // Identificación y contacto
+            $table->string('cedula', 20)->unique();
+            $table->string('telefono', 15);
             $table->string('nombre', 100);
             $table->string('apellido', 100);
             $table->string('correo')->unique();
 
-            // Auth
+            // Atributos de estado
+            $table->boolean('accepted_terms')->default(true);
+            $table->boolean('is_active')->default(true);
+
+            // Autenticación
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
-        });
-
-        // -------------------------------------------------------------
-        // 3. Perfiles de Usuario
-        // -------------------------------------------------------------
-        Schema::create('profiles', function (Blueprint $table) {
-            $table->foreignId('id_profiles')->primary()->constrained('users')->cascadeOnDelete();
-            
-            $table->text('email')->nullable();
-            $table->text('nombres');
-            $table->text('apellidos');
-            $table->text('cedula')->nullable();
-            $table->text('telefono')->nullable();
-            $table->boolean('accepted_terms')->nullable();
-            
-            $table->integer('role_id');
-            $table->foreign('role_id')->references('id_roles')->on('roles');
-
-            $table->boolean('is_active')->nullable()->default(true);
-            
-            $table->integer('direction_id')->nullable();
-            $table->foreign('direction_id')->references('id_direccion')->on('direcciones')->nullOnDelete();
-
-            $table->timestampsTz();
         });
 
         // -------------------------------------------------------------
@@ -104,19 +85,19 @@ return new class extends Migration
         // -------------------------------------------------------------
         Schema::create('denuncias', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('codigo', 20)->unique()->after('id');
+            $table->string('codigo', 20)->unique();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('tipo_contaminacion');
             $table->string('otro_tipo_contaminacion')->nullable();
             
-            // Columnas de Ubicación
+            // Ubicación
             $table->string('comuna');
             $table->string('sector');
             $table->string('punto_referencia');
             
             // Severidad
             $table->enum('nivel_gravedad', ['baja', 'media', 'alta'])->default('baja');
-            $table->text('justificacion_gravedad')->nullable(); // <-- Debe ser nullable
+            $table->text('justificacion_gravedad')->nullable();
             
             $table->text('descripcion');
             $table->json('evidencias');
@@ -235,7 +216,6 @@ return new class extends Migration
         Schema::dropIfExists('solicitud_recaudos');
         Schema::dropIfExists('solicitudes');
         Schema::dropIfExists('denuncias');
-        Schema::dropIfExists('profiles');
         Schema::dropIfExists('users');
         Schema::dropIfExists('login_attempts');
         Schema::dropIfExists('direcciones');

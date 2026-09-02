@@ -42,17 +42,6 @@
             </div>
         </div>
 
-        <!-- Perfil rápido de usuario -->
-        <div class="px-4 py-3 mx-3 mt-4 bg-slate-800/60 border border-slate-700/50 rounded-2xl flex items-center gap-3">
-            <div class="h-9 w-9 rounded-xl bg-slate-700 flex items-center justify-center font-bold text-emerald-400 border border-slate-600 shrink-0">
-                {{ strtoupper(substr($user->nombre ?? 'U', 0, 1)) }}
-            </div>
-            <div class="overflow-hidden text-xs">
-                <p class="font-semibold text-white truncate">{{ $user->nombre }} {{ $user->apellido }}</p>
-                <p class="text-slate-400 text-[11px] truncate">{{ $user->cedula ?? '00000000' }}</p>
-            </div>
-        </div>
-
         <!-- Navegación según Rol -->
         <nav class="px-3 py-4 space-y-1.5 font-medium text-sm">
 

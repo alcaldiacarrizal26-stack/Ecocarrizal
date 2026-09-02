@@ -35,7 +35,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                         </svg>
                     </div>
-                    <h3 class="text-base font-bold text-slate-800">Trasplante Vejetal</h3>
+                    <h3 class="text-base font-bold text-slate-800">Trasplante Vegetal</h3>
                     <p class="text-xs text-slate-500 leading-relaxed">Tramita la reubicación de especies vegetales de intercepción o afectación por proyectos menores en el municipio.</p>
                 </div>
                 <a href="{{ route('ciudadano.solicitudes') }}" class="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-slate-900 hover:bg-emerald-600 text-white font-semibold text-xs rounded-xl transition-colors">
