@@ -147,7 +147,7 @@ return new class extends Migration
             $table->timestampTz('created_at')->nullable();
         });
 
-// -------------------------------------------------------------
+        // -------------------------------------------------------------
         // 6. Empresas y Expedientes Ambientales
         // -------------------------------------------------------------
         Schema::create('empresas', function (Blueprint $table) {

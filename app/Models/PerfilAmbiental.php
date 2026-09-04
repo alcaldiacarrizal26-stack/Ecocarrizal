@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class PerfilAmbiental extends Model
 {
@@ -40,5 +41,10 @@ class PerfilAmbiental extends Model
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function residuos(): BelongsToMany
+    {
+        return $this->belongsToMany(Residuo::class, 'perfil_ambiental_residuo', 'perfil_ambiental_id', 'residuo_id');
     }
 }

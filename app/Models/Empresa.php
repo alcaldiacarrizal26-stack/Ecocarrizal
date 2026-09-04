@@ -38,8 +38,8 @@ class Empresa extends Model
         return $this->hasOne(PerfilAmbiental::class);
     }
 
-    public function documentos(): HasMany
+    public function documentosExpediente()
     {
-        return $this->hasMany(DocumentoExpediente::class);
+        return $this->hasMany(DocumentoExpediente::class, 'empresa_id', 'id');
     }
 }

@@ -5,13 +5,63 @@ namespace App\Http\Controllers\Ciudadano;
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\PerfilAmbiental;
-use App\Models\DocumentoEmpresa; // Ajusta según tu modelo
+use App\Models\DocumentoExpediente; // Ajusta según tu modelo
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class EmpresaController extends Controller
 {
+
+    public function index()
+    {
+        $empresas = Empresa::with([
+            'perfilAmbiental',
+            'documentosExpediente'
+        ])
+        ->where('user_id', auth()->id())
+        ->latest()
+        ->get();
+
+        return view('ciudadano.empresa', compact('empresas'));
+    }
+
+    public function show(Empresa $empresa)
+    {
+        $user = auth()->user();
+        $rolesAutorizados = ['admin', 'director', 'fiscal', 'analista'];
+
+        // Validar si es el propietario de la empresa o si tiene un rol con permisos
+        if ($empresa->user_id !== $user->id && !$user->hasAnyRole($rolesAutorizados)) {
+            abort(403, 'No tienes autorización para consultar este expediente.');
+        }
+
+        // Cargar las relaciones necesarias para desplegar la información completa
+        $empresa->load(['perfilAmbiental', 'documentosExpediente']);
+
+        // Se apunta a 'ciudadano.empresa' según tu estructura
+        return view('ciudadano.empresa', compact('empresa'));
+    }
+
+    /**
+     * Servir el archivo privado del expediente.
+     */
+    public function verDocumento(DocumentoExpediente $documento)
+    {
+        $user = auth()->user();
+        $rolesAutorizados = ['admin', 'director', 'fiscal', 'analista'];
+
+        if ($documento->empresa->user_id !== $user->id && !$user->hasAnyRole($rolesAutorizados)) {
+            abort(403, 'No tienes permisos para visualizar este documento.');
+        }
+
+        if (!Storage::disk('private')->exists($documento->archivo_path)) {
+            abort(404, 'El archivo solicitado no existe en el servidor.');
+        }
+
+        return Storage::disk('private')->response($documento->archivo_path);
+    }
+
     public function store(Request $request)
     {
         // Validación de datos
@@ -56,20 +106,28 @@ class EmpresaController extends Controller
                 ]);
             }
 
-            // 3. Subir y Registrar Documentos Sensibles
+            // 3. Subir y Registrar Documentos Sensibles en la tabla documentos_expediente
             if ($request->hasFile('documentos')) {
-                foreach ($request->file('documentos') as $tipoDocumento => $file) {
-                    if ($file->isValid()) {
-                        // Guarda de forma segura en storage/app/private/expedientes/{empresa_id}
+                $nombresRequisitos = [
+                    'doc_renma'          => 'Registro RENMA',
+                    'doc_no_objecion'    => 'Constancia de No Objeción Ambiental',
+                    'doc_racda'          => 'Registro RACDA',
+                    'doc_poliza'          => 'Póliza de Seguro de Responsabilidad Ambiental',
+                    'doc_efluentes'      => 'Caracterización de Efluentes Líquidos',
+                    'doc_emisiones'      => 'Caracterización de Emisiones Atmosféricas',
+                    'doc_plan_desechos'  => 'Plan de Manejo de Desechos y Residuos Sólidos',
+                    'doc_plan_emergencia'=> 'Plan de Emergencia y Contingencia Ambiental',
+                ];
+
+                foreach ($request->file('documentos') as $codigoRequisito => $file) {
+                    if ($file && $file->isValid()) {
+                        // Guarda en storage/app/private/expedientes/{empresa_id}
                         $path = $file->store("expedientes/{$empresa->id}", 'private');
 
-                        // Si tienes relación o tabla de documentos
-                        $empresa->documentos()->create([
-                            'tipo'            => $tipoDocumento,
-                            'ruta_archivo'    => $path,
-                            'nombre_original' => $file->getClientOriginalName(),
-                            'mime_type'       => $file->getClientMimeType(),
-                            'peso_bytes'      => $file->getSize(),
+                        $empresa->documentosExpediente()->create([
+                            'codigo_requisito' => strtoupper($codigoRequisito),
+                            'nombre_requisito' => $nombresRequisitos[$codigoRequisito] ?? 'Documento Adjunto',
+                            'archivo_path'     => $path,
                         ]);
                     }
                 }
