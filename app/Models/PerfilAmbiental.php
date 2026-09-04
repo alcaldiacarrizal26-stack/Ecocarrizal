@@ -15,27 +15,29 @@ class PerfilAmbiental extends Model
 
     protected $fillable = [
         'empresa_id',
-        'tiene_renma',
-        'tipo_racda',
+        'rol_ambiental',
+        'subtipo_generador',
         'numero_racda',
         'genera_efluentes',
         'genera_emisiones',
+        'genera_peligrosos',
         'genera_ruidos',
         'usa_pozo_agua',
-        'residuos_comunes',
-        'residuos_reciclables',
-        'residuos_peligrosos',
+        'manejadora_contratada',
+        'actividades_manejador',
+        'sustancias_manejadas',
+        'residuos_tipos',
     ];
 
     protected $casts = [
         'tiene_renma' => 'boolean',
         'genera_efluentes' => 'boolean',
         'genera_emisiones' => 'boolean',
+        'genera_peligrosos' => 'boolean',
         'genera_ruidos' => 'boolean',
         'usa_pozo_agua' => 'boolean',
-        'residuos_comunes' => 'array',
-        'residuos_reciclables' => 'array',
-        'residuos_peligrosos' => 'array',
+        'actividades_manejador' => 'array',
+        'residuos_tipos' => 'array',
     ];
 
     public function empresa(): BelongsTo

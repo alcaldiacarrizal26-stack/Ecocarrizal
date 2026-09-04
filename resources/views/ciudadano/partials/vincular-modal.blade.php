@@ -260,7 +260,7 @@
                                 :class="form.perfil.rol_ambiental === 'GENERADOR' ? 'border-[#0d5238] bg-emerald-50/50 ring-1 ring-[#0d5238]' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'"
                             >
                                 <div class="flex items-center gap-2">
-                                    <input type="radio" name="rol_ambiental" value="GENERADOR" x-model="form.perfil.rol_ambiental" class="text-[#0d5238] focus:ring-[#0d5238]">
+                                    <input type="radio" name="rol_ambiental" value="GENERADOR" x-model="form.perfil.rol_ambiental" @change="racdaInput.tipo = 'G'; formatRacda()" class="text-[#0d5238] focus:ring-[#0d5238]">
                                     <span class="text-xs font-bold text-gray-900">GENERADOR</span>
                                 </div>
                                 <span class="text-[10px] text-gray-500 mt-2 block">Produce desechos, efluentes o emisiones por su actividad productiva o comercial.</span>
@@ -271,7 +271,7 @@
                                 :class="form.perfil.rol_ambiental === 'MANEJADOR' ? 'border-[#0d5238] bg-emerald-50/50 ring-1 ring-[#0d5238]' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'"
                             >
                                 <div class="flex items-center gap-2">
-                                    <input type="radio" name="rol_ambiental" value="MANEJADOR" x-model="form.perfil.rol_ambiental" class="text-[#0d5238] focus:ring-[#0d5238]">
+                                    <input type="radio" name="rol_ambiental" value="MANEJADOR" x-model="form.perfil.rol_ambiental" @change="racdaInput.tipo = 'M'; formatRacda()" class="text-[#0d5238] focus:ring-[#0d5238]">
                                     <span class="text-xs font-bold text-gray-900">MANEJADOR</span>
                                 </div>
                                 <span class="text-[10px] text-gray-500 mt-2 block">Recolecta, transporta, almacena, trata o dispone de sustancias/desechos.</span>
@@ -282,7 +282,7 @@
                                 :class="form.perfil.rol_ambiental === 'NO_APLICA' ? 'border-[#0d5238] bg-emerald-50/50 ring-1 ring-[#0d5238]' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'"
                             >
                                 <div class="flex items-center gap-2">
-                                    <input type="radio" name="rol_ambiental" value="NO_APLICA" x-model="form.perfil.rol_ambiental" class="text-[#0d5238] focus:ring-[#0d5238]">
+                                    <input type="radio" name="rol_ambiental" value="NO_APLICA" x-model="form.perfil.rol_ambiental" @change="racdaInput.aplica = false; formatRacda()" class="text-[#0d5238] focus:ring-[#0d5238]">
                                     <span class="text-xs font-bold text-gray-900">NO APLICA</span>
                                 </div>
                                 <span class="text-[10px] text-gray-500 mt-2 block">Actividad administrativa / comercial de bajo impacto sin residuos peligrosos.</span>
@@ -301,9 +301,31 @@
                                     <option value="GRAN">Gran Generador / Industrial</option>
                                 </select>
                             </div>
+
+                            <!-- RACDA Normalizado para Generador -->
                             <div>
-                                <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">N° Registro RACDA (Si posee)</label>
-                                <input type="text" x-model="form.perfil.numero_racda" placeholder="RACDA-G-12345" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold uppercase bg-white">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-[11px] font-bold text-gray-700 uppercase">N° Registro RACDA *</label>
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" x-model="racdaInput.aplica" @change="formatRacda()" class="sr-only peer">
+                                        <div class="relative w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#0d5238]"></div>
+                                        <span class="ml-1.5 text-[10px] font-semibold text-gray-600" x-text="racdaInput.aplica ? 'Aplica' : 'No Aplica'"></span>
+                                    </label>
+                                </div>
+
+                                <div x-show="racdaInput.aplica" class="flex items-center gap-1.5">
+                                    <span class="px-2 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold text-gray-600 bg-gray-100 select-none">RACDA-</span>
+                                    <select x-model="racdaInput.tipo" @change="formatRacda()" class="px-2 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold text-gray-800 bg-white">
+                                        <option value="G">G</option>
+                                        <option value="M">M</option>
+                                        <option value="T">T</option>
+                                    </select>
+                                    <span class="text-gray-400 font-bold">-</span>
+                                    <input type="text" x-model="racdaInput.correlativo" @input="formatRacda()" maxlength="6" placeholder="000000" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold tracking-wider text-gray-900 bg-white">
+                                </div>
+                                <div x-show="!racdaInput.aplica" class="p-2 bg-gray-100 rounded-xl text-[11px] text-gray-500 font-medium text-center">
+                                    No posee o no aplica RACDA
+                                </div>
                             </div>
                         </div>
 
@@ -357,10 +379,32 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- RACDA Normalizado para Manejador -->
                             <div>
-                                <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">N° Registro RACDA Manejador *</label>
-                                <input type="text" x-model="form.perfil.numero_racda" placeholder="RACDA-M-98765" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold uppercase bg-white">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-[11px] font-bold text-gray-700 uppercase">N° Registro RACDA *</label>
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" x-model="racdaInput.aplica" @change="formatRacda()" class="sr-only peer">
+                                        <div class="relative w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#0d5238]"></div>
+                                        <span class="ml-1.5 text-[10px] font-semibold text-gray-600" x-text="racdaInput.aplica ? 'Aplica' : 'No Aplica'"></span>
+                                    </label>
+                                </div>
+
+                                <div x-show="racdaInput.aplica" class="flex items-center gap-1.5">
+                                    <span class="px-2 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold text-gray-600 bg-gray-100 select-none">RACDA-</span>
+                                    <select x-model="racdaInput.tipo" @change="formatRacda()" class="px-2 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold text-gray-800 bg-white">
+                                        <option value="M">M</option>
+                                        <option value="G">G</option>
+                                        <option value="T">T</option>
+                                    </select>
+                                    <span class="text-gray-400 font-bold">-</span>
+                                    <input type="text" x-model="racdaInput.correlativo" @input="formatRacda()" maxlength="6" placeholder="000000" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold tracking-wider text-gray-900 bg-white">
+                                </div>
+                                <div x-show="!racdaInput.aplica" class="p-2 bg-gray-100 rounded-xl text-[11px] text-gray-500 font-medium text-center">
+                                    No posee o no aplica RACDA
+                                </div>
                             </div>
+
                             <div>
                                 <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Sustancias / Materiales Manejados</label>
                                 <input type="text" x-model="form.perfil.sustancias_manejadas" placeholder="Ej: Aceites usados, chatarra, baterías" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white">
@@ -559,15 +603,13 @@ function vincularEmpresaModal(territorios) {
         sectoresDisponibles: [],
         files: {},
         
-        // Estructura desglosada para RIF y Patente SIGAT
-        rifInput: {
-            tipo: 'J',
-            numero: '',
-            digito: ''
-        },
-        patenteInput: {
-            tipo_formato: 'SIGAT_OFICIAL', // 'SIGAT_OFICIAL' (CZ-AE-000000) o 'CODIGO_CONTRIBUYENTE' (202XXXXX)
-            prefix: 'CZ-AE-',
+        rifInput: { tipo: 'J', numero: '', digito: '' },
+        patenteInput: { tipo_formato: 'SIGAT_OFICIAL', prefix: 'CZ-AE-', correlativo: '' },
+
+        // Estado desglosado para RACDA
+        racdaInput: {
+            aplica: true,
+            tipo: 'G',
             correlativo: ''
         },
 
@@ -597,27 +639,33 @@ function vincularEmpresaModal(territorios) {
             }
         },
 
-        // Auto-tabulación y formateo de RIF
         formatRif() {
             this.rifInput.numero = this.rifInput.numero.replace(/\D/g, '');
             this.rifInput.digito = this.rifInput.digito.replace(/\D/g, '');
-
-            if (this.rifInput.numero.length === 8 && $refs.rifDigito) {
-                $refs.rifDigito.focus();
+            if (this.rifInput.numero.length === 8 && this.$refs.rifDigito) {
+                this.$refs.rifDigito.focus();
             }
-
             this.form.rif = `${this.rifInput.tipo}-${this.rifInput.numero}-${this.rifInput.digito}`;
         },
 
-        // Auto-formateo de Patente Municipal (SIGAT)
         formatPatente() {
             this.patenteInput.correlativo = this.patenteInput.correlativo.replace(/\D/g, '');
-
             if (this.patenteInput.tipo_formato === 'SIGAT_OFICIAL') {
                 this.form.numero_cuenta_patente = `${this.patenteInput.prefix}${this.patenteInput.correlativo}`;
             } else {
                 this.form.numero_cuenta_patente = this.patenteInput.correlativo;
             }
+        },
+
+        // Normalización del código RACDA
+        formatRacda() {
+            if (!this.racdaInput.aplica) {
+                this.form.perfil.numero_racda = 'RACDA No aplica';
+                return;
+            }
+            this.racdaInput.correlativo = this.racdaInput.correlativo.replace(/\D/g, '');
+            const numPadded = this.racdaInput.correlativo.padStart(6, '0');
+            this.form.perfil.numero_racda = `RACDA-${this.racdaInput.tipo}-${numPadded}`;
         },
 
         onComunaChange() {
@@ -638,26 +686,24 @@ function vincularEmpresaModal(territorios) {
         async submitForm() {
             this.submitting = true;
             
-            // Unificación final de datos estructurados
-            this.form.rif = `${this.rifInput.tipo}-${this.rifInput.numero}-${this.rifInput.digito}`;
-            
-            if (this.patenteInput.tipo_formato === 'SIGAT_OFICIAL') {
-                this.form.numero_cuenta_patente = `CZ-AE-${this.patenteInput.correlativo.padStart(6, '0')}`;
-            } else {
-                this.form.numero_cuenta_patente = this.patenteInput.correlativo;
-            }
+            // 1. Formatear datos antes del envío
+            this.formatRif();
+            this.formatPatente();
+            this.formatRacda(); // <--- Fuerza a construir RACDA-X-000000 correcto
 
             const formData = new FormData();
             formData.append('rif', this.form.rif);
             formData.append('numero_cuenta_patente', this.form.numero_cuenta_patente);
             formData.append('razon_social', this.form.razon_social);
-            formData.append('nombre_comercial', this.form.nombre_comercial);
+            formData.append('nombre_comercial', this.form.nombre_comercial || '');
             formData.append('correo_comercial', this.form.correo_comercial);
             formData.append('telefono_comercial', `${this.form.codigo_area}${this.form.telefono_num}`);
             formData.append('comuna', this.form.comuna);
             formData.append('sector', this.form.sector);
             formData.append('calle_avenida', this.form.calle_avenida);
             formData.append('edificio_galpon_local', this.form.edificio_galpon_local);
+            
+            // Adjuntar objeto perfil serializado
             formData.append('perfil', JSON.stringify(this.form.perfil));
 
             Object.keys(this.files).forEach(key => {
@@ -669,17 +715,13 @@ function vincularEmpresaModal(territorios) {
             try {
                 const response = await fetch("{{ route('ciudadano.empresas.store') }}", {
                     method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        // Eliminamos 'Accept: application/json' para que Laravel responda con HTML clásico en caso de error 500
-                    },
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                     body: formData
                 });
 
                 if (response.ok) {
                     window.location.reload();
                 } else {
-                    // Reemplaza el contenido de la ventana actual con la pantalla de error de Laravel
                     const errorHtml = await response.text();
                     document.open();
                     document.write(errorHtml);

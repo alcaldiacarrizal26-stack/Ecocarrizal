@@ -99,10 +99,22 @@ class EmpresaController extends Controller
             // 2. Crear Perfil Ambiental
             if ($request->has('perfil')) {
                 $perfilData = is_string($request->perfil) ? json_decode($request->perfil, true) : $request->perfil;
+
                 $empresa->perfilAmbiental()->create([
-                    'numero_racda'     => $perfilData['numero_racda'] ?? '',
-                    'genera_efluentes' => $perfilData['genera_efluentes'] ?? false,
-                    'genera_emisiones' => $perfilData['genera_emisiones'] ?? false,
+                    'rol_ambiental'        => $perfilData['rol_ambiental'] ?? 'GENERADOR',
+                    'subtipo_generador'    => $perfilData['subtipo_generador'] ?? 'PEQUENO',
+                    'numero_racda'         => $perfilData['numero_racda'] ?? 'RACDA No aplica',
+                    'genera_efluentes'     => filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_emisiones'     => filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_peligrosos'    => filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_ruidos'        => filter_var($perfilData['genera_ruidos'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'usa_pozo_agua'        => filter_var($perfilData['usa_pozo_agua'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'manejadora_contratada' => $perfilData['manejadora_contratada'] ?? null,
+                    'actividades_manejador' => isset($perfilData['actividades_manejador']) ? json_encode($perfilData['actividades_manejador']) : null,
+                    'sustancias_manejadas'  => $perfilData['sustancias_manejadas'] ?? null,
+                    'residuos_tipos'       => isset($perfilData['residuos_tipos']) && !empty($perfilData['residuos_tipos']) 
+                                                ? json_encode($perfilData['residuos_tipos']) 
+                                                : null,
                 ]);
             }
 

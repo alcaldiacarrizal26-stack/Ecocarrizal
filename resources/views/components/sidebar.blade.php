@@ -2,12 +2,19 @@
 
 @php
     $user = auth()->user();
-    $rol = $user->role->nombre ?? 'ciudadano'; 
-    $prefix = match(strtolower($rol)) {
-        'admin', 'administrador' => 'admin',
-        'inspector' => 'inspector',
+    $rol = strtolower($user->role->nombre ?? 'ciudadano'); 
+
+    // Mapeo de prefijos y rutas base según el rol
+    $prefix = match(true) {
+        in_array($rol, ['admin', 'administrador', 'director', 'director_residuos']) => 'director',
+        $rol === 'inspector' => 'inspector',
         default => 'ciudadano',
     };
+
+    // Nombre de la ruta del dashboard dinámico
+    $dashboardRoute = Route::has("{$prefix}.dashboard") 
+        ? route("{$prefix}.dashboard") 
+        : url("/{$prefix}/dashboard");
 @endphp
 
 <!-- Overlay para pantallas pequeñas -->
@@ -47,7 +54,7 @@
             @if($prefix === 'ciudadano')
                 <!-- 1. Inicio Ciudadano -->
                 <a 
-                    href="{{ route('ciudadano.dashboard') }}" 
+                    href="{{ $dashboardRoute }}" 
                     class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'inicio' || request()->routeIs('ciudadano.dashboard')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +76,7 @@
 
                 <!-- 3. Solicitudes y Trámites -->
                 <a 
-                    href="{{ Route::has('ciudadano.solicitudes') ? route('ciudadano.solicitudes') : url('/ciudadano/solicitudes') }}" 
+                    href="{{ Route::has('ciudadano.solicitudes.index') ? route('ciudadano.solicitudes.index') : url('/ciudadano/solicitudes') }}" 
                     class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'solicitudes' || request()->routeIs('ciudadano.solicitudes*')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,9 +108,27 @@
                 </a>
             @endif
 
-            @if($prefix === 'admin')
-                <a href="{{ Route::has('admin.dashboard') ? route('admin.dashboard') : url('/admin/dashboard') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70">
-                    <span>Panel General</span>
+            @if($prefix === 'director')
+                <!-- 1. Inicio / Panel Principal -->
+                <a 
+                    href="{{ $dashboardRoute }}" 
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'inicio' || request()->routeIs('director.dashboard')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 00-1 1m-6 0h6"/>
+                    </svg>
+                    <span>Inicio</span>
+                </a>
+
+                <!-- 2. Gestión de Empresas -->
+                <a 
+                    href="{{ Route::has('director.residuos.empresas') ? route('director.residuos.empresas') : url('/director/residuos/empresas') }}" 
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'empresas' || request()->routeIs('director.residuos.empresas*')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/>
+                    </svg>
+                    <span>Gestión de Empresas</span>
                 </a>
             @endif
 

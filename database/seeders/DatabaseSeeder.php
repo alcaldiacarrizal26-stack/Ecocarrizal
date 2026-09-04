@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             ['id_direccion' => 2, 'nombre_direc' => 'Dirección de Residuos', 'descripcion_direc' => 'Control Residual de las empresas', 'created_at' => now()],
         ]);
 
-        // 3. Usuario Ciudadano
+        // 3. Usuario Ciudadano (Rol 4)
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-30541863'],
             [
@@ -42,7 +42,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 4. Usuario Administrador
+        // 4. Usuario Administrador (Rol 1)
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-12345678'],
             [
@@ -60,7 +60,61 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 5. Ajustar la secuencia del ID en PostgreSQL
+        // 5. Usuario Director (Rol 2 - Dirección de Ambiente)
+        DB::table('users')->updateOrInsert(
+            ['cedula' => 'V-87654321'],
+            [
+                'role_id' => 2,
+                'direccion_id' => 1, // Dirección de Ambiente
+                'telefono' => '04149876543',
+                'nombre' => 'Carlos',
+                'apellido' => 'Mendoza',
+                'correo' => 'director@ambiente.com',
+                'password' => Hash::make('12345678'),
+                'accepted_terms' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // 6. Usuario Director (Rol 2 - Dirección de Residuos)
+        DB::table('users')->updateOrInsert(
+            ['cedula' => 'V-98765432'],
+            [
+                'role_id' => 2,
+                'direccion_id' => 2, // Dirección de Residuos
+                'telefono' => '04129876943',
+                'nombre' => 'Simon',
+                'apellido' => 'Bolivar',
+                'correo' => 'director@residuos.com',
+                'password' => Hash::make('12345678'),
+                'accepted_terms' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // 6. Usuario Inspector (Rol 3 - Dirección de Ambiente)
+        DB::table('users')->updateOrInsert(
+            ['cedula' => 'V-11223344'],
+            [
+                'role_id' => 3,
+                'direccion_id' => 1, // Dirección de Ambiente
+                'telefono' => '04241112233',
+                'nombre' => 'Roberto',
+                'apellido' => 'Gómez',
+                'correo' => 'inspector.ambiente@carrizal.gob.ve',
+                'password' => Hash::make('password123'),
+                'accepted_terms' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // 7. Ajustar la secuencia del ID en PostgreSQL
         DB::statement("SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1)) FROM users;");
     }
 }

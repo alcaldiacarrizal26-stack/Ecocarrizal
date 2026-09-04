@@ -75,4 +75,14 @@ class User extends Authenticatable
     {
         return $this->direccion?->slug === $slugDireccion;
     }
+
+    public function hasAnyRole(array|string ...$roles): bool
+    {
+        $roleName = strtolower($this->role?->nombre ?? '');
+
+        // Aplana el array si se pasa como ['admin', 'director'] o como argumentos 'admin', 'director'
+        $flatRoles = collect($roles)->flatten()->map(fn($r) => strtolower($r))->toArray();
+
+        return in_array($roleName, $flatRoles, true);
+    }
 }

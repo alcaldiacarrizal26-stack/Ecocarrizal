@@ -232,9 +232,10 @@
 
                             <!-- Sección 2: Perfil Ambiental -->
                             <template x-if="selectedEmpresa.perfil_ambiental">
-                                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3 text-xs">
+                                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4 text-xs">
                                     <h4 class="font-extrabold text-[#0d5238] uppercase tracking-wider border-b pb-1">Diagnóstico Ambiental</h4>
                                     
+                                    <!-- Datos Principales del Perfil -->
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <div>
                                             <span class="text-gray-400 block text-[10px] uppercase font-semibold">Rol Ambiental</span>
@@ -246,25 +247,90 @@
                                         </div>
                                         <div>
                                             <span class="text-gray-400 block text-[10px] uppercase font-semibold">N° RACDA</span>
-                                            <!-- Muestra "No Aplica" si es nulo o si la bandera lo indica -->
                                             <strong class="text-gray-800" x-text="selectedEmpresa.perfil_ambiental.numero_racda || 'No Aplica'"></strong>
                                         </div>
                                     </div>
 
-                                    <!-- Muestra de Residuos Declarados -->
-                                    <div class="pt-2 border-t border-gray-200/60">
-                                        <span class="text-gray-400 block text-[10px] uppercase font-semibold mb-1">Residuos Generados Declarados</span>
-                                        
-                                        <template x-if="selectedEmpresa.perfil_ambiental.residuos && selectedEmpresa.perfil_ambiental.residuos.length > 0">
+                                    <!-- Módulos de Impacto Operativo -->
+                                    <div class="pt-3 border-t border-gray-200/60">
+                                        <span class="text-gray-400 block text-[10px] uppercase font-semibold mb-2">Módulos de Impacto Operativo</span>
+                                        <div class="flex flex-wrap gap-2">
+                                            <!-- Efluentes Líquidos -->
+                                            <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1.5"
+                                                :class="selectedEmpresa.perfil_ambiental.genera_efluentes 
+                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                                                    : 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'">
+                                                <span x-text="selectedEmpresa.perfil_ambiental.genera_efluentes ? '✓' : '✕'"></span>
+                                                Genera Efluentes Líquidos
+                                            </span>
+
+                                            <!-- Emisiones / Chimeneas -->
+                                            <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1.5"
+                                                :class="selectedEmpresa.perfil_ambiental.genera_emisiones 
+                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                                                    : 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'">
+                                                <span x-text="selectedEmpresa.perfil_ambiental.genera_emisiones ? '✓' : '✕'"></span>
+                                                Emisiones / Chimeneas / Calderas
+                                            </span>
+
+                                            <!-- Desechos Peligrosos -->
+                                            <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1.5"
+                                                :class="selectedEmpresa.perfil_ambiental.genera_peligrosos 
+                                                    ? 'bg-amber-50 text-amber-900 border-amber-300' 
+                                                    : 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'">
+                                                <span x-text="selectedEmpresa.perfil_ambiental.genera_peligrosos ? '✓' : '✕'"></span>
+                                                Desechos Peligrosos / Químicos
+                                            </span>
+                                        </div>
+
+                                        <!-- Manejadora Contratada (Si aplica) -->
+                                        <template x-if="selectedEmpresa.perfil_ambiental.genera_peligrosos && selectedEmpresa.perfil_ambiental.manejadora_contratada">
+                                            <div class="mt-2.5 p-2.5 bg-amber-50/60 rounded-xl border border-amber-200/80 text-amber-900">
+                                                <span class="text-[10px] uppercase font-bold text-amber-800 block">Empresa Manejadora Contratada (RIF / RACDA)</span>
+                                                <span class="font-medium" x-text="selectedEmpresa.perfil_ambiental.manejadora_contratada"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Residuos Generados Declarados -->
+                                    <div class="pt-3 border-t border-gray-200/60" x-data="{
+                                        // Helper para parsear array si viene como JSON string o array directo
+                                        getResiduosList(data) {
+                                            if (!data) return [];
+                                            if (Array.isArray(data)) return data;
+                                            try { return JSON.parse(data); } catch(e) { return []; }
+                                        },
+                                        // Mapeo de slugs a nombres descriptivos
+                                        getNombreResiduo(key) {
+                                            const mapa = {
+                                                'organicos': 'Orgánicos / Biodegradables',
+                                                'plasticos_carton': 'Plásticos / Cartón / Papel',
+                                                'peligrosos_aceites': 'Aceites / Químicos',
+                                                'metalicos_chatarra': 'Metálicos / Chatarra',
+                                                'hospitalarios_biologicos': 'Biológicos / Médicos'
+                                            };
+                                            return mapa[key] || key;
+                                        }
+                                    }">
+                                        <span class="text-gray-400 block text-[10px] uppercase font-semibold mb-2">Tipos de Residuos Generados</span>
+
+                                        <!-- Si hay residuos declarados -->
+                                        <template x-if="selectedEmpresa?.perfil_ambiental?.residuos_tipos && getResiduosList(selectedEmpresa.perfil_ambiental.residuos_tipos).length > 0">
                                             <div class="flex flex-wrap gap-1.5">
-                                                <template x-for="residuo in selectedEmpresa.perfil_ambiental.residuos" :key="residuo.id">
-                                                    <span class="px-2.5 py-1 bg-white border border-emerald-200 text-[#0d5238] rounded-lg font-bold text-[11px] shadow-xs" x-text="residuo.nombre"></span>
+                                                <template x-for="item in getResiduosList(selectedEmpresa.perfil_ambiental.residuos_tipos)" :key="item">
+                                                    <span class="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-[#0d5238] rounded-lg font-bold text-[11px] flex items-center gap-1">
+                                                        <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                        </svg>
+                                                        <span x-text="getNombreResiduo(item)"></span>
+                                                    </span>
                                                 </template>
                                             </div>
                                         </template>
 
-                                        <template x-if="!selectedEmpresa.perfil_ambiental.residuos || selectedEmpresa.perfil_ambiental.residuos.length === 0">
-                                            <p class="text-gray-400 italic text-[11px]">No se declararon residuos específicos.</p>
+                                        <!-- Si no hay residuos -->
+                                        <template x-if="!selectedEmpresa?.perfil_ambiental?.residuos_tipos || getResiduosList(selectedEmpresa.perfil_ambiental.residuos_tipos).length === 0">
+                                            <p class="text-gray-400 italic text-[11px]">No se declararon tipos de residuos generados.</p>
                                         </template>
                                     </div>
                                 </div>

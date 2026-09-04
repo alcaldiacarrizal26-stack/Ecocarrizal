@@ -1,30 +1,35 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Ciudadano\DashboardController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Ciudadano\PerfilController;
-use App\Http\Controllers\Ciudadano\TramiteController;
+use App\Http\Controllers\Ciudadano\SolicitudController;
 use App\Http\Controllers\Ciudadano\ReporteController;
-use App\Http\Controllers\Ciudadano\EmpresaController;
+
+// Importaciones con alias para evitar conflictos
+use App\Http\Controllers\Ciudadano\EmpresaController as CiudadanoEmpresaController;
+use App\Http\Controllers\Director\EmpresaController as DirectorEmpresaController;
 use Illuminate\Support\Facades\Route;
 
-// Vista principal y autenticación
+// -------------------------------------------------------------
+// Rutas Públicas (Autenticación)
+// -------------------------------------------------------------
 Route::get('/', [AuthController::class, 'showHome'])->name('home');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // -------------------------------------------------------------
-// Rutas compartidas (Ciudadano, Director, Fiscal, Admin)
+// Rutas Autenticadas (General / Despachador)
 // -------------------------------------------------------------
 Route::middleware(['auth'])->group(function () {
-    // Ver el detalle del expediente (retorna ciudadano/empresa.blade.php)
-    Route::get('/empresas/{empresa}', [EmpresaController::class, 'show'])
-        ->name('empresas.show');
+    
+    // Despachador principal según rol
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Visualizar / Descargar documentos privados
-    Route::get('/expedientes/documentos/{documento}', [EmpresaController::class, 'verDocumento'])
-        ->name('expedientes.documento.ver');
+    // Expedientes y Documentos compartidos
+    Route::get('/empresas/{empresa}', [CiudadanoEmpresaController::class, 'show'])->name('empresas.show');
+    Route::get('/expedientes/documentos/{documento}', [CiudadanoEmpresaController::class, 'verDocumento'])->name('expedientes.documento.ver');
 });
 
 // -------------------------------------------------------------
@@ -37,16 +42,45 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil');
     Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
-    // Reportes y Solicitudes
+    // Reportes
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes');
     Route::post('/reportes', [ReporteController::class, 'store'])->name('reportes.store');
 
-    Route::get('/solicitudes', [ReporteController::class, 'index'])->name('solicitudes');
-    Route::post('/solicitudes', [ReporteController::class, 'store'])->name('solicitudes.store');
+    // Solicitudes y Trámites (Apuntando a la vista solicitudes.blade.php)
+    Route::get('/solicitudes', [SolicitudController::class, 'index'])->name('solicitudes');
+    Route::post('/solicitudes', [SolicitudController::class, 'store'])->name('solicitudes.store');
 
-    // Registro y Listado de Empresas
-    Route::get('/empresas', [EmpresaController::class, 'index'])->name('empresas');
-    Route::post('/empresas', [EmpresaController::class, 'store'])->name('empresas.store');
+    // Empresas (Ciudadano)
+    Route::get('/empresas', [CiudadanoEmpresaController::class, 'index'])->name('empresas');
+    Route::post('/empresas', [CiudadanoEmpresaController::class, 'store'])->name('empresas.store');
+});
 
-    Route::resource('tramites', TramiteController::class)->except(['destroy']);
+// -------------------------------------------------------------
+// Panel Directores (Residuos / Ambiente)
+// -------------------------------------------------------------
+Route::middleware(['auth', 'role:director'])->prefix('director')->name('director.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // Lista de empresas
+    Route::get('/residuos/empresas', [DirectorEmpresaController::class, 'indexDirector'])->name('residuos.empresas');
+    
+    // Ver detalle del expediente (Vista Director)
+    Route::get('/residuos/empresas/{empresa}', [DirectorEmpresaController::class, 'show'])->name('residuos.empresas.show');
+    
+    // Dictamen
+    Route::post('/residuos/empresas/{empresa}/evaluar', [DirectorEmpresaController::class, 'evaluarEmpresa'])->name('residuos.empresas.evaluar');
+});
+
+// -------------------------------------------------------------
+// Panel Inspectores
+// -------------------------------------------------------------
+Route::middleware(['auth', 'role:inspector'])->prefix('inspector')->name('inspector.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+});
+
+// -------------------------------------------------------------
+// Panel Administrador
+// -------------------------------------------------------------
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });

@@ -37,13 +37,9 @@ class AuthController extends Controller
 
         if (Auth::attempt($attemptData, $request->boolean('remember'))) {
             $request->session()->regenerate();
-        
-            // Obtenemos el usuario autenticado actual
-            $user = Auth::user();
 
-            if ($user->role_id == 4) { // Ciudadano
-               return redirect()->route('ciudadano.dashboard')->with('success', '¡Bienvenido de nuevo, ' . $user->nombre . '!');
-            }
+            // Redirige al controlador central (DashboardController) que despacha la vista según rol
+            return redirect()->intended('/dashboard')->with('success', '¡Bienvenido de nuevo, ' . Auth::user()->nombre . '!');
         }
 
         return back()->withErrors([
@@ -52,48 +48,45 @@ class AuthController extends Controller
     }
 
     /**
-     * Procesa el registro de nuevos usuarios o empresas.
+     * Procesa el registro de nuevos usuarios o empresas (Ciudadano).
      */
     public function register(Request $request)
     {
-    // Validación de ejemplo
         $request->validate([
-            'nacionalidad' => 'required|in:V,E,J,G',
-            'cedula_num' => 'required|numeric|digits_between:6,9',
-            'nombre' => 'required|string|max:100',
-            'apellido' => 'required|string|max:100',
-            'correo' => 'required|email|unique:users,correo',
+            'nacionalidad'     => 'required|in:V,E,J,G',
+            'cedula_num'       => 'required|numeric|digits_between:6,9',
+            'nombre'           => 'required|string|max:100',
+            'apellido'         => 'required|string|max:100',
+            'correo'           => 'required|email|unique:users,correo',
             'prefijo_telefono' => 'required|in:0412,0414,0424,0416,0426',
-            'telefono_num' => 'required|numeric|digits:7',
-            'contraseña' => 'required|min:6|confirmed',
+            'telefono_num'     => 'required|numeric|digits:7',
+            'contraseña'       => 'required|min:6|confirmed',
         ]);
 
         $roleCiudadano = Role::where('nombre', 'ciudadano')->first();
 
-        // Unificación de campos
-        $cedulaUnificada = "{$request->nacionalidad}-{$request->cedula_num}";
+        $cedulaUnificada   = "{$request->nacionalidad}-{$request->cedula_num}";
         $telefonoUnificado = "{$request->prefijo_telefono}{$request->telefono_num}";
 
-        // Verificar si ya existe la cédula unificada por seguridad
         if (User::where('cedula', $cedulaUnificada)->exists()) {
             return back()->withErrors(['cedula_num' => 'Esta cédula o RIF ya se encuentra registrada.'])->withInput();
         }
 
         $user = User::create([
-            'role_id' => $roleCiudadano->id_roles,
+            'role_id'      => $roleCiudadano->id_roles ?? 4,
             'direccion_id' => null,
-            'cedula' => $cedulaUnificada,
-            'telefono' => $telefonoUnificado,
-            'nombre' => $request->nombre,
-            'apellido' => $request->apellido,
-            'correo' => $request->correo,
-            'password' => Hash::make($request->contraseña),
+            'cedula'       => $cedulaUnificada,
+            'telefono'     => $telefonoUnificado,
+            'nombre'       => $request->nombre,
+            'apellido'     => $request->apellido,
+            'correo'       => $request->correo,
+            'password'     => Hash::make($request->contraseña),
         ]);
 
         Auth::login($user);
 
-        // En login() y register(), reemplaza la línea del redirect por:
-        return redirect()->to('/ciudadano/dashboard')->with('success', '¡Usuario creado exitosamente!');
+        // Envía al dashboard unificado tras registrarse
+        return redirect()->to('/dashboard')->with('success', '¡Usuario creado exitosamente!');
     }
 
     /**

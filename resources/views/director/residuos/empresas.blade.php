@@ -1,0 +1,93 @@
+<x-layouts.app active="empresas">
+    <div class="p-6 max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header / Título -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Gestión de Empresas</h1>
+                <p class="text-sm text-slate-400">Revisión de expedientes comerciales y emisión de dictámenes ambientales.</p>
+            </div>
+        </div>
+
+        <!-- Alertas de Flash Session -->
+        @if(session('success'))
+            <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-3">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
+        <!-- Tabla de Empresas -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-800 font-semibold tracking-wider">
+                        <tr>
+                            <th scope="col" class="px-6 py-4">Empresa / RIF</th>
+                            <th scope="col" class="px-6 py-4">Representante</th>
+                            <th scope="col" class="px-6 py-4">Estado Dictamen</th>
+                            <th scope="col" class="px-6 py-4">Registro</th>
+                            <th scope="col" class="px-6 py-4 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60">
+                        @forelse($empresas as $empresa)
+                            <tr class="hover:bg-slate-800/40 transition-colors">
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-white">{{ $empresa->razon_social ?? $empresa->nombre_comercial }}</div>
+                                    <div class="text-xs text-slate-400 font-mono">{{ $empresa->rif }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-slate-200">
+                                        {{ trim(($empresa->user->nombre ?? '') . ' ' . ($empresa->user->apellido ?? '')) ?: 'N/A' }}
+                                    </div>
+                                    <div class="text-xs text-slate-400">
+                                        {{ $empresa->user->correo ?? 'Sin correo' }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    @php
+                                        $estado = strtolower($empresa->estado_evaluacion ?? 'pendiente');
+                                        $badgeClasses = match($estado) {
+                                            'aprobado' => 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                                            'rechazado' => 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+                                            'observado' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                                            default => 'bg-slate-800 text-slate-400 border-slate-700',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize {{ $badgeClasses }}">
+                                        {{ $estado }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-xs text-slate-400">
+                                    {{ $empresa->created_at ? $empresa->created_at->format('d/m/Y') : 'N/A' }}
+                                </td>
+                                <td class="px-6 py-4 text-right space-x-2">
+                                    <a href="{{ route('director.residuos.empresas.show', $empresa) }}" class="px-3 py-1.5 bg-slate-700 text-slate-200 rounded text-xs hover:bg-slate-600">
+                                        Ver Expediente
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-8 text-center text-slate-500">
+                                    No hay empresas registradas para evaluar en este momento.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            @if($empresas->hasPages())
+                <div class="p-4 border-t border-slate-800 bg-slate-950/40">
+                    {{ $empresas->links() }}
+                </div>
+            @endif
+        </div>
+
+    </div>
+</x-layouts.app>
