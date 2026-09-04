@@ -147,48 +147,70 @@ return new class extends Migration
             $table->timestampTz('created_at')->nullable();
         });
 
-        // -------------------------------------------------------------
+// -------------------------------------------------------------
         // 6. Empresas y Expedientes Ambientales
         // -------------------------------------------------------------
         Schema::create('empresas', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            
+            // Vinculación directa con el ciudadano solicitante
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
 
-            $table->string('rif')->unique();
-            $table->text('razon_social');
-            $table->text('nombre_comercial')->nullable();
-            $table->string('numero_cuenta_patente');
-            $table->text('correo_comercial');
+            $table->string('rif', 15)->unique();
+            $table->string('razon_social');
+            $table->string('nombre_comercial')->nullable();
+            $table->string('numero_cuenta_patente')->comment('Cuenta SIGAT / Licencia (CZ-AE-XXXXXX o Cód. Contribuyente)');
+            $table->string('correo_comercial');
             $table->string('telefono_comercial');
-            $table->text('sector');
-            $table->text('calle_avenida');
-            $table->text('edificio_galpon_local');
-            $table->text('punto_referencia');
+            
+            // Ubicación Territorial Carrizal
+            $table->string('comuna'); // <-- NUEVO: Obligatorio para vincular TerritorioService
+            $table->string('sector');
+            $table->string('calle_avenida');
+            $table->string('edificio_galpon_local');
+            $table->text('punto_referencia')->nullable();
 
-            $table->timestampsTz();
+            // Estado del expediente controlado por la Dirección de Residuos
+            $table->enum('estatus', [
+                'PENDIENTE_APROBACION', 
+                'OBSERVADO', 
+                'APROBADO', 
+                'RECHAZADO'
+            ])->default('PENDIENTE_APROBACION');
+
+            $table->text('observaciones_fiscalia')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('perfiles_ambientales', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('empresa_id');
-            $table->foreign('empresa_id')->references('id')->on('empresas')->cascadeOnDelete();
+            $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
 
-            $table->boolean('tiene_renma')->nullable();
+            // Rol Ecosocialista (GENERADOR, MANEJADOR, NO_APLICA)
+            $table->string('rol_ambiental')->default('GENERADOR');
+            $table->string('subtipo_generador')->nullable(); // PEQUENO, MEDIANO, GRAN
             $table->string('numero_racda')->nullable();
+            
+            // Diagnóstico Específico
+            $table->boolean('genera_efluentes')->default(false);
+            $table->boolean('genera_emisiones')->default(false);
+            $table->boolean('genera_peligrosos')->default(false);
+            $table->boolean('genera_ruidos')->default(false);
+            $table->boolean('usa_pozo_agua')->default(false);
 
-            $table->boolean('genera_efluentes')->nullable();
-            $table->boolean('genera_emisiones')->nullable();
-            $table->boolean('genera_ruidos')->nullable();
-            $table->boolean('usa_pozo_agua')->nullable();
+            // Datos Complementarios de Manejo / RACDA
+            $table->string('manejadora_contratada')->nullable();
+            $table->jsonb('actividades_manejador')->nullable(); // Array de actividades seleccionadas
+            $table->text('sustancias_manejadas')->nullable();
+            $table->jsonb('residuos_tipos')->nullable();       // Array de tipos de residuos
 
-            $table->jsonb('residuos_comunes');
-            $table->jsonb('residuos_reciclables');
-            $table->jsonb('residuos_peligrosos');
+            // Volúmenes (Estructuras JSONB opcionales)
+            $table->jsonb('residuos_comunes')->nullable();
+            $table->jsonb('residuos_reciclables')->nullable();
+            $table->jsonb('residuos_peligrosos')->nullable();
 
-            $table->timestampsTz();
+            $table->timestamps();
         });
-
-        DB::statement("ALTER TABLE perfiles_ambientales ADD COLUMN tipo_racda tipo_racda_enum");
 
         Schema::create('documentos_expediente', function (Blueprint $table) {
             $table->uuid('id')->primary();

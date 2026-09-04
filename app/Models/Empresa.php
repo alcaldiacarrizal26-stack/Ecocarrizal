@@ -1,3 +1,5 @@
+<?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,10 +20,12 @@ class Empresa extends Model
         'numero_cuenta_patente',
         'correo_comercial',
         'telefono_comercial',
+        'comuna',
         'sector',
         'calle_avenida',
         'edificio_galpon_local',
-        'punto_referencia',
+        'estatus',
+        'observaciones_fiscalia',
     ];
 
     public function user(): BelongsTo
