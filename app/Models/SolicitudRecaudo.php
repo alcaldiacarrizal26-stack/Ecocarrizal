@@ -11,7 +11,10 @@ class SolicitudRecaudo extends Model
     use HasUuids;
 
     protected $table = 'solicitud_recaudos';
-    const UPDATED_AT = null;
+
+    // Desactiva la actualización automática de timestamps.
+    // Se gestiona solo 'created_at' manualmente o por default en la BD.
+    public $timestamps = false;
 
     protected $fillable = [
         'solicitud_id',
@@ -20,14 +23,16 @@ class SolicitudRecaudo extends Model
         'bucket_path',
         'archivo_url',
         'es_evidencia_fotografica',
+        'created_at',
     ];
 
     protected $casts = [
         'es_evidencia_fotografica' => 'boolean',
+        'created_at'               => 'datetime',
     ];
 
     public function solicitud(): BelongsTo
     {
-        return $this->belongsTo(Solicitud::class);
+        return $this->belongsTo(Solicitud::class, 'solicitud_id');
     }
 }

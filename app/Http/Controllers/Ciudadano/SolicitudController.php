@@ -3,92 +3,179 @@
 namespace App\Http\Controllers\Ciudadano;
 
 use App\Http\Controllers\Controller;
+use App\Models\Solicitud;
+use App\Models\SolicitudRecaudo;
 use App\Services\TerritorioService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SolicitudController extends Controller
 {
-    /**
-     * Muestra el listado de solicitudes del ciudadano autenticado y la data de soporte.
-     */
     public function index()
     {
-        // Obtenemos la estructura territorial oficial desde el Service
         $territorios = TerritorioService::getTerritorios();
 
-        // Tipos de trámites disponibles para solicitudes ambientales / gestión de residuos
         $tiposTramites = [
-            'declaracion_residuos' => [
-                'nombre' => 'Declaración Jurada de Generación de Residuos y Desechos Sólidos',
-                'descripcion' => 'Registro y estimación del volumen de generación de residuos para establecimientos comerciales e industriales.',
-                'requisitos' => [
-                    'Registro Mercantil y última acta de asamblea',
-                    'RIF de la empresa o firma personal (Vigente)',
-                    'Cédula de identidad del representante legal',
-                    'Patente de Industria y Comercio / Licencia de Actividades Económicas',
-                    'Fotografías del área de almacenamiento de residuos',
-                    'Cálculo/Estimación de volumen de desechos semanales',
+            'inspeccion' => [
+                'nombre' => 'Solicitud de Inspección TÉCNICA',
+                'descripcion' => 'Evaluación e inspección en sitio por parte del personal técnico ambiental.',
+                'plazoDias' => 0,
+                'requisitosObligatorios' => [
+                    ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'PDF o imagen legible']
+                ],
+                'requisitosCondicionales' => []
+            ],
+            'poda_deshierbe' => [
+                'nombre' => 'Solicitud de Permiso para Poda o Deshierbe',
+                'descripcion' => 'Autorización técnica para labores de mantenimiento, acondicionamiento de vegetación o poda de árboles.',
+                'plazoDias' => 90,
+                'requisitosObligatorios' => [
+                    ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
+                    ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar motivos e intervención']
+                ],
+                'requisitosCondicionales' => [
+                    [
+                        'key' => 'autorizacion_propietario', 
+                        'label' => 'Autorización del Propietario', 
+                        'hint' => 'Requerido si no eres el propietario directo del inmueble/terreno',
+                        'flag_check' => 'aplica_autorizacion_propietario'
+                    ],
+                    [
+                        'key' => 'variables_ambientales', 
+                        'label' => 'Variables Ambientales (MINEC)', 
+                        'hint' => 'Requerido si el terreno se encuentra en Zona Protectora o requiere afectación vegetal ante el MINEC',
+                        'flag_check' => 'aplica_variables_ambientales'
+                    ]
+                ],
+                'requisitosOpcionales' => [
+                    ['key' => 'registro_rif', 'label' => 'Registro Mercantil y RIF', 'hint' => 'Solo si es Persona Jurídica'],
+                    ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
+                    ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
+                    ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
+                    ['key' => 'constancia_catastral', 'label' => 'Constancia Catastral Vigente', 'hint' => 'Catastro municipal'],
+                    ['key' => 'carta_compromiso', 'label' => 'Carta de Compromiso de Reposición', 'hint' => 'En caso de afectación a bienes públicos']
                 ]
             ],
-            'permiso_transporte_residuos' => [
-                'nombre' => 'Permiso de Transporte y Disposición Final de Residuos',
-                'descripcion' => 'Autorización para vehículos dedicados al traslado de materiales aprovechables o desechos en el municipio.',
-                'requisitos' => [
-                    'RIF de la empresa prestadora del servicio',
-                    'Cédula de identidad del conductor o representante',
-                    'Título de propiedad / Carnet de circulación del vehículo',
-                    'Póliza de seguro de responsabilidad civil (Vigente)',
-                    'Certificado de revisión técnica/mecánica del vehículo',
-                    'Ruta de transporte proyectada y destino final autorizado',
+            'desmalezamiento_conformacion' => [
+                'nombre' => 'Permiso de Desmalezamiento y Conformación de Terreno',
+                'descripcion' => 'Permisos para trabajos de limpieza profunda, acondicionamiento y movimiento menor de suelos.',
+                'plazoDias' => 90,
+                'requisitosObligatorios' => [
+                    ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
+                    ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar intervención de suelo']
+                ],
+                'requisitosCondicionales' => [
+                    [
+                        'key' => 'autorizacion_propietario', 
+                        'label' => 'Autorización del Propietario', 
+                        'hint' => 'Requerido si no eres el propietario directo del inmueble/terreno',
+                        'flag_check' => 'aplica_autorizacion_propietario'
+                    ],
+                    [
+                        'key' => 'variables_ambientales', 
+                        'label' => 'Variables Ambientales (MINEC)', 
+                        'hint' => 'Requerido si el terreno se encuentra en Zona Protectora o requiere afectación vegetal ante el MINEC',
+                        'flag_check' => 'aplica_variables_ambientales'
+                    ]
+                ],
+                'requisitosOpcionales' => [
+                    ['key' => 'registro_rif', 'label' => 'Registro Mercantil y RIF', 'hint' => 'Solo si es Persona Jurídica'],
+                    ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
+                    ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
+                    ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
+                    ['key' => 'constancia_catastral', 'label' => 'Constancia Catastral Vigente', 'hint' => 'Catastro municipal'],
+                    ['key' => 'carta_compromiso', 'label' => 'Carta de Compromiso de Reposición', 'hint' => 'En caso de afectación a bienes públicos']
                 ]
-            ],
-            'poda_tala' => [
-                'nombre' => 'Autorización para Poda o Tala Fitosanitaria / Preventiva',
-                'descripcion' => 'Evaluación e inspección técnica de árboles en propiedad privada o espacio público que representen riesgo o afectación.',
-                'requisitos' => [
-                    'Cédula de identidad del solicitante',
-                    'Documento de propiedad del inmueble o constancia de residencia',
-                    'Fotografías claras de la especie vegetal y la condición de riesgo',
-                    'Carta explicativa con el motivo de la solicitud',
-                ]
-            ],
-            'inspeccion_riesgo_ambiental' => [
-                'nombre' => 'Solicitud de Inspección de Riesgo Ambiental o Denuncia',
-                'descripcion' => 'Atención de emergencias o afectaciones por vertidos, quema ilegal, acumulación indebida de desechos o ruidos molestos.',
-                'requisitos' => [
-                    'Cédula de identidad del denunciante o solicitante',
-                    'Ubicación exacta y referencias del lugar afectado',
-                    'Fotografías o evidencia digital del problema ambiental',
-                    'Exposición breve de los hechos y horario de ocurrencia',
-                ]
-            ],
+            ]
         ];
 
-        // NOTA: Reemplazar por la consulta real cuando integres la tabla de solicitudes (Ej: Solicitud::where('user_id', auth()->id())->latest()->get())
-        $tramites = collect([]);
+        $tramites = Solicitud::with(['inspector', 'recaudos'])
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->get();
 
         return view('ciudadano.solicitudes', compact('tramites', 'territorios', 'tiposTramites'));
     }
 
-    /**
-     * Almacena una nueva solicitud.
-     */
     public function store(Request $request)
     {
-        $request->validate([
-            'tipo_tramite'     => 'required|string',
-            'comuna'           => 'required|string',
-            'sector'           => 'required|string',
-            'direccion_exacta' => 'required|string|max:500',
-            'motivo_solicitud' => 'required|string|max:1000',
-            'documentos'       => 'required|array|min:1',
-            'documentos.*'     => 'file|mimes:pdf,jpg,jpeg,png|max:10240', // Máx 10MB por archivo
+        $validated = $request->validate([
+            'tipo_tramite'                    => 'required|string|in:inspeccion,poda_deshierbe,desmalezamiento_conformacion',
+            'comuna'                          => 'required|string',
+            'sector'                          => 'required|string',
+            'direccion_exacta'                => 'required|string|max:500',
+            'motivo_solicitud'                => 'required|string|max:1000',
+            'aplica_autorizacion_propietario' => 'nullable|boolean',
+            'aplica_variables_ambientales'    => 'nullable|boolean',
+            'documentos'                      => 'required|array|min:1',
+            'documentos.*'                    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
-        // Lógica de almacenamiento, guardado de archivos e inserción en BD...
+        DB::transaction(function () use ($request, $validated) {
+            $yearActual = Carbon::now()->year;
+
+            // Bloqueamos la fila más reciente del año en curso para sincronizar la concurrencia
+            $ultimaSolicitud = DB::table('solicitudes')
+                ->whereYear('created_at', $yearActual)
+                ->orderBy('created_at', 'desc')
+                ->lockForUpdate()
+                ->first();
+
+            // Realizamos el conteo directo sin asociarlo al lockForUpdate
+            $conteoAno = DB::table('solicitudes')
+                ->whereYear('created_at', $yearActual)
+                ->count();
+
+            $ultimoSecuencial = $conteoAno + 1;
+            $codigoExpediente = sprintf('SOL-%d-%04d', $yearActual, $ultimoSecuencial);
+
+            // Guardamos las condicionales en el JSONB
+            $datosEspecificos = [
+                'aplica_autorizacion_propietario' => $request->boolean('aplica_autorizacion_propietario'),
+                'aplica_variables_ambientales'    => $request->boolean('aplica_variables_ambientales'),
+            ];
+
+            $solicitud = Solicitud::create([
+                'id'                 => (string) Str::uuid(),
+                'codigo_expediente'  => $codigoExpediente,
+                'user_id'            => auth()->id(),
+                'inspector_id'       => null,
+                'tipo_tramite'       => $validated['tipo_tramite'],
+                'comuna'             => $validated['comuna'],
+                'sector'             => $validated['sector'],
+                'direccion_exacta'   => $validated['direccion_exacta'],
+                'motivo_descripcion' => $validated['motivo_solicitud'],
+                'datos_especificos'  => $datosEspecificos,
+                'estado'             => 'pendiente',
+                'proximo_paso'       => 'Asignación de inspector para revisión técnica',
+            ]);
+
+            if ($request->hasFile('documentos')) {
+                foreach ($request->file('documentos') as $key => $file) {
+                    if ($file && $file->isValid()) {
+                        $path = $file->store("solicitudes/{$solicitud->id}", 'public');
+                        $extension = strtolower($file->getClientOriginalExtension());
+
+                        SolicitudRecaudo::create([
+                            'id'                       => (string) Str::uuid(),
+                            'solicitud_id'             => $solicitud->id,
+                            'tipo_recaudo'             => $key,
+                            'nombre_archivo'           => $file->getClientOriginalName(),
+                            'bucket_path'              => $path,
+                            'archivo_url'              => Storage::url($path),
+                            'es_evidencia_fotografica' => in_array($extension, ['jpg', 'jpeg', 'png']),
+                            'created_at'               => now(),
+                        ]);
+                    }
+                }
+            }
+        });
 
         return redirect()
-            ->route('ciudadano.solicitudes.index')
+            ->route('ciudadano.solicitudes')
             ->with('success', 'Tu solicitud ha sido registrada exitosamente.');
     }
 }

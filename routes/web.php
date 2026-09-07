@@ -49,6 +49,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     // Solicitudes y Trámites (Apuntando a la vista solicitudes.blade.php)
     Route::get('/solicitudes', [SolicitudController::class, 'index'])->name('solicitudes');
     Route::post('/solicitudes', [SolicitudController::class, 'store'])->name('solicitudes.store');
+    Route::put('/solicitudes/{tramite}/pendientes', [SolicitudController::class, 'subirPendientes'])->name('solicitudes.pendientes');
 
     // Empresas (Ciudadano)
     Route::get('/empresas', [CiudadanoEmpresaController::class, 'index'])->name('empresas');

@@ -10,12 +10,10 @@ return new class extends Migration
     public function up(): void
     {
         // -------------------------------------------------------------
-        // 1. Tipos ENUM nativos de PostgreSQL (Protegidos contra duplicados)
+        // 1. Tipos ENUM nativos de PostgreSQL
         // -------------------------------------------------------------
         $enums = [
-            "tipo_tramite_enum" => "'poda', 'tala', 'trasplante', 'conformidad', 'racda'",
-            "estado_solicitud_enum" => "'En proceso', 'En inspección', 'Aprobado', 'Rechazado'",
-            "tipo_racda_enum" => "'NO_APLICA', 'RACDA_GENERADOR', 'RACDA_MANEJADOR'",
+            "tipo_racda_enum"       => "'NO_APLICA', 'RACDA_GENERADOR', 'RACDA_MANEJADOR'",
             "estado_documento_enum" => "'PENDIENTE', 'APROBADO', 'OBSERVADO'",
         ];
 
@@ -54,27 +52,23 @@ return new class extends Migration
         });
 
         // -------------------------------------------------------------
-        // 3. Usuarios (Tabla Unificada de Usuarios)
+        // 3. Usuarios
         // -------------------------------------------------------------
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             
-            // Llaves foráneas
             $table->foreignId('role_id')->constrained('roles', 'id_roles')->onDelete('cascade');
             $table->foreignId('direccion_id')->nullable()->constrained('direcciones', 'id_direccion')->nullOnDelete();
 
-            // Identificación y contacto
             $table->string('cedula', 20)->unique();
             $table->string('telefono', 15);
             $table->string('nombre', 100);
             $table->string('apellido', 100);
             $table->string('correo')->unique();
 
-            // Atributos de estado
             $table->boolean('accepted_terms')->default(true);
             $table->boolean('is_active')->default(true);
 
-            // Autenticación
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
@@ -90,12 +84,10 @@ return new class extends Migration
             $table->string('tipo_contaminacion');
             $table->string('otro_tipo_contaminacion')->nullable();
             
-            // Ubicación
             $table->string('comuna');
             $table->string('sector');
             $table->string('punto_referencia');
             
-            // Severidad
             $table->enum('nivel_gravedad', ['baja', 'media', 'alta'])->default('baja');
             $table->text('justificacion_gravedad')->nullable();
             
@@ -119,24 +111,24 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('codigo_expediente')->nullable()->unique();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('inspector_id')->nullable()->constrained('users')->nullOnDelete();
 
+            $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion']);
+            $table->enum('estado', ['pendiente', 'inspector_asignado', 'en_inspeccion', 'atendido', 'anulado'])->default('pendiente');
+
+            $table->string('comuna');
             $table->string('sector');
             $table->text('direccion_exacta');
             $table->text('motivo_descripcion');
             $table->jsonb('datos_especificos')->nullable();
 
             $table->text('proximo_paso')->nullable();
-
             $table->timestampsTz();
         });
 
-        DB::statement("ALTER TABLE solicitudes ADD COLUMN tipo_tramite tipo_tramite_enum");
-        DB::statement("ALTER TABLE solicitudes ADD COLUMN estado estado_solicitud_enum");
-
         Schema::create('solicitud_recaudos', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('solicitud_id');
-            $table->foreign('solicitud_id')->references('id')->on('solicitudes')->cascadeOnDelete();
+            $table->foreignUuid('solicitud_id')->constrained('solicitudes')->cascadeOnDelete();
 
             $table->string('tipo_recaudo');
             $table->text('nombre_archivo');
@@ -152,8 +144,6 @@ return new class extends Migration
         // -------------------------------------------------------------
         Schema::create('empresas', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            
-            // Vinculación directa con el ciudadano solicitante
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
 
             $table->string('rif', 15)->unique();
@@ -163,14 +153,12 @@ return new class extends Migration
             $table->string('correo_comercial');
             $table->string('telefono_comercial');
             
-            // Ubicación Territorial Carrizal
-            $table->string('comuna'); // <-- NUEVO: Obligatorio para vincular TerritorioService
+            $table->string('comuna');
             $table->string('sector');
             $table->string('calle_avenida');
             $table->string('edificio_galpon_local');
             $table->text('punto_referencia')->nullable();
 
-            // Estado del expediente controlado por la Dirección de Residuos
             $table->enum('estatus', [
                 'PENDIENTE_APROBACION', 
                 'OBSERVADO', 
@@ -186,25 +174,21 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
 
-            // Rol Ecosocialista (GENERADOR, MANEJADOR, NO_APLICA)
             $table->string('rol_ambiental')->default('GENERADOR');
-            $table->string('subtipo_generador')->nullable(); // PEQUENO, MEDIANO, GRAN
+            $table->string('subtipo_generador')->nullable();
             $table->string('numero_racda')->nullable();
             
-            // Diagnóstico Específico
             $table->boolean('genera_efluentes')->default(false);
             $table->boolean('genera_emisiones')->default(false);
             $table->boolean('genera_peligrosos')->default(false);
             $table->boolean('genera_ruidos')->default(false);
             $table->boolean('usa_pozo_agua')->default(false);
 
-            // Datos Complementarios de Manejo / RACDA
             $table->string('manejadora_contratada')->nullable();
-            $table->jsonb('actividades_manejador')->nullable(); // Array de actividades seleccionadas
+            $table->jsonb('actividades_manejador')->nullable();
             $table->text('sustancias_manejadas')->nullable();
-            $table->jsonb('residuos_tipos')->nullable();       // Array de tipos de residuos
+            $table->jsonb('residuos_tipos')->nullable();
 
-            // Volúmenes (Estructuras JSONB opcionales)
             $table->jsonb('residuos_comunes')->nullable();
             $table->jsonb('residuos_reciclables')->nullable();
             $table->jsonb('residuos_peligrosos')->nullable();
@@ -214,20 +198,22 @@ return new class extends Migration
 
         Schema::create('documentos_expediente', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('empresa_id');
-            $table->foreign('empresa_id')->references('id')->on('empresas')->cascadeOnDelete();
+            $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
 
             $table->string('codigo_requisito');
             $table->text('nombre_requisito');
             $table->string('numero_folio')->nullable();
             $table->text('archivo_path')->nullable();
-
             $table->text('observaciones')->nullable();
 
             $table->timestampTz('created_at')->nullable();
         });
 
-        DB::statement("ALTER TABLE documentos_expediente ADD COLUMN estado estado_documento_enum");
+        // Asignación nativa del tipo ENUM de Postgres
+        DB::statement("
+            ALTER TABLE documentos_expediente 
+            ADD COLUMN estado estado_documento_enum NOT NULL DEFAULT 'PENDIENTE';
+        ");
     }
 
     public function down(): void
@@ -245,7 +231,5 @@ return new class extends Migration
 
         DB::statement("DROP TYPE IF EXISTS estado_documento_enum CASCADE");
         DB::statement("DROP TYPE IF EXISTS tipo_racda_enum CASCADE");
-        DB::statement("DROP TYPE IF EXISTS estado_solicitud_enum CASCADE");
-        DB::statement("DROP TYPE IF EXISTS tipo_tramite_enum CASCADE");
     }
 };

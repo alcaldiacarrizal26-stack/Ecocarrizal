@@ -1,4 +1,4 @@
-@props(['active' => ''])
+@props(['active' => null])
 
 @php
     $user = auth()->user();
@@ -15,6 +15,26 @@
     $dashboardRoute = Route::has("{$prefix}.dashboard") 
         ? route("{$prefix}.dashboard") 
         : url("/{$prefix}/dashboard");
+
+    // Lógica para determinar el ítem activo
+    // Si no se envía la prop 'active', evaluamos directamente la ruta o la URL actual
+    $currentActive = $active;
+
+    if (is_null($currentActive) || $currentActive === '') {
+        if (request()->routeIs('*.dashboard') || request()->is('*/dashboard')) {
+            $currentActive = 'inicio';
+        } elseif (request()->routeIs('*.solicitudes*') || request()->is('*/solicitudes*')) {
+            $currentActive = 'solicitudes';
+        } elseif (request()->routeIs('*.empresas*') || request()->is('*/empresas*')) {
+            $currentActive = 'empresas';
+        } elseif (request()->routeIs('*.reportes*') || request()->is('*/reportes*')) {
+            $currentActive = 'reportes';
+        } elseif (request()->routeIs('*.compensacion*') || request()->is('*/compensacion*')) {
+            $currentActive = 'compensacion';
+        } elseif (request()->routeIs('*.soporte*') || request()->is('*/soporte*')) {
+            $currentActive = 'soporte';
+        }
+    }
 @endphp
 
 <!-- Overlay para pantallas pequeñas -->
@@ -55,7 +75,7 @@
                 <!-- 1. Inicio Ciudadano -->
                 <a 
                     href="{{ $dashboardRoute }}" 
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'inicio' || request()->routeIs('ciudadano.dashboard')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 00-1 1m-6 0h6"/>
@@ -66,7 +86,7 @@
                 <!-- 2. Perfil Comercial -->
                 <a 
                     href="{{ Route::has('ciudadano.empresas') ? route('ciudadano.empresas') : url('/ciudadano/empresas') }}" 
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'empresas' || request()->routeIs('ciudadano.empresas*')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'empresas' ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/>
@@ -76,8 +96,8 @@
 
                 <!-- 3. Solicitudes y Trámites -->
                 <a 
-                    href="{{ Route::has('ciudadano.solicitudes.index') ? route('ciudadano.solicitudes.index') : url('/ciudadano/solicitudes') }}" 
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'solicitudes' || request()->routeIs('ciudadano.solicitudes*')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                    href="{{ Route::has('ciudadano.solicitudes') ? route('ciudadano.solicitudes') : url('/ciudadano/solicitudes') }}" 
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'solicitudes' ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -88,7 +108,7 @@
                 <!-- 4. Reportes y Denuncias -->
                 <a 
                     href="{{ Route::has('ciudadano.reportes') ? route('ciudadano.reportes') : url('/ciudadano/reportes') }}" 
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'reportes' || request()->routeIs('ciudadano.reportes*')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'reportes' ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -99,7 +119,7 @@
                 <!-- 5. Compensación Ambiental -->
                 <a 
                     href="{{ Route::has('ciudadano.compensacion') ? route('ciudadano.compensacion') : url('/ciudadano/compensacion-ambiental') }}" 
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'compensacion' || request()->routeIs('ciudadano.compensacion*')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'compensacion' ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -112,7 +132,7 @@
                 <!-- 1. Inicio / Panel Principal -->
                 <a 
                     href="{{ $dashboardRoute }}" 
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'inicio' || request()->routeIs('director.dashboard')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 00-1 1m-6 0h6"/>
@@ -123,7 +143,7 @@
                 <!-- 2. Gestión de Empresas -->
                 <a 
                     href="{{ Route::has('director.residuos.empresas') ? route('director.residuos.empresas') : url('/director/residuos/empresas') }}" 
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ ($active === 'empresas' || request()->routeIs('director.residuos.empresas*')) ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'empresas' ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/>
@@ -139,7 +159,7 @@
     <div class="p-3 border-t border-slate-800 space-y-1">
         <a 
             href="{{ Route::has($prefix . '.soporte') ? route($prefix . '.soporte') : url('/' . $prefix . '/soporte') }}" 
-            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all font-medium text-sm {{ $active === 'soporte' ? 'bg-slate-800 text-white' : '' }}"
+            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all font-medium text-sm {{ $currentActive === 'soporte' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
         >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
