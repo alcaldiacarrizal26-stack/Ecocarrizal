@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Director;
+namespace App\Http\Controllers\Director\Residuos;
 
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class EmpresaController extends Controller
 {
-    public function indexDirector()
+    public function index()
     {
         $empresas = Empresa::with(['user', 'perfilAmbiental'])
             ->latest()
@@ -46,7 +46,7 @@ class EmpresaController extends Controller
         ]);
 
         return redirect()
-            ->route('director.empresas.index')
+            ->route('director.empresas')
             ->with('success', 'El veredicto para la empresa ' . $empresa->razon_social . ' ha sido registrado.');
     }
 }

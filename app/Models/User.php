@@ -85,4 +85,9 @@ class User extends Authenticatable
 
         return in_array($roleName, $flatRoles, true);
     }
+
+    public function inspector()
+    {
+        return $this->hasOne(Inspector::class, 'user_id');
+    }
 }

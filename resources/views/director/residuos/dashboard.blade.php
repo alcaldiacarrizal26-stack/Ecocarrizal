@@ -1,4 +1,4 @@
-<x-layouts.app title="Panel Director de Residuos" active="inicio">
+<x-layouts.app title="Panel - Director de Residuos" active="inicio">
 <div class="max-w-7xl mx-auto space-y-8">
 
     <!-- Encabezado / Saludo -->

@@ -65,7 +65,7 @@ class DatabaseSeeder extends Seeder
             ['cedula' => 'V-87654321'],
             [
                 'role_id' => 2,
-                'direccion_id' => 1, // Dirección de Ambiente
+                'direccion_id' => 1,
                 'telefono' => '04149876543',
                 'nombre' => 'Carlos',
                 'apellido' => 'Mendoza',
@@ -83,7 +83,7 @@ class DatabaseSeeder extends Seeder
             ['cedula' => 'V-98765432'],
             [
                 'role_id' => 2,
-                'direccion_id' => 2, // Dirección de Residuos
+                'direccion_id' => 2,
                 'telefono' => '04129876943',
                 'nombre' => 'Simon',
                 'apellido' => 'Bolivar',
@@ -96,12 +96,12 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 6. Usuario Inspector (Rol 3 - Dirección de Ambiente)
+        // 7. Usuario Inspector (Rol 3 - Dirección de Ambiente)
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-11223344'],
             [
                 'role_id' => 3,
-                'direccion_id' => 1, // Dirección de Ambiente
+                'direccion_id' => 1,
                 'telefono' => '04241112233',
                 'nombre' => 'Roberto',
                 'apellido' => 'Gómez',
@@ -114,7 +114,26 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 7. Ajustar la secuencia del ID en PostgreSQL
+        // 8. Registro en la tabla de inspectores
+        $inspectorUser = DB::table('users')->where('cedula', 'V-11223344')->first();
+
+        if ($inspectorUser) {
+            DB::table('inspectores')->updateOrInsert(
+                ['user_id' => $inspectorUser->id],
+                [
+                    'direccion_id' => 1,
+                    'codigo_credencial' => 'INS-2026-001',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
+
+        // 9. Ajustar secuencias de ID en PostgreSQL
         DB::statement("SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1)) FROM users;");
+        
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("SELECT setval(pg_get_serial_sequence('inspectores', 'id'), coalesce(max(id), 1)) FROM inspectores;");
+        }
     }
 }

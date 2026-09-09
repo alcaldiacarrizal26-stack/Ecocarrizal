@@ -14,11 +14,9 @@ use Illuminate\Support\Str;
 
 class SolicitudController extends Controller
 {
-    public function index()
+    private function getTiposTramitesConfig(): array
     {
-        $territorios = TerritorioService::getTerritorios();
-
-        $tiposTramites = [
+        return [
             'inspeccion' => [
                 'nombre' => 'Solicitud de Inspección TÉCNICA',
                 'descripcion' => 'Evaluación e inspección en sitio por parte del personal técnico ambiental.',
@@ -26,7 +24,8 @@ class SolicitudController extends Controller
                 'requisitosObligatorios' => [
                     ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'PDF o imagen legible']
                 ],
-                'requisitosCondicionales' => []
+                'requisitosCondicionales' => [],
+                'requisitosOpcionales' => []
             ],
             'poda_deshierbe' => [
                 'nombre' => 'Solicitud de Permiso para Poda o Deshierbe',
@@ -48,10 +47,21 @@ class SolicitudController extends Controller
                         'label' => 'Variables Ambientales (MINEC)', 
                         'hint' => 'Requerido si el terreno se encuentra en Zona Protectora o requiere afectación vegetal ante el MINEC',
                         'flag_check' => 'aplica_variables_ambientales'
+                    ],
+                    [
+                        'key' => 'registro_mercantil', 
+                        'label' => 'Copia del Registro Mercantil', 
+                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
+                        'flag_check' => 'es_persona_juridica'
+                    ],
+                    [
+                        'key' => 'rif_empresa', 
+                        'label' => 'Copia del RIF Vigente de la Empresa', 
+                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
+                        'flag_check' => 'es_persona_juridica'
                     ]
                 ],
                 'requisitosOpcionales' => [
-                    ['key' => 'registro_rif', 'label' => 'Registro Mercantil y RIF', 'hint' => 'Solo si es Persona Jurídica'],
                     ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                     ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                     ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
@@ -79,10 +89,21 @@ class SolicitudController extends Controller
                         'label' => 'Variables Ambientales (MINEC)', 
                         'hint' => 'Requerido si el terreno se encuentra en Zona Protectora o requiere afectación vegetal ante el MINEC',
                         'flag_check' => 'aplica_variables_ambientales'
+                    ],
+                    [
+                        'key' => 'registro_mercantil', 
+                        'label' => 'Copia del Registro Mercantil', 
+                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
+                        'flag_check' => 'es_persona_juridica'
+                    ],
+                    [
+                        'key' => 'rif_empresa', 
+                        'label' => 'Copia del RIF Vigente de la Empresa', 
+                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
+                        'flag_check' => 'es_persona_juridica'
                     ]
                 ],
                 'requisitosOpcionales' => [
-                    ['key' => 'registro_rif', 'label' => 'Registro Mercantil y RIF', 'hint' => 'Solo si es Persona Jurídica'],
                     ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                     ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                     ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
@@ -91,6 +112,12 @@ class SolicitudController extends Controller
                 ]
             ]
         ];
+    }
+
+    public function index()
+    {
+        $territorios = TerritorioService::getTerritorios();
+        $tiposTramites = $this->getTiposTramitesConfig();
 
         $tramites = Solicitud::with(['inspector', 'recaudos'])
             ->where('user_id', auth()->id())
@@ -110,6 +137,7 @@ class SolicitudController extends Controller
             'motivo_solicitud'                => 'required|string|max:1000',
             'aplica_autorizacion_propietario' => 'nullable|boolean',
             'aplica_variables_ambientales'    => 'nullable|boolean',
+            'es_persona_juridica'             => 'nullable|boolean',
             'documentos'                      => 'required|array|min:1',
             'documentos.*'                    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
@@ -124,7 +152,7 @@ class SolicitudController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            // Realizamos el conteo directo sin asociarlo al lockForUpdate
+            // Conteo secuencial del año
             $conteoAno = DB::table('solicitudes')
                 ->whereYear('created_at', $yearActual)
                 ->count();
@@ -132,25 +160,67 @@ class SolicitudController extends Controller
             $ultimoSecuencial = $conteoAno + 1;
             $codigoExpediente = sprintf('SOL-%d-%04d', $yearActual, $ultimoSecuencial);
 
-            // Guardamos las condicionales en el JSONB
+            // Guardamos las condicionales en el JSONB/JSON
             $datosEspecificos = [
                 'aplica_autorizacion_propietario' => $request->boolean('aplica_autorizacion_propietario'),
                 'aplica_variables_ambientales'    => $request->boolean('aplica_variables_ambientales'),
+                'es_persona_juridica'             => $request->boolean('es_persona_juridica'),
             ];
 
+            // Determinación de Requisitos Esperados vs Consignados
+            $configTramites = $this->getTiposTramitesConfig();
+            $configActual = $configTramites[$validated['tipo_tramite']] ?? null;
+
+            $keysEsperadas = [];
+            if ($configActual) {
+                // Requisitos Obligatorios
+                foreach ($configActual['requisitosObligatorios'] as $req) {
+                    $keysEsperadas[] = $req['key'];
+                }
+                // Requisitos Condicionales según los flags marcados
+                foreach ($configActual['requisitosCondicionales'] as $req) {
+                    if (!empty($req['flag_check']) && $request->boolean($req['flag_check'])) {
+                        $keysEsperadas[] = $req['key'];
+                    }
+                }
+                // Requisitos Opcionales/Complementarios
+                foreach ($configActual['requisitosOpcionales'] as $req) {
+                    $keysEsperadas[] = $req['key'];
+                }
+            }
+
+            // Claves de archivos realmente adjuntados en la petición
+            $documentosSubidos = $request->file('documentos') ?? [];
+            $keysSubidas = array_keys(array_filter($documentosSubidos, fn($file) => $file !== null));
+
+            // Comparar si faltan archivos esperados
+            $faltantes = array_diff($keysEsperadas, $keysSubidas);
+            $plazoDias = $configActual['plazoDias'] ?? 0;
+
+            if (count($faltantes) > 0 && $plazoDias > 0) {
+                $estadoFinal = 'incompleta';
+                $fechaLimite = Carbon::now()->addDays($plazoDias);
+                $proximoPaso = 'Consignación de documentación pendiente por parte del ciudadano';
+            } else {
+                $estadoFinal = 'pendiente';
+                $fechaLimite = null;
+                $proximoPaso = 'Asignación de inspector para revisión técnica';
+            }
+
             $solicitud = Solicitud::create([
-                'id'                 => (string) Str::uuid(),
-                'codigo_expediente'  => $codigoExpediente,
-                'user_id'            => auth()->id(),
-                'inspector_id'       => null,
-                'tipo_tramite'       => $validated['tipo_tramite'],
-                'comuna'             => $validated['comuna'],
-                'sector'             => $validated['sector'],
-                'direccion_exacta'   => $validated['direccion_exacta'],
-                'motivo_descripcion' => $validated['motivo_solicitud'],
-                'datos_especificos'  => $datosEspecificos,
-                'estado'             => 'pendiente',
-                'proximo_paso'       => 'Asignación de inspector para revisión técnica',
+                'id'                      => (string) Str::uuid(),
+                'codigo_expediente'       => $codigoExpediente,
+                'user_id'                 => auth()->id(),
+                'inspector_id'            => null,
+                'tipo_tramite'            => $validated['tipo_tramite'],
+                'comuna'                  => $validated['comuna'],
+                'sector'                  => $validated['sector'],
+                'direccion_exacta'        => $validated['direccion_exacta'],
+                'motivo_descripcion'      => $validated['motivo_solicitud'],
+                'datos_especificos'       => $datosEspecificos,
+                'estado'                  => $estadoFinal,
+                'fecha_limite_documentos' => $fechaLimite,
+                'proximo_paso'            => $proximoPaso,
             ]);
 
             if ($request->hasFile('documentos')) {

@@ -31,10 +31,11 @@
                     ],
                     requisitosCondicionales: [
                         { key: 'autorizacion_propietario', label: 'Autorización del Propietario', hint: 'Si no es el propietario directo del inmueble/terreno', flag: 'aplicaAutorizacionPropietario' },
-                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora AMC o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' }
+                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora AMC o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' },
+                        { key: 'registro_mercantil', label: 'Copia del Registro Mercantil', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' },
+                        { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' }
                     ],
                     requisitosOpcionales: [
-                        { key: 'registro_rif', label: 'Registro Mercantil y RIF', hint: 'Solo si es Persona Jurídica' },
                         { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado', hint: 'Título o documento legal' },
                         { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno', hint: 'Croquis o plano de mensura' },
                         { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente', hint: 'Emitida por la Alcaldía' },
@@ -52,10 +53,11 @@
                     ],
                     requisitosCondicionales: [
                         { key: 'autorizacion_propietario', label: 'Autorización del Propietario', hint: 'Si no es el propietario directo del inmueble/terreno', flag: 'aplicaAutorizacionPropietario' },
-                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora AMC o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' }
+                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora AMC o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' },
+                        { key: 'registro_mercantil', label: 'Copia del Registro Mercantil', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' },
+                        { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' }
                     ],
                     requisitosOpcionales: [
-                        { key: 'registro_rif', label: 'Registro Mercantil y RIF', hint: 'Solo si es Persona Jurídica' },
                         { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado', hint: 'Título o documento legal' },
                         { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno', hint: 'Croquis o plano de mensura' },
                         { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente', hint: 'Emitida por la Alcaldía' },
@@ -73,12 +75,14 @@
             
             aplicaAutorizacionPropietario: false,
             aplicaVariablesAmbientales: false,
+            esPersonaJuridica: false,
             archivosSubidos: {},
 
             onTramiteChange() {
                 this.archivosSubidos = {};
                 this.aplicaAutorizacionPropietario = false;
                 this.aplicaVariablesAmbientales = false;
+                this.esPersonaJuridica = false;
             },
 
             handleFileChange(key, input) {
@@ -122,6 +126,10 @@
 
                 if (this.aplicaAutorizacionPropietario && !this.archivosSubidos['autorizacion_propietario']) return false;
                 if (this.aplicaVariablesAmbientales && !this.archivosSubidos['variables_ambientales']) return false;
+                if (this.esPersonaJuridica) {
+                    if (!this.archivosSubidos['registro_mercantil']) return false;
+                    if (!this.archivosSubidos['rif_empresa']) return false;
+                }
 
                 return true;
             },
@@ -415,6 +423,11 @@
                                         <input type="checkbox" name="aplica_variables_ambientales" x-model="aplicaVariablesAmbientales" value="1" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                         <span class="text-[11px] text-slate-600">El terreno requiere Acreditación de Variables Ambientales (MINEC).</span>
                                     </label>
+
+                                    <label class="flex items-start gap-2 cursor-pointer">
+                                        <input type="checkbox" name="es_persona_juridica" x-model="esPersonaJuridica" value="1" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="text-[11px] text-slate-600">La solicitud es realizada a nombre de una Persona Jurídica / Empresa (requiere Registro Mercantil y RIF).</span>
+                                    </label>
                                 </div>
                             </template>
                         </div>
@@ -608,7 +621,7 @@
 
                             <template x-if="requisitosPendientesModal.length === 0">
                                 <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-center text-xs text-emerald-800 font-bold">
-                                    🎉 ¡Has consignado la totalidad de los documentos para este expediente!
+                                    Has consignado la totalidad de los documentos para este expediente
                                 </div>
                             </template>
 

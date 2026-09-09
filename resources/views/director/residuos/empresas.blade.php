@@ -1,4 +1,4 @@
-<x-layouts.app active="empresas">
+<x-layouts.app title="Empresas - Director de Residuos" active="residuos_empresas">
     <div class="p-6 max-w-7xl mx-auto space-y-6">
         
         <!-- Header / Título -->

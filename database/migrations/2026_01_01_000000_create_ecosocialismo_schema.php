@@ -52,7 +52,7 @@ return new class extends Migration
         });
 
         // -------------------------------------------------------------
-        // 3. Usuarios
+        // 3. Usuarios e Inspectores
         // -------------------------------------------------------------
         Schema::create('users', function (Blueprint $table) {
             $table->id();
@@ -74,6 +74,19 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Extensión del perfil para funcionarios actuantes/inspectores
+        Schema::create('inspectores', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
+            $table->foreignId('direccion_id')->constrained('direcciones', 'id_direccion');
+
+            $table->string('codigo_credencial', 50)->unique(); // Número de Carnet/Acreditación
+            $table->string('especialidad', 100)->nullable();  // ej: Calidad del Aire, Vegetación, Residuos
+            $table->boolean('disponible')->default(true);       // Para asignación activa de fiscalizaciones
+
+            $table->timestamps();
+        });
+
         // -------------------------------------------------------------
         // 4. Denuncias Ambientales
         // -------------------------------------------------------------
@@ -81,6 +94,8 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('codigo', 20)->unique();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
+
             $table->string('tipo_contaminacion');
             $table->string('otro_tipo_contaminacion')->nullable();
             
@@ -111,10 +126,10 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('codigo_expediente')->nullable()->unique();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('inspector_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
 
             $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion']);
-            $table->enum('estado', ['pendiente', 'inspector_asignado', 'en_inspeccion', 'atendido', 'anulado'])->default('pendiente');
+            $table->enum('estado', ['incompleta', 'pendiente', 'inspector_asignado', 'en_inspeccion', 'atendido', 'anulado'])->default('pendiente');
 
             $table->string('comuna');
             $table->string('sector');
@@ -209,7 +224,6 @@ return new class extends Migration
             $table->timestampTz('created_at')->nullable();
         });
 
-        // Asignación nativa del tipo ENUM de Postgres
         DB::statement("
             ALTER TABLE documentos_expediente 
             ADD COLUMN estado estado_documento_enum NOT NULL DEFAULT 'PENDIENTE';
@@ -224,6 +238,7 @@ return new class extends Migration
         Schema::dropIfExists('solicitud_recaudos');
         Schema::dropIfExists('solicitudes');
         Schema::dropIfExists('denuncias');
+        Schema::dropIfExists('inspectores');
         Schema::dropIfExists('users');
         Schema::dropIfExists('login_attempts');
         Schema::dropIfExists('direcciones');
