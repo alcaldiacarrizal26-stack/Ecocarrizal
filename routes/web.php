@@ -14,6 +14,7 @@ use App\Http\Controllers\Ciudadano\EmpresaController as CiudadanoEmpresaControll
 
 // Controladores Director por Dirección
 use App\Http\Controllers\Director\Ambiente\InspectorController as AmbienteInspectorController;
+use App\Http\Controllers\Director\Ambiente\ReporteController as AmbienteReporteController;
 use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
 use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaController;
 
@@ -26,11 +27,10 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // -------------------------------------------------------------
-// Rutas Autenticadas (General / Compartidas)
+// Rutas Autenticadas (General / Despachador)
 // -------------------------------------------------------------
 Route::middleware(['auth'])->group(function () {
-    
-    // Despachador principal según rol
+    // Despachador principal único: evalúa el rol y redirige según corresponda
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Expedientes y Documentos compartidos
@@ -42,7 +42,10 @@ Route::middleware(['auth'])->group(function () {
 // Panel Exclusivo del Ciudadano
 // -------------------------------------------------------------
 Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudadano.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // Muestra directamente la vista del ciudadano
+    Route::get('/dashboard', function () {
+        return view('ciudadano.dashboard', ['user' => auth()->user()]);
+    })->name('dashboard');
     
     // Perfil
     Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil');
@@ -71,14 +74,11 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
 // -------------------------------------------------------------
 Route::middleware(['auth', 'role:director'])->prefix('director')->name('director.')->group(function () {
     
-    // Redirección o despachador general por defecto
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
     // ---------------------------------------------------------
     // Dirección de Ambiente
     // ---------------------------------------------------------
     Route::prefix('ambiente')->name('ambiente.')->group(function () {
-        // Dashboard
+        // Dashboard principal
         Route::get('/dashboard', [AmbienteDashboardController::class, 'index'])->name('dashboard');
         
         // Gestión de Inspectores
@@ -93,22 +93,26 @@ Route::middleware(['auth', 'role:director'])->prefix('director')->name('director
         
         Route::get('/solicitudes/{solicitud}', function ($solicitud) {
             return view('director.ambiente.solicitudes_show', compact('solicitud'));
-        })->name('solicitudes.show'); // <- Añadida
+        })->name('solicitudes.show');
 
-        // Denuncias
-        Route::get('/denuncias/{denuncia}', function ($denuncia) {
-            return view('director.ambiente.denuncias_show', compact('denuncia'));
-        })->name('denuncias.show'); // <- Añadida para corregir la excepción
+        // Denuncias (Añadido para corregir el error del Dashboard)
+        Route::get('/denuncias/{id}', [AmbienteReporteController::class, 'show'])->name('denuncias.show');
+        Route::post('/denuncias/{id}/asignar', [AmbienteReporteController::class, 'asignarInspector'])->name('denuncias.asignar');
+
+        // Reportes y Denuncias
+        Route::get('/reportes', [AmbienteReporteController::class, 'index'])->name('reportes');
+        Route::get('/reportes/exportar', [AmbienteReporteController::class, 'export'])->name('reportes.export');
+        Route::put('/reportes/{denuncia}/asignar', [AmbienteReporteController::class, 'asignar'])->name('reportes.asignar');
     });
 
     // ---------------------------------------------------------
     // Dirección de Manejo Integral de Residuos
     // ---------------------------------------------------------
     Route::prefix('residuos')->name('residuos.')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'dashboardResiduos'])->name('dashboard');
         
         // Fiscalización y Expedientes de Empresas
-        Route::get('/empresas', [ResiduosEmpresaController::class, 'index'])->name('empresas.index');
+        Route::get('/empresas', [ResiduosEmpresaController::class, 'index'])->name('empresas');
         Route::get('/empresas/{empresa}', [ResiduosEmpresaController::class, 'show'])->name('empresas.show');
         Route::patch('/empresas/{empresa}/estatus', [ResiduosEmpresaController::class, 'updateEstatus'])->name('empresas.updateEstatus');
     });
@@ -121,7 +125,14 @@ Route::middleware(['auth', 'role:director'])->prefix('director')->name('director
 // Panel Inspectores
 // -------------------------------------------------------------
 Route::middleware(['auth', 'role:inspector'])->prefix('inspector')->name('inspector.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/ambiente/dashboard', function () {
+        return view('inspector.ambiente.dashboard', ['user' => auth()->user()]);
+    })->name('ambiente.dashboard');
+
+    Route::get('/residuos/dashboard', function () {
+        return view('inspector.residuos.dashboard', ['user' => auth()->user()]);
+    })->name('residuos.dashboard');
+
     Route::view('/soporte', 'soporte')->name('soporte');
 });
 
@@ -129,6 +140,9 @@ Route::middleware(['auth', 'role:inspector'])->prefix('inspector')->name('inspec
 // Panel Administrador
 // -------------------------------------------------------------
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', function () {
+        return view('dashboard', ['user' => auth()->user()]);
+    })->name('dashboard');
+    
     Route::view('/soporte', 'soporte')->name('soporte');
 });

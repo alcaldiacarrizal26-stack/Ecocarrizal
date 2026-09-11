@@ -72,17 +72,21 @@ return new class extends Migration
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
+
+            // Índices para búsquedas rápidas
+            $table->index('correo');
+            $table->index('cedula');
         });
 
-        // Extensión del perfil para funcionarios actuantes/inspectores
+        // Perfil extendido para funcionarios / inspectores
         Schema::create('inspectores', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
             $table->foreignId('direccion_id')->constrained('direcciones', 'id_direccion');
 
-            $table->string('codigo_credencial', 50)->unique(); // Número de Carnet/Acreditación
-            $table->string('especialidad', 100)->nullable();  // ej: Calidad del Aire, Vegetación, Residuos
-            $table->boolean('disponible')->default(true);       // Para asignación activa de fiscalizaciones
+            $table->string('codigo_credencial', 50)->unique();
+            $table->string('especialidad', 100)->nullable();
+            $table->boolean('disponible')->default(true);
 
             $table->timestamps();
         });
@@ -117,6 +121,11 @@ return new class extends Migration
             ])->default('pendiente');
             
             $table->timestamps();
+
+            // Índices para optimizar consultas de dashboard y filtrado
+            $table->index('estatus');
+            $table->index('created_at');
+            $table->index(['estatus', 'created_at']);
         });
 
         // -------------------------------------------------------------
@@ -139,6 +148,8 @@ return new class extends Migration
 
             $table->text('proximo_paso')->nullable();
             $table->timestampsTz();
+
+            $table->index('estado');
         });
 
         Schema::create('solicitud_recaudos', function (Blueprint $table) {
@@ -183,6 +194,8 @@ return new class extends Migration
 
             $table->text('observaciones_fiscalia')->nullable();
             $table->timestamps();
+
+            $table->index('estatus');
         });
 
         Schema::create('perfiles_ambientales', function (Blueprint $table) {

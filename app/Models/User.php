@@ -19,6 +19,8 @@ class User extends Authenticatable
         'apellido',
         'correo',
         'password',
+        'accepted_terms',
+        'is_active',
     ];
 
     protected $hidden = [
@@ -26,17 +28,10 @@ class User extends Authenticatable
         'rememberToken',
     ];
 
-    // Accessor para obtener la Cédula/RIF formateado (ej. V-12345678)
-    public function getDocumentoAttribute(): string
-    {
-        return "{$this->nacionalidad}-{$this->cedula_num}";
-    }
-
-    // Accessor para obtener el número telefónico completo
-    public function getTelefonoAttribute(): string
-    {
-        return "{$this->prefijo_telefono}{$this->telefono_num}";
-    }
+    protected $casts = [
+        'accepted_terms' => 'boolean',
+        'is_active' => 'boolean',
+    ];
 
     // Relaciones
     public function role()
@@ -46,48 +41,53 @@ class User extends Authenticatable
 
     public function direccion()
     {
-        return $this->belongsTo(Direccion::class);
-    }
-
-    // Helper Métodos de Verificación de Roles
-    public function isAdmin(): bool
-    {
-        return $this->role?->nombre === 'admin';
-    }
-
-    public function isDirector(): bool
-    {
-        return $this->role?->nombre === 'director';
-    }
-
-    public function isInspector(): bool
-    {
-        return $this->role?->nombre === 'inspector';
-    }
-
-    public function isCiudadano(): bool
-    {
-        return $this->role?->nombre === 'ciudadano';
-    }
-
-    // Helper de Verificación de Dirección
-    public function perteneceADireccion(string $slugDireccion): bool
-    {
-        return $this->direccion?->slug === $slugDireccion;
-    }
-
-    public function hasAnyRole(array|string ...$roles): bool
-    {
-        $roleName = strtolower($this->role?->nombre ?? '');
-
-        // Aplana el array si se pasa como ['admin', 'director'] o como argumentos 'admin', 'director'
-        $flatRoles = collect($roles)->flatten()->map(fn($r) => strtolower($r))->toArray();
-
-        return in_array($roleName, $flatRoles, true);
+        // Se definen explícitamente la FK de users y la PK de direcciones
+        return $this->belongsTo(Direccion::class, 'direccion_id', 'id_direccion');
     }
 
     public function inspector()
     {
         return $this->hasOne(Inspector::class, 'user_id');
+    }
+
+    // Helper Métodos de Verificación de Roles
+    public function isAdmin(): bool
+    {
+        return strtolower($this->role?->nombre ?? '') === 'admin';
+    }
+
+    public function isDirector(): bool
+    {
+        return strtolower($this->role?->nombre ?? '') === 'director';
+    }
+
+    public function isInspector(): bool
+    {
+        return strtolower($this->role?->nombre ?? '') === 'inspector';
+    }
+
+    public function isCiudadano(): bool
+    {
+        return strtolower($this->role?->nombre ?? '') === 'ciudadano';
+    }
+
+    public function hasAnyRole(array|string ...$roles): bool
+    {
+        $roleName = strtolower($this->role?->nombre ?? '');
+        $flatRoles = collect($roles)->flatten()->map(fn($r) => strtolower($r))->toArray();
+
+        return in_array($roleName, $flatRoles, true);
+    }
+
+    // Helper de Verificación de Dirección
+    public function perteneceADireccion(string $nombreDireccion): bool
+    {
+        return strtolower($this->direccion?->nombre_direc ?? '') === strtolower($nombreDireccion);
+    }
+
+    // Accessors
+    public function getNombreCompletoAttribute(): string
+    {
+        return "{$this->nombre} {$this->apellido}";
     }
 }

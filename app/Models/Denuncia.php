@@ -16,7 +16,9 @@ class Denuncia extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'codigo',
         'user_id',
+        'inspector_id', // Agregado para permitir asignación de responsable
         'tipo_contaminacion',
         'otro_tipo_contaminacion',
         'comuna',
@@ -39,26 +41,31 @@ class Denuncia extends Model
             $anioActual = date('Y');
             $prefix = 'DEN-' . $anioActual . '-';
 
-            // Obtener el último correlativo registrado del año actual
             $ultimoUltimoRegistro = static::where('codigo', 'LIKE', $prefix . '%')
-                ->latest('id')
+                ->latest('created_at')
                 ->first();
 
             if ($ultimoUltimoRegistro) {
-                // Extraer el número actual e incrementarlo
                 $partes = explode('-', $ultimoUltimoRegistro->codigo);
                 $numero = (int) end($partes) + 1;
             } else {
                 $numero = 1;
             }
 
-            // Formatear a 4 dígitos rellenos con ceros a la izquierda (ej. 0001)
             $denuncia->codigo = $prefix . str_pad($numero, 4, '0', STR_PAD_LEFT);
         });
     }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Relación con el inspector asignado (Tabla 'inspectores')
+     */
+    public function inspector()
+    {
+        return $this->belongsTo(Inspector::class, 'inspector_id');
     }
 }
