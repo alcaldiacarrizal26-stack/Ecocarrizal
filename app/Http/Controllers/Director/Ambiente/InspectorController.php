@@ -14,15 +14,29 @@ class InspectorController extends Controller
 {
     public function index()
     {
-        $director = Auth::user();
-        $direccionId = $director->direccion_id ?? 1; // 1: Dirección de Ambiente
-
-        $inspectores = Inspector::with('user')
-            ->where('direccion_id', $direccionId)
-            ->latest()
-            ->get();
+        $inspectores = Inspector::with([
+            'user', 
+            'denuncias' => function($q) {
+                // Añade 'en_revision' o ajusta los estatus según corresponda
+                $q->whereIn('estatus', ['en_revision', 'asignada', 'en_proceso']);
+            }, 
+            'solicitudes' => function($q) {
+                $q->whereIn('estado', ['asignada', 'en_inspeccion']); 
+            }
+        ])->get();
 
         return view('director.ambiente.inspectores', compact('inspectores'));
+    }
+
+        public function toggleStatus($id)
+    {
+        $inspector = Inspector::findOrFail($id);
+        
+        // Cambiar estatus booleano
+        $inspector->disponible = !$inspector->disponible;
+        $inspector->save();
+
+        return redirect()->back()->with('success', 'Estatus del inspector actualizado correctamente.');
     }
 
     public function store(Request $request)
@@ -66,14 +80,5 @@ class InspectorController extends Controller
 
         return redirect()->route('director.ambiente.inspectores')
             ->with('success', 'Inspector de Ambiente registrado exitosamente.');
-    }
-
-    public function toggleStatus(Inspector $inspector)
-    {
-        $inspector->update([
-            'disponible' => !$inspector->disponible,
-        ]);
-
-        return redirect()->back()->with('success', 'Estatus operativo actualizado.');
     }
 }

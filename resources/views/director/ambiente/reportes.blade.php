@@ -164,10 +164,10 @@
 
                             <!-- COLUMNA: INSPECTOR ASIGNADO -->
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @if(isset($denuncia->inspector->user) || isset($denuncia->inspector))
+                                @if($denuncia->inspector && $denuncia->inspector->user)
                                     <div class="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-md w-fit font-medium">
                                         <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                        <span>{{ $denuncia->inspector->user->name ?? $denuncia->inspector->nombre_completo ?? $denuncia->inspector->name }}</span>
+                                        <span>{{ $denuncia->inspector->user->nombre ?? $denuncia->inspector->user->name }}</span>
                                     </div>
                                 @else
                                     <span class="text-xs text-gray-400 italic">Sin Asignar</span>
@@ -267,7 +267,9 @@
                 <div class="bg-indigo-50/60 p-3 rounded-lg border border-indigo-100 flex items-center justify-between">
                     <div>
                         <span class="block text-xs text-indigo-600 uppercase font-bold">Inspector Asignado</span>
-                        <span class="text-sm font-medium text-indigo-950" x-text="denunciaActual?.inspector?.user?.name || denunciaActual?.inspector?.nombre_completo || denunciaActual?.inspector?.name || 'Ninguno (Sin asignar)'"></span>
+                        <span class="text-sm font-medium text-indigo-950" 
+                              x-text="denunciaActual?.inspector?.user ? (denunciaActual.inspector.user.nombre + ' ' + (denunciaActual.inspector.user.apellido || '')).trim() : (denunciaActual?.inspector?.user?.name || 'Ninguno (Sin asignar)')">
+                        </span>
                     </div>
                     <span class="text-xs px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 capitalize font-medium" x-text="denunciaActual?.estatus?.replace('_', ' ') || 'Sin Estatus'"></span>
                 </div>
@@ -362,7 +364,9 @@
                 <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs text-gray-600 space-y-1">
                     <div class="flex justify-between">
                         <span>Inspector Actual:</span>
-                        <strong class="text-indigo-600" x-text="denunciaActual?.inspector?.user?.name || denunciaActual?.inspector?.nombre_completo || denunciaActual?.inspector?.name || 'Ninguno'"></strong>
+                        <strong class="text-indigo-600" 
+                                x-text="denunciaActual?.inspector?.user ? (denunciaActual.inspector.user.nombre + ' ' + (denunciaActual.inspector.user.apellido || '')).trim() : (denunciaActual?.inspector?.user?.name || 'Ninguno')">
+                        </strong>
                     </div>
                 </div>
 
@@ -372,7 +376,7 @@
                         <option value="" disabled selected>Seleccione un funcionario...</option>
                         @foreach ($funcionarios as $funcionario)
                             <option value="{{ $funcionario->id }}">
-                                {{ $funcionario->nombre_completo ?? $funcionario->name }} — {{ ucfirst($funcionario->role->nombre ?? 'Funcionario') }}
+                                {{ $funcionario->nombre }} {{ $funcionario->apellido }} — {{ ucfirst($funcionario->role->nombre ?? 'Funcionario') }}
                                 @if(isset($funcionario->direccion))
                                     ({{ $funcionario->direccion->nombre_direc }})
                                 @endif

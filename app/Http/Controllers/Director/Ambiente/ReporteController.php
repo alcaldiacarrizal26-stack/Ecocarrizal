@@ -21,7 +21,7 @@ class ReporteController extends Controller
 
         $denuncias = $query->latest()->paginate(10);
 
-        // Obtener funcionarios (Directores e Inspectores) activos con sus relaciones
+        // Obtener funcionarios activos con sus relaciones
         $funcionarios = User::whereHas('role', function ($q) {
                 $q->whereIn('nombre', ['director', 'inspector']);
             })
@@ -33,7 +33,8 @@ class ReporteController extends Controller
             'total_denuncias'  => Denuncia::count(),
             'atendidas'        => Denuncia::where('estatus', 'atendido')->count(),
             'pendientes'       => Denuncia::where('estatus', 'pendiente')->count(),
-            'inspecciones_mes' => Denuncia::where('estatus', 'en_revision')
+            // Incluye inspecciones en curso o recién asignadas en el mes
+            'inspecciones_mes' => Denuncia::whereIn('estatus', ['inspector_asignado', 'en_revision'])
                                     ->whereMonth('created_at', now()->month)
                                     ->count(),
         ];
@@ -47,7 +48,7 @@ class ReporteController extends Controller
     }
 
     /**
-     * Asignar un funcionario a la denuncia y actualizar el estatus.
+     * Asignar un inspector a la denuncia y actualizar el estatus.
      */
     public function asignar(Request $request, Denuncia $denuncia)
     {
@@ -57,17 +58,14 @@ class ReporteController extends Controller
 
         $funcionario = User::with('inspector')->findOrFail($request->user_id);
 
-        // Si el usuario seleccionado tiene perfil de inspector, guardamos su ID de inspector
-        if ($funcionario->inspector) {
-            $denuncia->inspector_id = $funcionario->inspector->id;
-        } else {
-            // Opcional: Si es un director sin tabla de inspector asociada, puedes manejarlo o requerir que sea inspector
+        if (!$funcionario->inspector) {
             return redirect()->back()->with('error', 'El usuario seleccionado no cuenta con un perfil de inspector válido.');
         }
 
-        $denuncia->estatus = 'en_revision';
+        $denuncia->inspector_id = $funcionario->inspector->id;
+        $denuncia->estatus = 'inspector_asignado'; // Se actualiza al estatus correspondiente tras asignar
         $denuncia->save();
 
-        return redirect()->back()->with('success', 'Funcionario asignado correctamente.');
+        return redirect()->back()->with('success', 'Inspector asignado correctamente.');
     }
 }

@@ -115,27 +115,37 @@
                                     <div class="text-xs text-slate-500 mt-0.5">{{ $inspector->user->telefono }}</div>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <button 
-                                        @click="openDetails({{ json_encode([
-                                            'id' => $inspector->id,
-                                            'nombre' => $inspector->user->nombre . ' ' . $inspector->user->apellido,
-                                            'cedula' => $inspector->user->cedula,
-                                            'correo' => $inspector->user->correo,
-                                            'telefono' => $inspector->user->telefono,
-                                            'credencial' => $inspector->codigo_credencial,
-                                            'especialidad' => $inspector->especialidad ?? 'General',
-                                            'disponible' => $inspector->disponible,
-                                            'toggle_url' => route('director.ambiente.inspectores.toggle', $inspector->id),
-                                            'casos' => $inspector->casos ?? []
-                                        ]) }})"
-                                        class="px-3 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 text-xs font-semibold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5"
-                                    >
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                        <span>Detalles</span>
-                                    </button>
+                                <button 
+                                    @click="openDetails({{ json_encode([
+                                        'id' => $inspector->id,
+                                        'nombre' => $inspector->user->nombre . ' ' . $inspector->user->apellido,
+                                        'cedula' => $inspector->user->cedula ?? 'N/A',
+                                        'correo' => $inspector->user->correo ?? $inspector->user->email,
+                                        'telefono' => $inspector->user->telefono ?? 'Sin Registrar',
+                                        'credencial' => $inspector->codigo_credencial ?? ('INS-' . str_pad($inspector->id, 4, '0', STR_PAD_LEFT)),
+                                        'especialidad' => $inspector->especialidad ?? 'General',
+                                        'disponible' => (bool) $inspector->disponible,
+                                        'toggle_url' => route('director.ambiente.inspectores.toggle', $inspector->id),
+                                        'casos' => $inspector->denuncias->map(fn($d) => [
+                                            'id' => 'denuncia_' . $d->id,
+                                            'codigo' => $d->codigo,
+                                            'descripcion' => 'Denuncia: ' . $d->tipo_contaminacion . ' (' . $d->sector . ')',
+                                            'estatus' => ucfirst(str_replace('_', ' ', $d->estatus)),
+                                        ])->concat($inspector->solicitudes->map(fn($s) => [
+                                            'id' => 'solicitud_' . $s->id,
+                                            'codigo' => $s->codigo_expediente,
+                                            'descripcion' => 'Tramitación: ' . $s->tipo_tramite . ' (' . $s->sector . ')',
+                                            'estatus' => ucfirst(str_replace('_', ' ', $s->estado)),
+                                        ]))->values()
+                                    ]) }})"
+                                    class="px-3 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 text-xs font-semibold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                    <span>Detalles</span>
+                                </button>
                                 </td>
                             </tr>
                         @empty
@@ -155,96 +165,99 @@
 
         <!-- Modal de Detalles del Inspector -->
         <div 
-            x-show="modalDetailsOpen" 
-            x-cloak 
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
-        >
-            <div @click.away="modalDetailsOpen = false" class="bg-white border border-slate-200 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl p-6 transition-all">
-                
-                <template x-if="selectedInspector">
-                    <div>
-                        <!-- Header Modal -->
-                        <div class="flex justify-between items-start pb-4 border-b border-slate-100">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <h3 class="text-xl font-bold text-slate-900" x-text="selectedInspector.nombre"></h3>
-                                    <span 
-                                        :class="selectedInspector.disponible ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
-                                        class="px-2.5 py-0.5 text-xs font-semibold rounded-full border"
-                                        x-text="selectedInspector.disponible ? 'Disponible' : 'No Disponible'"
-                                    ></span>
+                x-show="modalDetailsOpen" 
+                x-cloak 
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+            >
+                <div @click.away="modalDetailsOpen = false" class="bg-white border border-slate-200 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl p-6 transition-all">
+                    
+                    <template x-if="selectedInspector">
+                        <div>
+                            <!-- Header Modal -->
+                            <div class="flex justify-between items-start pb-4 border-b border-slate-100">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="text-xl font-bold text-slate-900" x-text="selectedInspector.nombre"></h3>
+                                        <span 
+                                            :class="selectedInspector.disponible ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+                                            class="px-2.5 py-0.5 text-xs font-semibold rounded-full border"
+                                            x-text="selectedInspector.disponible ? 'Disponible' : 'No Disponible'"
+                                        ></span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 font-mono mt-0.5" x-text="'Credencial: ' + selectedInspector.credencial"></p>
                                 </div>
-                                <p class="text-xs text-slate-500 font-mono mt-0.5" x-text="'Credencial: ' + selectedInspector.credencial"></p>
+                                <button @click="modalDetailsOpen = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
                             </div>
-                            <button @click="modalDetailsOpen = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
-                        </div>
 
-                        <!-- Información General -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-b border-slate-100 text-xs">
-                            <div>
-                                <span class="text-slate-400 block font-medium">Cédula</span>
-                                <span class="font-bold text-slate-800" x-text="selectedInspector.cedula"></span>
+                            <!-- Información General -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-b border-slate-100 text-xs">
+                                <div>
+                                    <span class="text-slate-400 block font-medium">Cédula</span>
+                                    <span class="font-bold text-slate-800" x-text="selectedInspector.cedula"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-medium">Especialidad</span>
+                                    <span class="font-bold text-slate-800" x-text="selectedInspector.especialidad"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-medium">Correo</span>
+                                    <span class="font-bold text-slate-800 truncate block" x-text="selectedInspector.correo"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-medium">Teléfono</span>
+                                    <span class="font-bold text-slate-800" x-text="selectedInspector.telefono"></span>
+                                </div>
                             </div>
-                            <div>
-                                <span class="text-slate-400 block font-medium">Especialidad</span>
-                                <span class="font-bold text-slate-800" x-text="selectedInspector.especialidad"></span>
-                            </div>
-                            <div>
-                                <span class="text-slate-400 block font-medium">Correo</span>
-                                <span class="font-bold text-slate-800" x-text="selectedInspector.correo"></span>
-                            </div>
-                            <div>
-                                <span class="text-slate-400 block font-medium">Teléfono</span>
-                                <span class="font-bold text-slate-800" x-text="selectedInspector.telefono"></span>
-                            </div>
-                        </div>
 
-                        <!-- Historial / Casos Asignados -->
-                        <div class="py-4">
-                            <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center justify-between">
-                                <span>Casos y Solicitudes Asignadas</span>
-                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono" x-text="(selectedInspector.casos ? selectedInspector.casos.length : 0) + ' asignados'"></span>
-                            </h4>
+                            <!-- Historial / Casos Asignados -->
+                            <div class="py-4">
+                                <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center justify-between">
+                                    <span>Casos y Solicitudes Asignadas</span>
+                                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono" x-text="(selectedInspector.casos ? selectedInspector.casos.length : 0) + ' asignados'"></span>
+                                </h4>
 
-                            <div class="max-h-48 overflow-y-auto space-y-2 pr-1">
-                                <template x-if="selectedInspector.casos && selectedInspector.casos.length > 0">
-                                    <template x-for="caso in selectedInspector.casos" :key="caso.id">
-                                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
-                                            <div>
-                                                <div class="font-semibold text-slate-800" x-text="caso.codigo"></div>
-                                                <div class="text-slate-500" x-text="caso.descripcion"></div>
-                                            </div>
-                                            <span class="px-2 py-1 rounded-md bg-white border border-slate-200 font-medium text-slate-600" x-text="caso.estatus"></span>
+                                <div class="max-h-48 overflow-y-auto space-y-2 pr-1">
+                                    <template x-if="selectedInspector.casos && selectedInspector.casos.length > 0">
+                                        <div>
+                                            <template x-for="caso in selectedInspector.casos" :key="caso.id">
+                                                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center text-xs mb-2">
+                                                    <div>
+                                                        <div class="font-semibold text-slate-800" x-text="caso.codigo"></div>
+                                                        <div class="text-slate-500" x-text="caso.descripcion"></div>
+                                                    </div>
+                                                    <span class="px-2 py-1 rounded-md bg-white border border-slate-200 font-medium text-slate-600" x-text="caso.estatus"></span>
+                                                </div>
+                                            </template>
                                         </div>
                                     </template>
-                                </template>
 
-                                <template x-if="!selectedInspector.casos || selectedInspector.casos.length === 0">
-                                    <div class="text-center py-6 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs">
-                                        El inspector actualmente no posee reportes ni solicitudes en ejecución.
-                                    </div>
-                                </template>
+                                    <template x-if="!selectedInspector.casos || selectedInspector.casos.length === 0">
+                                        <div class="text-center py-6 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs">
+                                            El inspector actualmente no posee reportes ni solicitudes en ejecución.
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Footer Modal con Acción de Estatus -->
+                            <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+                                <form :action="selectedInspector.toggle_url" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button 
+                                        type="submit" 
+                                        :class="selectedInspector.disponible ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200'"
+                                        class="px-3 py-2 text-xs font-semibold rounded-xl border transition-colors cursor-pointer"
+                                        x-text="selectedInspector.disponible ? 'Marcar NO Disponible' : 'Marcar Disponible'"
+                                    ></button>
+                                </form>
+
+                                <button type="button" @click="modalDetailsOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200 transition-colors cursor-pointer">Cerrar</button>
                             </div>
                         </div>
+                    </template>
 
-                        <!-- Footer Modal con Acción de Estatus -->
-                        <div class="flex justify-between items-center pt-4 border-t border-slate-100">
-                            <form :action="selectedInspector.toggle_url" method="POST">
-                                @csrf
-                                @method('PATCH')
-                                <button 
-                                    type="submit" 
-                                    :class="selectedInspector.disponible ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200'"
-                                    class="px-3 py-2 text-xs font-semibold rounded-xl border transition-colors cursor-pointer"
-                                    x-text="selectedInspector.disponible ? 'Marcar NO Disponible' : 'Marcar Disponible'"
-                                ></button>
-                            </form>
-
-                            <button type="button" @click="modalDetailsOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200 transition-colors cursor-pointer">Cerrar</button>
-                        </div>
-                    </div>
-                </template>
-
+                </div>
             </div>
         </div>
 
