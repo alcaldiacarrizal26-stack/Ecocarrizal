@@ -138,7 +138,7 @@ return new class extends Migration
             $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
 
             $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion']);
-            $table->enum('estado', ['incompleta', 'pendiente', 'inspector_asignado', 'en_inspeccion', 'atendido', 'anulado'])->default('pendiente');
+            $table->enum('estado', ['incompleta', 'pendiente', 'inspector_asignado', 'en_inspeccion', 'aprobada', 'rechazada'])->default('pendiente');
 
             $table->string('comuna');
             $table->string('sector');

@@ -33,19 +33,15 @@ class Solicitud extends Model
 
     /* --- Relaciones --- */
 
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
     public function solicitante(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    // CAMBIO AQUÍ: Ahora apunta al modelo Inspector
     public function inspector(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'inspector_id');
+        return $this->belongsTo(Inspector::class, 'inspector_id');
     }
 
     public function recaudos(): HasMany
@@ -55,13 +51,11 @@ class Solicitud extends Model
 
     /* --- Accessors Útiles --- */
 
-    // Permite consultar $solicitud->aplica_autorizacion_propietario directamente
     public function getAplicaAutorizacionPropietarioAttribute(): bool
     {
         return (bool) ($this->datos_especificos['aplica_autorizacion_propietario'] ?? false);
     }
 
-    // Permite consultar $solicitud->aplica_variables_ambientales directamente
     public function getAplicaVariablesAmbientalesAttribute(): bool
     {
         return (bool) ($this->datos_especificos['aplica_variables_ambientales'] ?? false);

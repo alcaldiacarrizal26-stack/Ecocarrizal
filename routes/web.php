@@ -15,6 +15,7 @@ use App\Http\Controllers\Ciudadano\EmpresaController as CiudadanoEmpresaControll
 // Controladores Director por Dirección
 use App\Http\Controllers\Director\Ambiente\InspectorController as AmbienteInspectorController;
 use App\Http\Controllers\Director\Ambiente\ReporteController as AmbienteReporteController;
+use App\Http\Controllers\Director\Ambiente\SolicitudController as AmbienteSolicitudController;
 use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
 use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaController;
 
@@ -86,14 +87,11 @@ Route::middleware(['auth', 'role:director'])->prefix('director')->name('director
         Route::post('/inspectores', [AmbienteInspectorController::class, 'store'])->name('inspectores.store');
         Route::patch('/inspectores/{inspector}/toggle', [AmbienteInspectorController::class, 'toggleStatus'])->name('inspectores.toggle');
 
-        // Solicitudes
-        Route::get('/solicitudes', function () {
-            return view('director.ambiente.solicitudes');
-        })->name('solicitudes');
-        
-        Route::get('/solicitudes/{solicitud}', function ($solicitud) {
-            return view('director.ambiente.solicitudes_show', compact('solicitud'));
-        })->name('solicitudes.show');
+        // Solicitudes (Trámites Ambientales)
+        Route::get('/solicitudes', [AmbienteSolicitudController::class, 'index'])->name('solicitudes');
+        Route::get('/solicitudes/exportar', [AmbienteSolicitudController::class, 'export'])->name('solicitudes.exportar');
+        Route::put('/solicitudes/{solicitud}/asignar', [AmbienteSolicitudController::class, 'asignarInspector'])->name('solicitudes.asignar');
+        Route::get('/solicitudes/{solicitud}', [AmbienteSolicitudController::class, 'show'])->name('solicitudes.show');
 
         // Denuncias (Añadido para corregir el error del Dashboard)
         Route::get('/denuncias/{id}', [AmbienteReporteController::class, 'show'])->name('denuncias.show');

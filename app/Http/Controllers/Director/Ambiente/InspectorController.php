@@ -17,22 +17,21 @@ class InspectorController extends Controller
         $inspectores = Inspector::with([
             'user', 
             'denuncias' => function($q) {
-                // Añade 'en_revision' o ajusta los estatus según corresponda
-                $q->whereIn('estatus', ['en_revision', 'asignada', 'en_proceso']);
+                $q->whereIn('estatus', ['en_revision', 'asignada', 'asignado', 'inspector_asignado', 'en_proceso', 'en_inspeccion', 'inspeccion']);
             }, 
             'solicitudes' => function($q) {
-                $q->whereIn('estado', ['asignada', 'en_inspeccion']); 
+                // Incluimos 'inspeccion' y 'pendiente' que son los estados reales en la tabla
+                $q->whereIn('estado', ['asignada', 'asignado', 'inspector_asignado', 'en_inspeccion', 'inspeccion', 'recibido']); 
             }
         ])->get();
 
         return view('director.ambiente.inspectores', compact('inspectores'));
     }
 
-        public function toggleStatus($id)
+    public function toggleStatus($id)
     {
         $inspector = Inspector::findOrFail($id);
         
-        // Cambiar estatus booleano
         $inspector->disponible = !$inspector->disponible;
         $inspector->save();
 
@@ -57,7 +56,7 @@ class InspectorController extends Controller
 
         DB::transaction(function () use ($request, $direccionId) {
             $user = User::create([
-                'role_id'        => 3, // ID del rol Inspector
+                'role_id'        => 3,
                 'direccion_id'   => $direccionId,
                 'cedula'         => $request->cedula,
                 'nombre'         => $request->nombre,
@@ -66,7 +65,7 @@ class InspectorController extends Controller
                 'telefono'       => $request->telefono,
                 'password'       => Hash::make($request->password),
                 'accepted_terms' => true,
-                'is_active'       => true,
+                'is_active'      => true,
             ]);
 
             Inspector::create([
