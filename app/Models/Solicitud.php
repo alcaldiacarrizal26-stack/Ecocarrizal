@@ -25,10 +25,12 @@ class Solicitud extends Model
         'proximo_paso',
         'tipo_tramite',
         'estado',
+        'fecha_limite_documentos',
     ];
 
     protected $casts = [
         'datos_especificos' => 'array',
+        'fecha_limite_documentos' => 'datetime',
     ];
 
     /* --- Relaciones --- */

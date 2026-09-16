@@ -24,4 +24,9 @@ class Direccion extends Model
     {
         return $this->hasMany(User::class, 'direccion_id', 'id_direccion');
     }
+
+    public function inspectores(): HasMany
+    {
+        return $this->hasMany(Inspector::class, 'direccion_id', 'id_direccion');
+    }
 }

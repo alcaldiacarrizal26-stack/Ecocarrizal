@@ -90,4 +90,14 @@ class User extends Authenticatable
     {
         return "{$this->nombre} {$this->apellido}";
     }
+
+    public function denuncias(): HasMany
+    {
+        return $this->hasMany(Denuncia::class);
+    }
+
+    public function solicitudes(): HasMany
+    {
+        return $this->hasMany(Solicitud::class);
+    }
 }
