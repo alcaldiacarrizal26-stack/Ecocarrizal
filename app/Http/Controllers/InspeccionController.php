@@ -9,7 +9,9 @@ use App\Models\Denuncia;
 use App\Models\Inspector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class InspeccionController extends Controller
 {
@@ -59,15 +61,49 @@ class InspeccionController extends Controller
     }
 
     /**
+     * Pasa un expediente a estado de revisión/inspección.
+     */
+    public function iniciarRevision(Request $request, $tipo, $id)
+    {
+        $user = auth()->user();
+        $rol = strtolower($user->role->nombre ?? '');
+
+        if ($tipo === 'solicitud') {
+            $expediente = Solicitud::findOrFail($id);
+            $campoEstatus = 'estado';
+            $nuevoEstado = 'en_inspeccion';
+        } elseif ($tipo === 'denuncia') {
+            $expediente = Denuncia::findOrFail($id);
+            $campoEstatus = 'estatus';
+            $nuevoEstado = 'en_revision';
+        } else {
+            abort(404, 'Tipo de expediente no válido.');
+        }
+
+        // Validación de autorización para inspectores
+        if ($rol === 'inspector' && $expediente->inspector_id !== $user->inspector?->id) {
+            abort(403, 'No tienes permiso para actualizar este expediente.');
+        }
+
+        $expediente->update([
+            $campoEstatus => $nuevoEstado
+        ]);
+
+        return redirect()->back()->with('success', 'El expediente ha pasado a estado "En Revisión".');
+    }
+
+    /**
      * Muestra el formulario para evaluar por tipo y ID explícitos.
      */
     public function evaluar($tipo, $id)
     {
+        if (!in_array($tipo, ['solicitud', 'denuncia'])) {
+            abort(404, 'Tipo de origen no válido.');
+        }
+
         if ($tipo === 'solicitud') {
-            // Se carga la relación 'solicitante'
             $expediente = Solicitud::with(['solicitante', 'inspector.user'])->findOrFail($id);
         } else {
-            // Se carga la relación 'user'
             $expediente = Denuncia::with(['user', 'inspector.user'])->findOrFail($id);
         }
 
@@ -76,20 +112,19 @@ class InspeccionController extends Controller
         return view('inspecciones.evaluar', compact('expediente', 'tipoOrigen'));
     }
 
+    /**
+     * Redirección/Alias para mantener compatibilidad con rutas resource o legacy.
+     */
     public function edit($id)
     {
         $solicitud = Solicitud::with(['solicitante', 'inspector.user'])->find($id);
-        $denuncia = null;
-        $tipoOrigen = 'solicitud';
 
-        if (!$solicitud) {
-            $denuncia = Denuncia::with(['user', 'inspector.user'])->findOrFail($id);
-            $tipoOrigen = 'denuncia';
+        if ($solicitud) {
+            return $this->evaluar('solicitud', $solicitud->id);
         }
 
-        $expediente = $solicitud ?? $denuncia;
-
-        return view('inspecciones.evaluar', compact('expediente', 'tipoOrigen'));
+        $denuncia = Denuncia::with(['user', 'inspector.user'])->findOrFail($id);
+        return $this->evaluar('denuncia', $denuncia->id);
     }
     
     public function store(Request $request)
@@ -97,33 +132,34 @@ class InspeccionController extends Controller
         $validated = $request->validate([
             'tipo_origen' => 'required|in:solicitud,denuncia',
             'origen_id' => 'required|uuid',
-            'fecha_visita' => 'required|date',
             'observaciones_campo' => 'required|string|min:10',
-            'dictamen' => 'required|in:APROBADO,CON_OBSERVACIONES,RECHAZADO,REINSPECCION_REQUERIDA',
+            'dictamen' => ['required', Rule::in(['APROBADO', 'CON_OBSERVACIONES', 'RECHAZADO', 'REINSPECCION_REQUERIDA'])],
             'hallazgos' => 'nullable|array',
             'recomendaciones' => 'nullable|string',
-            'evidencias.*' => 'nullable|image|max:5120',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         $user = auth()->user();
-        $inspectorId = null;
+        
+        // Obtención del origen
+        $origen = $validated['tipo_origen'] === 'solicitud' 
+            ? Solicitud::findOrFail($validated['origen_id'])
+            : Denuncia::findOrFail($validated['origen_id']);
 
-        if ($user->inspector) {
-            $inspectorId = $user->inspector->id;
-        } else {
-            // Si el Director/Admin realiza la evaluación directamente:
-            if ($validated['tipo_origen'] === 'solicitud') {
-                $origen = Solicitud::find($validated['origen_id']);
-            } else {
-                $origen = Denuncia::find($validated['origen_id']);
-            }
+        // Definición del Inspector asignado a la evaluación
+        $inspectorId = $user->inspector?->id ?? $origen->inspector_id;
 
-            $inspectorId = $origen?->inspector_id ?? Inspector::first()?->id;
+        if (!$inspectorId) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['origen_id' => 'No se puede procesar la inspección sin un inspector asignado al expediente.']);
         }
 
-        DB::transaction(function () use ($validated, $request, $inspectorId) {
+        DB::transaction(function () use ($validated, $request, $inspectorId, $origen) {
             $evidenciasPaths = [];
 
+            // Subida de evidencias
             if ($request->hasFile('evidencias')) {
                 foreach ($request->file('evidencias') as $foto) {
                     $evidenciasPaths[] = $foto->store('inspecciones/evidencias', 'public');
@@ -135,7 +171,7 @@ class InspeccionController extends Controller
             $inspeccionData = [
                 'codigo_acta' => $codigoActa,
                 'inspector_id' => $inspectorId,
-                'fecha_visita' => $validated['fecha_visita'],
+                'fecha_visita' => $request->fecha_visita ?? now(),
                 'observaciones_campo' => $validated['observaciones_campo'],
                 'dictamen' => $validated['dictamen'],
                 'hallazgos' => $validated['hallazgos'] ?? [],
@@ -143,27 +179,28 @@ class InspeccionController extends Controller
                 'fotos_evidencia' => $evidenciasPaths,
             ];
 
+            // Actualización de estados según origen y dictamen
             if ($validated['tipo_origen'] === 'solicitud') {
-                $inspeccionData['solicitud_id'] = $validated['origen_id'];
+                $inspeccionData['solicitud_id'] = $origen->id;
 
-                $solicitud = Solicitud::findOrFail($validated['origen_id']);
                 $nuevoEstado = match($validated['dictamen']) {
                     'APROBADO' => 'aprobada',
                     'RECHAZADO' => 'rechazada',
                     default => 'en_inspeccion'
                 };
-                $solicitud->update(['estado' => $nuevoEstado]);
+                
+                $origen->update(['estado' => $nuevoEstado]);
 
             } else {
-                $inspeccionData['denuncia_id'] = $validated['origen_id'];
+                $inspeccionData['denuncia_id'] = $origen->id;
 
-                $denuncia = Denuncia::findOrFail($validated['origen_id']);
                 $nuevoEstatus = match($validated['dictamen']) {
                     'APROBADO', 'CON_OBSERVACIONES' => 'atendido',
                     'RECHAZADO' => 'desestimado',
                     default => 'en_revision'
                 };
-                $denuncia->update(['estatus' => $nuevoEstatus]);
+                
+                $origen->update(['estatus' => $nuevoEstatus]);
             }
 
             Inspeccion::create($inspeccionData);

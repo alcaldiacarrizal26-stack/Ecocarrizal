@@ -8,6 +8,18 @@
             </a>
         </div>
 
+        <!-- Alerta global si ocurre un error de validación al enviar -->
+        @if ($errors->any())
+            <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm space-y-1">
+                <strong class="font-semibold block">Por favor revisa los siguientes errores antes de guardar:</strong>
+                <ul class="list-disc list-inside space-y-0.5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <form action="{{ route('inspecciones.store') }}" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
             @csrf
 
@@ -16,14 +28,19 @@
             <input type="hidden" name="origen_id" value="{{ $expediente->id }}">
 
             @php
-                // 1. Obtención flexible del solicitante (Soporta relación solicitante, user o propiedades directas)
-                $solicitante = $expediente->solicitante ?? $expediente->user ?? $expediente->usuario ?? null;
+                // 1. Obtención flexible del solicitante/denunciante
+                $solicitante =$expediente->solicitante ?? $expediente->user ?? $expediente->usuario ?? null;
 
-                // 2. Obtención del evaluador y su cargo/rol dinámico
-                $evaluador = auth()->user();
-                $cargoEvaluador = $evaluador->role->nombre 
+                // 2. Obtención del evaluador y su rol/cargo
+                $evaluador = auth()->user();$nombreEvaluador = $evaluador->nombre ?? $evaluador->name ?? 'Funcionario';
+                $apellidoEvaluador =$evaluador->apellido ?? '';
+                $cargoEvaluador =$evaluador->role->nombre 
                     ?? $evaluador->cargo 
                     ?? ($evaluador->inspector ? 'Inspector Ambiental' : 'Funcionario Ambiental');
+
+                // 3. Ubicación flexible (Soporta Solicitud y Denuncia)
+                $sector = $expediente->sector ?? $expediente->ubicacion_sector ?? 'N/E';
+                $comuna = $expediente->comuna ?? $expediente->ubicacion_comuna ?? 'N/E';
             @endphp
 
             <!-- Metadata del Expediente, Solicitante e Inspector -->
@@ -38,12 +55,12 @@
                     <strong class="text-slate-800">{{ $expediente->codigo_expediente ?? $expediente->codigo }}</strong>
                 </div>
 
-                <!-- Datos del Solicitante / Denunciante (Actualizado) -->
+                <!-- Datos del Solicitante / Denunciante -->
                 <div>
                     <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Solicitante / Denunciante:</span>
                     <strong class="text-slate-800">
-                        @if($solicitante && !empty($solicitante->nombre))
-                            {{ trim($solicitante->nombre . ' ' . ($solicitante->apellido ?? '')) }}
+                        @if($solicitante && !empty($solicitante->nombre ?? $solicitante->name))
+                            {{ trim(($solicitante->nombre ?? $solicitante->name) . ' ' . ($solicitante->apellido ?? '')) }}
                         @else
                             {{ $expediente->nombre_completo ?? 'No registrado' }}
                         @endif
@@ -53,20 +70,20 @@
                     </span>
                 </div>
 
-                <!-- Funcionario Evaluador (Actualizado) -->
+                <!-- Funcionario Evaluador Corrección \vert{} -->
                 <div>
                     <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Funcionario Evaluador:</span>
                     <strong class="text-slate-800">
-                        {{ trim($evaluador->nombre . ' ' . ($evaluador->apellido ?? '')) }}
+                        {{ trim($nombreEvaluador . ' ' .$apellidoEvaluador) }}
                     </strong>
                     <span class="block text-xs text-slate-500">
-                        C.I.: {{ $evaluador->cedula ?? 'N/A' }} | Cargo: {{ ucwords($cargoEvaluador) }}
+                        C.I.: {{ $evaluador->cedula ?? 'N/A' }} \vert{} Cargo: {{ ucwords($cargoEvaluador) }}
                     </span>
                 </div>
 
                 <div>
                     <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Ubicación:</span>
-                    <strong class="text-slate-800">{{ $expediente->sector }}, {{ $expediente->comuna }}</strong>
+                    <strong class="text-slate-800">{{ $sector }}, {{$comuna }}</strong>
                 </div>
 
                 <div>
@@ -78,10 +95,10 @@
             <!-- Campos del Formulario de Inspección -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha y Hora de la Visita</label>
-                    <input type="datetime-local" name="fecha_visita" value="{{ old('fecha_visita', now()->format('Y-m-d\TH:i')) }}" required
-                           class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('fecha_visita') border-red-500 @enderror">
-                    @error('fecha_visita')
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha y Hora de Cierre / Evaluación</label>
+                    <input type="datetime-local" name="fecha_cierre" value="{{ old('fecha_cierre', now()->format('Y-m-d\TH:i')) }}" required
+                           class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('fecha_cierre') border-red-500 @enderror">
+                    @error('fecha_cierre')
                         <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
@@ -100,20 +117,30 @@
                 </div>
             </div>
 
-            <!-- Observaciones Técnicas -->
+            <!-- Observaciones Técnicas (Mínimo 10 caracteres) -->
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Observaciones de Campo / Diagnóstico Técnico</label>
-                <textarea name="observaciones_campo" rows="4" required placeholder="Escriba los hallazgos verificados durante la visita técnica..."
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-sm font-medium text-slate-700">Observaciones de Campo / Diagnóstico Técnico</label>
+                    <span id="counter_observaciones" class="text-xs font-semibold text-amber-600">0 / 10 caracteres mín.</span>
+                </div>
+                <textarea name="observaciones_campo" id="observaciones_campo" rows="4" required 
+                          oninput="updateCount('observaciones_campo', 'counter_observaciones', 10)"
+                          placeholder="Escriba los hallazgos verificados durante la visita técnica (Mínimo 10 caracteres)..."
                           class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('observaciones_campo') border-red-500 @enderror">{{ old('observaciones_campo') }}</textarea>
                 @error('observaciones_campo')
                     <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
                 @enderror
             </div>
 
-            <!-- Recomendaciones -->
+            <!-- Recomendaciones (Mínimo 10 caracteres) -->
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Recomendaciones o Medidas Correctivas</label>
-                <textarea name="recomendaciones" rows="3" placeholder="Instrucciones o medidas que debe cumplir el solicitante/denunciado..."
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-sm font-medium text-slate-700">Recomendaciones o Medidas Correctivas</label>
+                    <span id="counter_recomendaciones" class="text-xs font-semibold text-amber-600">0 / 10 caracteres mín.</span>
+                </div>
+                <textarea name="recomendaciones" id="recomendaciones" rows="3" 
+                          oninput="updateCount('recomendaciones', 'counter_recomendaciones', 10)"
+                          placeholder="Instrucciones o medidas que debe cumplir el solicitante/denunciado (Mínimo 10 caracteres)..."
                           class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('recomendaciones') border-red-500 @enderror">{{ old('recomendaciones') }}</textarea>
                 @error('recomendaciones')
                     <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
@@ -140,6 +167,9 @@
                         <p class="text-xs text-slate-400">Formatos permitidos: PNG, JPG, WEBP (Máx. 5MB por archivo)</p>
                     </div>
                 </div>
+                @error('evidencias')
+                    <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
+                @enderror
                 @error('evidencias.*')
                     <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
                 @enderror
@@ -164,8 +194,24 @@
         </form>
     </div>
 
-    <!-- Script de previsualización JS -->
+    <!-- Scripts de Previsualización y Contadores de Caracteres -->
     <script>
+        function updateCount(inputId, counterId, minLength) {
+            const input = document.getElementById(inputId);
+            const counter = document.getElementById(counterId);
+            if (!input || !counter) return;
+
+            const length = input.value.length;
+
+            if (length < minLength) {
+                counter.textContent = `${length} / ${minLength} caracteres mín.`;
+                counter.className = 'text-xs font-semibold text-amber-600';
+            } else {
+                counter.textContent = `${length} caracteres (¡Mínimo cumplido!)`;
+                counter.className = 'text-xs font-semibold text-emerald-600';
+            }
+        }
+
         function previewImages(event) {
             const container = document.getElementById('preview_container');
             container.innerHTML = '';
@@ -199,5 +245,10 @@
                 container.classList.add('hidden');
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCount('observaciones_campo', 'counter_observaciones', 10);
+            updateCount('recomendaciones', 'counter_recomendaciones', 10);
+        });
     </script>
 </x-layouts.app>

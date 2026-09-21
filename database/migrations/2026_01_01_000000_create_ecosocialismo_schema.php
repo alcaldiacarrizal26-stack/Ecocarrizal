@@ -16,14 +16,16 @@ return new class extends Migration
             "dictamen_inspeccion_enum" => "'APROBADO', 'CON_OBSERVACIONES', 'RECHAZADO', 'REINSPECCION_REQUERIDA'",
         ];
 
-        foreach ($enums as $name => $values) {
-            DB::statement("
-                DO $$ BEGIN
-                    CREATE TYPE {$name} AS ENUM ({$values});
-                EXCEPTION
-                    WHEN duplicate_object THEN NULL;
-                END $$;
-            ");
+        if (DB::getDriverName() === 'pgsql') {
+            foreach ($enums as $name => $values) {
+                DB::statement("
+                    DO $$ BEGIN
+                        CREATE TYPE {$name} AS ENUM ({$values});
+                    EXCEPTION
+                        WHEN duplicate_object THEN NULL;
+                    END $$;
+                ");
+            }
         }
 
         // 2. Tablas Catálogo
@@ -102,15 +104,21 @@ return new class extends Migration
             
             $table->text('descripcion');
             $table->jsonb('evidencias')->nullable();
+            
+            // Se incorpora 'en_inspeccion' para sincronizar con el ciclo de vida del trámite
             $table->enum('estatus', [
                 'pendiente', 
                 'inspector_asignado', 
-                'en_revision', 
+                'en_inspeccion', 
                 'atendido', 
                 'desestimado'
             ])->default('pendiente');
             
-            $table->timestamps();
+            // Control de auditoría temporal
+            $table->timestampTz('fecha_inicio_inspeccion')->nullable();
+            $table->timestampTz('fecha_cierre')->nullable();
+
+            $table->timestampsTz();
 
             $table->index('estatus');
             $table->index('created_at');
@@ -124,7 +132,14 @@ return new class extends Migration
             $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
 
             $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion']);
-            $table->enum('estado', ['incompleta', 'pendiente', 'inspector_asignado', 'en_inspeccion', 'aprobada', 'rechazada'])->default('pendiente');
+            $table->enum('estado', [
+                'incompleta', 
+                'pendiente', 
+                'inspector_asignado', 
+                'en_inspeccion', 
+                'aprobada', 
+                'rechazada'
+            ])->default('pendiente');
 
             $table->string('comuna');
             $table->string('sector');
@@ -133,7 +148,11 @@ return new class extends Migration
             $table->jsonb('datos_especificos')->nullable();
 
             $table->timestampTz('fecha_limite_documentos')->nullable();
-            $table->text('proximo_paso')->nullable();
+            
+            // Control de auditoría temporal
+            $table->timestampTz('fecha_inicio_inspeccion')->nullable();
+            $table->timestampTz('fecha_cierre')->nullable();
+
             $table->timestampsTz();
 
             $table->index('estado');
@@ -232,7 +251,7 @@ return new class extends Migration
             ADD COLUMN estado estado_documento_enum NOT NULL DEFAULT 'PENDIENTE';
         ");
 
-        // 7. Inspecciones y Acta de Evalución
+        // 7. Inspecciones y Acta de Evaluación
         Schema::create('inspecciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_acta', 30)->unique();

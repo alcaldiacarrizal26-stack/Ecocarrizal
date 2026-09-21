@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
+use App\Observers\SolicitudObserver;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy([SolicitudObserver::class])]
 class Solicitud extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $table = 'solicitudes';
 
-    protected $fillable = [
+protected $fillable = [
         'codigo_expediente',
         'user_id',
         'inspector_id',
@@ -22,15 +25,18 @@ class Solicitud extends Model
         'direccion_exacta',
         'motivo_descripcion',
         'datos_especificos',
-        'proximo_paso',
         'tipo_tramite',
         'estado',
         'fecha_limite_documentos',
+        'fecha_inicio_inspeccion',
+        'fecha_cierre',
     ];
 
     protected $casts = [
         'datos_especificos' => 'array',
         'fecha_limite_documentos' => 'datetime',
+        'fecha_inicio_inspeccion' => 'datetime',
+        'fecha_cierre' => 'datetime',
     ];
 
     /* --- Relaciones --- */

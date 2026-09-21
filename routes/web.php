@@ -150,12 +150,16 @@ Route::middleware(['auth', 'role:director,inspector,admin'])->group(function () 
     // 2. Guardar el informe / evaluación (POST)
     Route::post('/inspecciones', [InspeccionController::class, 'store'])->name('inspecciones.store');
 
-    // 3. Formulario para evaluar / levantar acta (GET)
+    // 3. Iniciar inspección
+    Route::patch('/inspecciones/{id}/iniciar-revision', [InspeccionController::class, 'iniciarRevision'])
+        ->name('inspecciones.iniciar-revision');
+
+    // 4. Formulario para evaluar / levantar acta (GET)
     Route::get('/inspecciones/{id}/evaluar', [InspeccionController::class, 'edit'])->name('inspecciones.evaluar');
 
-    // 4. Ver detalles de una inspección terminada (GET)
+    // 5. Ver detalles de una inspección terminada (GET)
     Route::get('/inspecciones/{id}', [InspeccionController::class, 'show'])->name('inspecciones.show');
 
-    // 5. Actualizar inspección existente (PUT)
+    // 6. Actualizar inspección existente (PUT)
     Route::put('/inspecciones/{id}', [InspeccionController::class, 'update'])->name('inspecciones.update');
 });
