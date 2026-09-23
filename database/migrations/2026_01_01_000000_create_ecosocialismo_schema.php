@@ -9,55 +9,51 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // -------------------------------------------------------------
-        // 1. Tipos ENUM nativos de PostgreSQL
-        // -------------------------------------------------------------
+        // 1. Tipos ENUM nativos PostgreSQL
         $enums = [
-            "tipo_racda_enum"       => "'NO_APLICA', 'RACDA_GENERADOR', 'RACDA_MANEJADOR'",
-            "estado_documento_enum" => "'PENDIENTE', 'APROBADO', 'OBSERVADO'",
+            "tipo_racda_enum"          => "'NO_APLICA', 'RACDA_GENERADOR', 'RACDA_MANEJADOR'",
+            "estado_documento_enum"    => "'PENDIENTE', 'APROBADO', 'OBSERVADO'",
+            "dictamen_inspeccion_enum" => "'APROBADO', 'CON_OBSERVACIONES', 'RECHAZADO', 'REINSPECCION_REQUERIDA'",
         ];
 
-        foreach ($enums as $name => $values) {
-            DB::statement("
-                DO $$ BEGIN
-                    CREATE TYPE {$name} AS ENUM ({$values});
-                EXCEPTION
-                    WHEN duplicate_object THEN NULL;
-                END $$;
-            ");
+        if (DB::getDriverName() === 'pgsql') {
+            foreach ($enums as $name => $values) {
+                DB::statement("
+                    DO $$ BEGIN
+                        CREATE TYPE {$name} AS ENUM ({$values});
+                    EXCEPTION
+                        WHEN duplicate_object THEN NULL;
+                    END $$;
+                ");
+            }
         }
 
-        // -------------------------------------------------------------
-        // 2. Tablas Catálogo / Independientes
-        // -------------------------------------------------------------
+        // 2. Tablas Catálogo
         Schema::create('roles', function (Blueprint $table) {
-            $table->integer('id_roles')->primary();
-            $table->text('nombre')->unique();
+            $table->id('id_roles');
+            $table->string('nombre')->unique();
             $table->text('descripcion')->nullable();
-            $table->timestampTz('created_at')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('direcciones', function (Blueprint $table) {
-            $table->integer('id_direccion')->primary();
-            $table->text('nombre_direc')->unique();
+            $table->id('id_direccion');
+            $table->string('nombre_direc')->unique();
             $table->text('descripcion_direc')->nullable();
-            $table->timestampTz('created_at')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('login_attempts', function (Blueprint $table) {
-            $table->text('email')->primary();
-            $table->integer('attempt_count');
+            $table->string('email')->primary();
+            $table->integer('attempt_count')->default(0);
             $table->timestampTz('last_failed_at')->nullable();
             $table->timestampTz('locked_until')->nullable();
         });
 
-        // -------------------------------------------------------------
         // 3. Usuarios e Inspectores
-        // -------------------------------------------------------------
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            
-            $table->foreignId('role_id')->constrained('roles', 'id_roles')->onDelete('cascade');
+            $table->foreignId('role_id')->constrained('roles', 'id_roles')->cascadeOnDelete();
             $table->foreignId('direccion_id')->nullable()->constrained('direcciones', 'id_direccion')->nullOnDelete();
 
             $table->string('cedula', 20)->unique();
@@ -73,12 +69,10 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
 
-            // Índices para búsquedas rápidas
             $table->index('correo');
             $table->index('cedula');
         });
 
-        // Perfil extendido para funcionarios / inspectores
         Schema::create('inspectores', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
@@ -91,9 +85,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // -------------------------------------------------------------
         // 4. Denuncias Ambientales
-        // -------------------------------------------------------------
         Schema::create('denuncias', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo', 20)->unique();
@@ -111,34 +103,43 @@ return new class extends Migration
             $table->text('justificacion_gravedad')->nullable();
             
             $table->text('descripcion');
-            $table->json('evidencias');
+            $table->jsonb('evidencias')->nullable();
+            
+            // Se incorpora 'en_inspeccion' para sincronizar con el ciclo de vida del trámite
             $table->enum('estatus', [
                 'pendiente', 
                 'inspector_asignado', 
-                'en_revision', 
+                'en_inspeccion', 
                 'atendido', 
                 'desestimado'
             ])->default('pendiente');
             
-            $table->timestamps();
+            // Control de auditoría temporal
+            $table->timestampTz('fecha_inicio_inspeccion')->nullable();
+            $table->timestampTz('fecha_cierre')->nullable();
 
-            // Índices para optimizar consultas de dashboard y filtrado
+            $table->timestampsTz();
+
             $table->index('estatus');
             $table->index('created_at');
-            $table->index(['estatus', 'created_at']);
         });
 
-        // -------------------------------------------------------------
         // 5. Trámites y Solicitudes
-        // -------------------------------------------------------------
         Schema::create('solicitudes', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_expediente')->nullable()->unique();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('user_id')->constrained('users')->nullOnDelete();
             $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
 
             $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion']);
-            $table->enum('estado', ['incompleta', 'pendiente', 'inspector_asignado', 'en_inspeccion', 'atendido', 'anulado'])->default('pendiente');
+            $table->enum('estado', [
+                'incompleta', 
+                'pendiente', 
+                'inspector_asignado', 
+                'en_inspeccion', 
+                'aprobada', 
+                'rechazada'
+            ])->default('pendiente');
 
             $table->string('comuna');
             $table->string('sector');
@@ -146,7 +147,12 @@ return new class extends Migration
             $table->text('motivo_descripcion');
             $table->jsonb('datos_especificos')->nullable();
 
-            $table->text('proximo_paso')->nullable();
+            $table->timestampTz('fecha_limite_documentos')->nullable();
+            
+            // Control de auditoría temporal
+            $table->timestampTz('fecha_inicio_inspeccion')->nullable();
+            $table->timestampTz('fecha_cierre')->nullable();
+
             $table->timestampsTz();
 
             $table->index('estado');
@@ -160,14 +166,12 @@ return new class extends Migration
             $table->text('nombre_archivo');
             $table->text('bucket_path');
             $table->text('archivo_url');
-            $table->boolean('es_evidencia_fotografica')->nullable();
+            $table->boolean('es_evidencia_fotografica')->default(false);
 
-            $table->timestampTz('created_at')->nullable();
+            $table->timestampsTz();
         });
 
-        // -------------------------------------------------------------
-        // 6. Empresas y Expedientes Ambientales
-        // -------------------------------------------------------------
+        // 6. Empresas y Expedientes
         Schema::create('empresas', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
@@ -175,7 +179,7 @@ return new class extends Migration
             $table->string('rif', 15)->unique();
             $table->string('razon_social');
             $table->string('nombre_comercial')->nullable();
-            $table->string('numero_cuenta_patente')->comment('Cuenta SIGAT / Licencia (CZ-AE-XXXXXX o Cód. Contribuyente)');
+            $table->string('numero_cuenta_patente');
             $table->string('correo_comercial');
             $table->string('telefono_comercial');
             
@@ -224,6 +228,11 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        DB::statement("
+            ALTER TABLE perfiles_ambientales 
+            ADD COLUMN tipo_racda tipo_racda_enum NOT NULL DEFAULT 'NO_APLICA';
+        ");
+
         Schema::create('documentos_expediente', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
@@ -234,17 +243,41 @@ return new class extends Migration
             $table->text('archivo_path')->nullable();
             $table->text('observaciones')->nullable();
 
-            $table->timestampTz('created_at')->nullable();
+            $table->timestampsTz();
         });
 
         DB::statement("
             ALTER TABLE documentos_expediente 
             ADD COLUMN estado estado_documento_enum NOT NULL DEFAULT 'PENDIENTE';
         ");
+
+        // 7. Inspecciones y Acta de Evaluación
+        Schema::create('inspecciones', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('codigo_acta', 30)->unique();
+            
+            $table->foreignUuid('solicitud_id')->nullable()->constrained('solicitudes')->nullOnDelete();
+            $table->foreignUuid('denuncia_id')->nullable()->constrained('denuncias')->nullOnDelete();
+            $table->foreignId('inspector_id')->constrained('inspectores')->cascadeOnDelete();
+
+            $table->timestampTz('fecha_visita');
+            $table->text('observaciones_campo');
+            $table->jsonb('hallazgos')->nullable();
+            $table->jsonb('fotos_evidencia')->nullable();
+            $table->text('recomendaciones')->nullable();
+            
+            $table->timestampsTz();
+        });
+
+        DB::statement("
+            ALTER TABLE inspecciones 
+            ADD COLUMN dictamen dictamen_inspeccion_enum NOT NULL DEFAULT 'CON_OBSERVACIONES';
+        ");
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('inspecciones');
         Schema::dropIfExists('documentos_expediente');
         Schema::dropIfExists('perfiles_ambientales');
         Schema::dropIfExists('empresas');
@@ -257,6 +290,7 @@ return new class extends Migration
         Schema::dropIfExists('direcciones');
         Schema::dropIfExists('roles');
 
+        DB::statement("DROP TYPE IF EXISTS dictamen_inspeccion_enum CASCADE");
         DB::statement("DROP TYPE IF EXISTS estado_documento_enum CASCADE");
         DB::statement("DROP TYPE IF EXISTS tipo_racda_enum CASCADE");
     }

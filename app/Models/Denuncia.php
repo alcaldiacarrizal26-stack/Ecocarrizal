@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Observers\DenunciaObserver;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[ObservedBy([DenunciaObserver::class])]
 class Denuncia extends Model
 {
     use HasFactory, HasUuids;
@@ -18,7 +20,7 @@ class Denuncia extends Model
     protected $fillable = [
         'codigo',
         'user_id',
-        'inspector_id', // Agregado para permitir asignación de responsable
+        'inspector_id',
         'tipo_contaminacion',
         'otro_tipo_contaminacion',
         'comuna',
@@ -29,10 +31,14 @@ class Denuncia extends Model
         'descripcion',
         'evidencias',
         'estatus',
+        'fecha_inicio_inspeccion',
+        'fecha_cierre',
     ];
 
     protected $casts = [
         'evidencias' => 'array',
+        'fecha_inicio_inspeccion' => 'datetime',
+        'fecha_cierre' => 'datetime',
     ];
 
     protected static function booted()

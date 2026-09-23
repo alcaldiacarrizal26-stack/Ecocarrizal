@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 // Controladores Generales
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InspeccionController;
 
 // Controladores Ciudadano
 use App\Http\Controllers\Ciudadano\PerfilController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Ciudadano\EmpresaController as CiudadanoEmpresaControll
 // Controladores Director por Dirección
 use App\Http\Controllers\Director\Ambiente\InspectorController as AmbienteInspectorController;
 use App\Http\Controllers\Director\Ambiente\ReporteController as AmbienteReporteController;
+use App\Http\Controllers\Director\Ambiente\SolicitudController as AmbienteSolicitudController;
 use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
 use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaController;
 
@@ -42,7 +44,6 @@ Route::middleware(['auth'])->group(function () {
 // Panel Exclusivo del Ciudadano
 // -------------------------------------------------------------
 Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudadano.')->group(function () {
-    // Muestra directamente la vista del ciudadano
     Route::get('/dashboard', function () {
         return view('ciudadano.dashboard', ['user' => auth()->user()]);
     })->name('dashboard');
@@ -72,7 +73,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
 // -------------------------------------------------------------
 // Panel Directores
 // -------------------------------------------------------------
-Route::middleware(['auth', 'role:director'])->prefix('director')->name('director.')->group(function () {
+Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('director.')->group(function () {
     
     // ---------------------------------------------------------
     // Dirección de Ambiente
@@ -86,22 +87,17 @@ Route::middleware(['auth', 'role:director'])->prefix('director')->name('director
         Route::post('/inspectores', [AmbienteInspectorController::class, 'store'])->name('inspectores.store');
         Route::patch('/inspectores/{inspector}/toggle', [AmbienteInspectorController::class, 'toggleStatus'])->name('inspectores.toggle');
 
-        // Solicitudes
-        Route::get('/solicitudes', function () {
-            return view('director.ambiente.solicitudes');
-        })->name('solicitudes');
-        
-        Route::get('/solicitudes/{solicitud}', function ($solicitud) {
-            return view('director.ambiente.solicitudes_show', compact('solicitud'));
-        })->name('solicitudes.show');
+        // Solicitudes (Trámites Ambientales)
+        Route::get('/solicitudes', [AmbienteSolicitudController::class, 'index'])->name('solicitudes');
+        Route::get('/solicitudes/exportar', [AmbienteSolicitudController::class, 'export'])->name('solicitudes.exportar');
+        Route::put('/solicitudes/{solicitud}/asignar', [AmbienteSolicitudController::class, 'asignarInspector'])->name('solicitudes.asignar');
+        Route::get('/solicitudes/{solicitud}', [AmbienteSolicitudController::class, 'show'])->name('solicitudes.show');
 
-        // Denuncias (Añadido para corregir el error del Dashboard)
-        Route::get('/denuncias/{id}', [AmbienteReporteController::class, 'show'])->name('denuncias.show');
-        Route::post('/denuncias/{id}/asignar', [AmbienteReporteController::class, 'asignarInspector'])->name('denuncias.asignar');
-
-        // Reportes y Denuncias
+        // Denuncias / Reportes
         Route::get('/reportes', [AmbienteReporteController::class, 'index'])->name('reportes');
         Route::get('/reportes/exportar', [AmbienteReporteController::class, 'export'])->name('reportes.export');
+        Route::get('/denuncias/{id}', [AmbienteReporteController::class, 'show'])->name('denuncias.show');
+        Route::post('/denuncias/{id}/asignar', [AmbienteReporteController::class, 'asignarInspector'])->name('denuncias.asignar');
         Route::put('/reportes/{denuncia}/asignar', [AmbienteReporteController::class, 'asignar'])->name('reportes.asignar');
     });
 
@@ -122,16 +118,13 @@ Route::middleware(['auth', 'role:director'])->prefix('director')->name('director
 });
 
 // -------------------------------------------------------------
-// Panel Inspectores
+// Panel Unificado de Inspectores
 // -------------------------------------------------------------
 Route::middleware(['auth', 'role:inspector'])->prefix('inspector')->name('inspector.')->group(function () {
-    Route::get('/ambiente/dashboard', function () {
-        return view('inspector.ambiente.dashboard', ['user' => auth()->user()]);
-    })->name('ambiente.dashboard');
-
-    Route::get('/residuos/dashboard', function () {
-        return view('inspector.residuos.dashboard', ['user' => auth()->user()]);
-    })->name('residuos.dashboard');
+    // Dashboard principal del inspector
+    Route::get('/dashboard', function () {
+        return view('inspector.dashboard', ['user' => auth()->user()]);
+    })->name('dashboard');
 
     Route::view('/soporte', 'soporte')->name('soporte');
 });
@@ -145,4 +138,28 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     })->name('dashboard');
     
     Route::view('/soporte', 'soporte')->name('soporte');
+});
+
+// -------------------------------------------------------------
+// Módulo Compartido de Inspecciones (Directores e Inspectores)
+// -------------------------------------------------------------
+Route::middleware(['auth', 'role:director,inspector,admin'])->group(function () {
+    // 1. Listado principal
+    Route::get('/inspecciones', [InspeccionController::class, 'index'])->name('inspecciones.index');
+
+    // 2. Guardar el informe / evaluación (POST)
+    Route::post('/inspecciones', [InspeccionController::class, 'store'])->name('inspecciones.store');
+
+    // 3. Iniciar inspección
+    Route::patch('/inspecciones/{id}/iniciar-revision', [InspeccionController::class, 'iniciarRevision'])
+        ->name('inspecciones.iniciar-revision');
+
+    // 4. Formulario para evaluar / levantar acta (GET)
+    Route::get('/inspecciones/{id}/evaluar', [InspeccionController::class, 'edit'])->name('inspecciones.evaluar');
+
+    // 5. Ver detalles de una inspección terminada (GET)
+    Route::get('/inspecciones/{id}', [InspeccionController::class, 'show'])->name('inspecciones.show');
+
+    // 6. Actualizar inspección existente (PUT)
+    Route::put('/inspecciones/{id}', [InspeccionController::class, 'update'])->name('inspecciones.update');
 });

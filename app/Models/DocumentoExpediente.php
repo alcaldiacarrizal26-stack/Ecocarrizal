@@ -23,6 +23,10 @@ class DocumentoExpediente extends Model
         'observaciones',
     ];
 
+    protected $casts = [
+        'created_at' => 'datetime',
+    ];
+
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);

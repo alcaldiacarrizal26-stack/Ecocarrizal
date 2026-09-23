@@ -220,7 +220,6 @@ class SolicitudController extends Controller
                 'datos_especificos'       => $datosEspecificos,
                 'estado'                  => $estadoFinal,
                 'fecha_limite_documentos' => $fechaLimite,
-                'proximo_paso'            => $proximoPaso,
             ]);
 
             if ($request->hasFile('documentos')) {

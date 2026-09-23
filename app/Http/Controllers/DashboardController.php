@@ -20,7 +20,7 @@ class DashboardController extends Controller
         $direccionId = (int) $user->direccion_id;
 
         // 1. Rol: Director (role_id = 2 o equivalente)
-        if ($roleId === 2 || in_array($rolNombre, ['director', 'director_ambiente', 'director_residuos', 'administrador'])) {
+        if ($roleId === 2 || in_array($rolNombre, ['director', 'director_ambiente', 'director_residuos'])) {
             
             // Dirección de Residuos
             if ($direccionId === 2 || $rolNombre === 'director_residuos') {
@@ -31,12 +31,9 @@ class DashboardController extends Controller
             return redirect()->route('director.ambiente.dashboard');
         }
 
-        // 2. Rol: Inspector (role_id = 3)
+        // 2. Rol: Inspector Unificado (role_id = 3)
         if ($roleId === 3 || $rolNombre === 'inspector') {
-            if ($direccionId === 2) {
-                return redirect()->route('inspector.residuos.dashboard');
-            }
-            return redirect()->route('inspector.ambiente.dashboard');
+            return redirect()->route('inspector.dashboard');
         }
 
         // 3. Rol: Ciudadano (role_id = 4)

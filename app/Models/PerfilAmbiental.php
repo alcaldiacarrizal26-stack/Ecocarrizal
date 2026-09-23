@@ -27,6 +27,10 @@ class PerfilAmbiental extends Model
         'actividades_manejador',
         'sustancias_manejadas',
         'residuos_tipos',
+        'residuos_comunes',
+        'residuos_reciclables',
+        'residuos_peligrosos',
+        'tipo_racda',
     ];
 
     protected $casts = [
@@ -38,6 +42,9 @@ class PerfilAmbiental extends Model
         'usa_pozo_agua' => 'boolean',
         'actividades_manejador' => 'array',
         'residuos_tipos' => 'array',
+        'residuos_comunes' => 'array',
+        'residuos_reciclables' => 'array',
+        'residuos_peligrosos' => 'array',
     ];
 
     public function empresa(): BelongsTo

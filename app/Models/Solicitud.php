@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
+use App\Observers\SolicitudObserver;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy([SolicitudObserver::class])]
 class Solicitud extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $table = 'solicitudes';
 
-    protected $fillable = [
+protected $fillable = [
         'codigo_expediente',
         'user_id',
         'inspector_id',
@@ -22,30 +25,31 @@ class Solicitud extends Model
         'direccion_exacta',
         'motivo_descripcion',
         'datos_especificos',
-        'proximo_paso',
         'tipo_tramite',
         'estado',
+        'fecha_limite_documentos',
+        'fecha_inicio_inspeccion',
+        'fecha_cierre',
     ];
 
     protected $casts = [
         'datos_especificos' => 'array',
+        'fecha_limite_documentos' => 'datetime',
+        'fecha_inicio_inspeccion' => 'datetime',
+        'fecha_cierre' => 'datetime',
     ];
 
     /* --- Relaciones --- */
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
 
     public function solicitante(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    // CAMBIO AQUÍ: Ahora apunta al modelo Inspector
     public function inspector(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'inspector_id');
+        return $this->belongsTo(Inspector::class, 'inspector_id');
     }
 
     public function recaudos(): HasMany
@@ -55,13 +59,11 @@ class Solicitud extends Model
 
     /* --- Accessors Útiles --- */
 
-    // Permite consultar $solicitud->aplica_autorizacion_propietario directamente
     public function getAplicaAutorizacionPropietarioAttribute(): bool
     {
         return (bool) ($this->datos_especificos['aplica_autorizacion_propietario'] ?? false);
     }
 
-    // Permite consultar $solicitud->aplica_variables_ambientales directamente
     public function getAplicaVariablesAmbientalesAttribute(): bool
     {
         return (bool) ($this->datos_especificos['aplica_variables_ambientales'] ?? false);
