@@ -8,6 +8,8 @@ use App\Models\Direccion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -63,30 +65,38 @@ class AuthController extends Controller
             'contraseña'       => 'required|min:6|confirmed',
         ]);
 
-        $roleCiudadano = Role::where('nombre', 'ciudadano')->first();
-
         $cedulaUnificada   = "{$request->nacionalidad}-{$request->cedula_num}";
         $telefonoUnificado = "{$request->prefijo_telefono}{$request->telefono_num}";
 
-        if (User::where('cedula', $cedulaUnificada)->exists()) {
-            return back()->withErrors(['cedula_num' => 'Esta cédula o RIF ya se encuentra registrada.'])->withInput();
-        }
+        // Clave única para evitar carreras críticas (race conditions) en el mismo milisegundo
+        $lockKey = 'register_lock_' . md5($cedulaUnificada . $request->correo);
 
-        $user = User::create([
-            'role_id'      => $roleCiudadano->id_roles ?? 4,
-            'direccion_id' => null,
-            'cedula'       => $cedulaUnificada,
-            'telefono'     => $telefonoUnificado,
-            'nombre'       => $request->nombre,
-            'apellido'     => $request->apellido,
-            'correo'       => $request->correo,
-            'password'     => Hash::make($request->contraseña),
-        ]);
+        // Intenta obtener un candado atómico por 5 segundos
+        return Cache::lock($lockKey, 5)->get(function () use ($request, $cedulaUnificada, $telefonoUnificado) {
+            
+            if (User::where('cedula', $cedulaUnificada)->exists()) {
+                return back()->withErrors(['cedula_num' => 'Esta cédula o RIF ya se encuentra registrada.'])->withInput();
+            }
 
-        Auth::login($user);
+            $user = DB::transaction(function () use ($request, $cedulaUnificada, $telefonoUnificado) {
+                $roleCiudadano = Role::where('nombre', 'ciudadano')->first();
 
-        // Envía al dashboard unificado tras registrarse
-        return redirect()->to('/dashboard')->with('success', '¡Usuario creado exitosamente!');
+                return User::create([
+                    'role_id'      => $roleCiudadano->id_roles ?? 4,
+                    'direccion_id' => null,
+                    'cedula'       => $cedulaUnificada,
+                    'telefono'     => $telefonoUnificado,
+                    'nombre'       => $request->nombre,
+                    'apellido'     => $request->apellido,
+                    'correo'       => $request->correo,
+                    'password'     => Hash::make($request->contraseña),
+                ]);
+            });
+
+            Auth::login($user);
+
+            return redirect()->to('/dashboard')->with('success', '¡Usuario creado exitosamente!');
+        }) ?: back()->withErrors(['correo' => 'Se está procesando una solicitud idéntica. Por favor espera un momento.'])->withInput();
     }
 
     /**

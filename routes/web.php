@@ -24,9 +24,14 @@ use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaC
 // Rutas Públicas (Autenticación)
 // -------------------------------------------------------------
 Route::get('/', [AuthController::class, 'showHome'])->name('home');
-Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::post('/register', [AuthController::class, 'register'])->name('register');
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Protección contra fuerza bruta en inicio de sesión y registro (6 intentos por minuto)
+Route::middleware(['guest', 'throttle:6,1'])->group(function () {
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/register', [AuthController::class, 'register'])->name('register');
+});
+
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 // -------------------------------------------------------------
 // Rutas Autenticadas (General / Despachador)
@@ -52,18 +57,23 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil');
     Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
-    // Reportes (Denuncias)
+    // Módulos con protección contra doble envío (envíos de formularios restringidos a 10 por minuto)
+    Route::middleware(['throttle:10,1'])->group(function () {
+        // Reportes (Denuncias)
+        Route::post('/reportes', [ReporteController::class, 'store'])->name('reportes.store');
+
+        // Solicitudes y Trámites
+        Route::post('/solicitudes', [SolicitudController::class, 'store'])->name('solicitudes.store');
+        Route::put('/solicitudes/{tramite}/pendientes', [SolicitudController::class, 'subirPendientes'])->name('solicitudes.pendientes');
+
+        // Empresas (Perfil Comercial / RACDA)
+        Route::post('/empresas', [CiudadanoEmpresaController::class, 'store'])->name('empresas.store');
+    });
+
+    // Consultas de vista
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes');
-    Route::post('/reportes', [ReporteController::class, 'store'])->name('reportes.store');
-
-    // Solicitudes y Trámites
     Route::get('/solicitudes', [SolicitudController::class, 'index'])->name('solicitudes');
-    Route::post('/solicitudes', [SolicitudController::class, 'store'])->name('solicitudes.store');
-    Route::put('/solicitudes/{tramite}/pendientes', [SolicitudController::class, 'subirPendientes'])->name('solicitudes.pendientes');
-
-    // Empresas (Perfil Comercial / RACDA)
     Route::get('/empresas', [CiudadanoEmpresaController::class, 'index'])->name('empresas');
-    Route::post('/empresas', [CiudadanoEmpresaController::class, 'store'])->name('empresas.store');
 
     // Compensación Ambiental y Soporte
     Route::view('/compensacion', 'ciudadano.compensacion')->name('compensacion');
@@ -89,13 +99,13 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
 
         // Solicitudes (Trámites Ambientales)
         Route::get('/solicitudes', [AmbienteSolicitudController::class, 'index'])->name('solicitudes');
-        Route::get('/solicitudes/exportar', [AmbienteSolicitudController::class, 'export'])->name('solicitudes.exportar');
+        Route::get('/solicitudes/exportar', [AmbienteSolicitudController::class, 'export'])->middleware('throttle:15,1')->name('solicitudes.exportar');
         Route::put('/solicitudes/{solicitud}/asignar', [AmbienteSolicitudController::class, 'asignarInspector'])->name('solicitudes.asignar');
         Route::get('/solicitudes/{solicitud}', [AmbienteSolicitudController::class, 'show'])->name('solicitudes.show');
 
         // Denuncias / Reportes
         Route::get('/reportes', [AmbienteReporteController::class, 'index'])->name('reportes');
-        Route::get('/reportes/exportar', [AmbienteReporteController::class, 'export'])->name('reportes.export');
+        Route::get('/reportes/exportar', [AmbienteReporteController::class, 'export'])->middleware('throttle:15,1')->name('reportes.export');
         Route::get('/denuncias/{id}', [AmbienteReporteController::class, 'show'])->name('denuncias.show');
         Route::post('/denuncias/{id}/asignar', [AmbienteReporteController::class, 'asignarInspector'])->name('denuncias.asignar');
         Route::put('/reportes/{denuncia}/asignar', [AmbienteReporteController::class, 'asignar'])->name('reportes.asignar');
@@ -147,19 +157,22 @@ Route::middleware(['auth', 'role:director,inspector,admin'])->group(function () 
     // 1. Listado principal
     Route::get('/inspecciones', [InspeccionController::class, 'index'])->name('inspecciones.index');
 
-    // 2. Guardar el informe / evaluación (POST)
-    Route::post('/inspecciones', [InspeccionController::class, 'store'])->name('inspecciones.store');
+    // Modificaciones / Envíos con límite de tasa de 10 peticiones/minuto
+    Route::middleware(['throttle:10,1'])->group(function () {
+        // 2. Guardar el informe / evaluación (POST)
+        Route::post('/inspecciones', [InspeccionController::class, 'store'])->name('inspecciones.store');
 
-    // 3. Iniciar inspección
-    Route::patch('/inspecciones/{id}/iniciar-revision', [InspeccionController::class, 'iniciarRevision'])
-        ->name('inspecciones.iniciar-revision');
+        // 3. Iniciar inspección
+        Route::patch('/inspecciones/{id}/iniciar-revision', [InspeccionController::class, 'iniciarRevision'])
+            ->name('inspecciones.iniciar-revision');
+
+        // 6. Actualizar inspección existente (PUT)
+        Route::put('/inspecciones/{id}', [InspeccionController::class, 'update'])->name('inspecciones.update');
+    });
 
     // 4. Formulario para evaluar / levantar acta (GET)
     Route::get('/inspecciones/{id}/evaluar', [InspeccionController::class, 'edit'])->name('inspecciones.evaluar');
 
     // 5. Ver detalles de una inspección terminada (GET)
     Route::get('/inspecciones/{id}', [InspeccionController::class, 'show'])->name('inspecciones.show');
-
-    // 6. Actualizar inspección existente (PUT)
-    Route::put('/inspecciones/{id}', [InspeccionController::class, 'update'])->name('inspecciones.update');
 });

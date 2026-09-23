@@ -9,6 +9,7 @@ use App\Services\TerritorioService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -129,30 +130,58 @@ class SolicitudController extends Controller
 
     public function store(Request $request)
     {
+        $userId = auth()->id();
+
+        // 1. CAPA ANTI-SPAM: Throttle Rate Limiting (Máx 3 solicitudes cada 10 minutos)
+        $rateLimitKey = 'solicitud-submission:' . $userId;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+            $minutes = ceil($seconds / 60);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', "Has superado el límite de solicitudes permitidas. Por favor, espera {$minutes} minuto(s) antes de intentar registrar un nuevo trámite.");
+        }
+
+        // 2. CAPA ANTI-SPAM: Prevenir duplicados idénticos en 60 segundos
+        $duplicateExists = Solicitud::where('user_id', $userId)
+            ->where('tipo_tramite', $request->input('tipo_tramite'))
+            ->where('motivo_descripcion', $request->input('motivo_solicitud'))
+            ->where('created_at', '>=', now()->subSeconds(60))
+            ->exists();
+
+        if ($duplicateExists) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Ya has enviado una solicitud con estas especificaciones recientemente. Revisa tu lista de trámites.');
+        }
+
+        // 3. VALIDACIÓN DE DATOS
         $validated = $request->validate([
-            'tipo_tramite'                    => 'required|string|in:inspeccion,poda_deshierbe,desmalezamiento_conformacion',
-            'comuna'                          => 'required|string',
-            'sector'                          => 'required|string',
-            'direccion_exacta'                => 'required|string|max:500',
-            'motivo_solicitud'                => 'required|string|max:1000',
-            'aplica_autorizacion_propietario' => 'nullable|boolean',
-            'aplica_variables_ambientales'    => 'nullable|boolean',
-            'es_persona_juridica'             => 'nullable|boolean',
-            'documentos'                      => 'required|array|min:1',
-            'documentos.*'                    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'tipo_tramite'                     => 'required|string|in:inspeccion,poda_deshierbe,desmalezamiento_conformacion',
+            'comuna'                           => 'required|string',
+            'sector'                           => 'required|string',
+            'direccion_exacta'                 => 'required|string|max:500',
+            'motivo_solicitud'                 => 'required|string|max:1000',
+            'aplica_autorizacion_propietario'  => 'nullable|boolean',
+            'aplica_variables_ambientales'     => 'nullable|boolean',
+            'es_persona_juridica'              => 'nullable|boolean',
+            'documentos'                       => 'required|array|min:1',
+            'documentos.*'                     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // Máx 10MB por documento
         ]);
 
-        DB::transaction(function () use ($request, $validated) {
+        // 4. TRANSACCIÓN ATÓMICA DE REGISTRO
+        DB::transaction(function () use ($request, $validated, $userId) {
             $yearActual = Carbon::now()->year;
 
-            // Bloqueamos la fila más reciente del año en curso para sincronizar la concurrencia
-            $ultimaSolicitud = DB::table('solicitudes')
+            // Bloqueamos la fila más reciente del año para asegurar concurrencia
+            DB::table('solicitudes')
                 ->whereYear('created_at', $yearActual)
                 ->orderBy('created_at', 'desc')
                 ->lockForUpdate()
                 ->first();
 
-            // Conteo secuencial del año
+            // Conteo secuencial
             $conteoAno = DB::table('solicitudes')
                 ->whereYear('created_at', $yearActual)
                 ->count();
@@ -160,7 +189,6 @@ class SolicitudController extends Controller
             $ultimoSecuencial = $conteoAno + 1;
             $codigoExpediente = sprintf('SOL-%d-%04d', $yearActual, $ultimoSecuencial);
 
-            // Guardamos las condicionales en el JSONB/JSON
             $datosEspecificos = [
                 'aplica_autorizacion_propietario' => $request->boolean('aplica_autorizacion_propietario'),
                 'aplica_variables_ambientales'    => $request->boolean('aplica_variables_ambientales'),
@@ -173,44 +201,37 @@ class SolicitudController extends Controller
 
             $keysEsperadas = [];
             if ($configActual) {
-                // Requisitos Obligatorios
                 foreach ($configActual['requisitosObligatorios'] as $req) {
                     $keysEsperadas[] = $req['key'];
                 }
-                // Requisitos Condicionales según los flags marcados
                 foreach ($configActual['requisitosCondicionales'] as $req) {
                     if (!empty($req['flag_check']) && $request->boolean($req['flag_check'])) {
                         $keysEsperadas[] = $req['key'];
                     }
                 }
-                // Requisitos Opcionales/Complementarios
                 foreach ($configActual['requisitosOpcionales'] as $req) {
                     $keysEsperadas[] = $req['key'];
                 }
             }
 
-            // Claves de archivos realmente adjuntados en la petición
             $documentosSubidos = $request->file('documentos') ?? [];
             $keysSubidas = array_keys(array_filter($documentosSubidos, fn($file) => $file !== null));
 
-            // Comparar si faltan archivos esperados
             $faltantes = array_diff($keysEsperadas, $keysSubidas);
             $plazoDias = $configActual['plazoDias'] ?? 0;
 
             if (count($faltantes) > 0 && $plazoDias > 0) {
                 $estadoFinal = 'incompleta';
                 $fechaLimite = Carbon::now()->addDays($plazoDias);
-                $proximoPaso = 'Consignación de documentación pendiente por parte del ciudadano';
             } else {
                 $estadoFinal = 'pendiente';
                 $fechaLimite = null;
-                $proximoPaso = 'Asignación de inspector para revisión técnica';
             }
 
             $solicitud = Solicitud::create([
                 'id'                      => (string) Str::uuid(),
                 'codigo_expediente'       => $codigoExpediente,
-                'user_id'                 => auth()->id(),
+                'user_id'                 => $userId,
                 'inspector_id'            => null,
                 'tipo_tramite'            => $validated['tipo_tramite'],
                 'comuna'                  => $validated['comuna'],
@@ -242,6 +263,9 @@ class SolicitudController extends Controller
                 }
             }
         });
+
+        // Registrar hit en el limitador (expira en 600s / 10 minutos)
+        RateLimiter::hit($rateLimitKey, 600);
 
         return redirect()
             ->route('ciudadano.solicitudes')

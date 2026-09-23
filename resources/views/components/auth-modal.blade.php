@@ -92,7 +92,14 @@
             </div>
 
             <!-- Formulario Login -->
-            <form x-show="authMode === 'login'" method="POST" action="/login" class="space-y-4">
+            <form 
+                x-show="authMode === 'login'" 
+                x-data="{ submitting: false }" 
+                @submit="submitting = true" 
+                method="POST" 
+                action="/login" 
+                class="space-y-4"
+            >
                 @csrf
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Correo Electrónico</label>
@@ -132,9 +139,15 @@
                 </div>
                 <button 
                     type="submit" 
-                    class="w-full py-3.5 bg-primary hover:bg-secondary text-white font-bold text-sm rounded-xl transition shadow-md shadow-primary/20 mt-2 cursor-pointer"
+                    :disabled="submitting"
+                    :class="{ 'opacity-75 cursor-not-allowed': submitting }"
+                    class="w-full py-3.5 bg-primary hover:bg-secondary text-white font-bold text-sm rounded-xl transition shadow-md shadow-primary/20 mt-2 cursor-pointer flex items-center justify-center gap-2"
                 >
-                    Entrar
+                    <svg x-show="submitting" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span x-text="submitting ? 'Procesando...' : 'Entrar'"></span>
                 </button>
             </form>
 
@@ -142,6 +155,8 @@
             <form 
                 x-show="authMode === 'register'" 
                 x-cloak
+                x-data="{ submitting: false }"
+                @submit="submitting = true"
                 method="POST" 
                 action="/register" 
                 class="space-y-3"
@@ -291,9 +306,15 @@
 
                 <button 
                     type="submit" 
-                    class="w-full py-3.5 bg-primary hover:bg-secondary text-white font-bold text-sm rounded-xl transition shadow-md shadow-primary/20 mt-3 cursor-pointer"
+                    :disabled="submitting"
+                    :class="{ 'opacity-75 cursor-not-allowed': submitting }"
+                    class="w-full py-3.5 bg-primary hover:bg-secondary text-white font-bold text-sm rounded-xl transition shadow-md shadow-primary/20 mt-3 cursor-pointer flex items-center justify-center gap-2"
                 >
-                    Crear Cuenta
+                    <svg x-show="submitting" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span x-text="submitting ? 'Creando cuenta...' : 'Crear Cuenta'"></span>
                 </button>
             </form>
         </div>

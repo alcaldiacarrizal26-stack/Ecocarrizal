@@ -7,6 +7,7 @@
             showSuccessAlert: true,
             filtroEstatus: 'todos',
             selectedDenuncia: null,
+            isSubmitting: false, // Prevención de doble clic
 
             denunciasLista: {{ json_encode($denuncias->pluck('estatus')->map(fn($e) => strtolower(trim($e)))) }},
 
@@ -26,12 +27,35 @@
             descripcion: '',
             evidenciasCount: 0,
             evidenciasNombres: [],
+            fileError: '',
             territorios: {{ json_encode($territorios) }},
 
             handleFileChange(event) {
-                const files = event.target.files;
+                const files = Array.from(event.target.files);
+                this.fileError = '';
+
+                // Validar máximo 5 imágenes
+                if (files.length > 5) {
+                    this.fileError = 'Solo puedes adjuntar un máximo de 5 imágenes.';
+                    event.target.value = '';
+                    this.evidenciasCount = 0;
+                    this.evidenciasNombres = [];
+                    return;
+                }
+
+                // Validar peso de cada archivo (máx 5MB por imagen)
+                const maxSize = 5 * 1024 * 1024;
+                const invalidFile = files.find(f => f.size > maxSize);
+                if (invalidFile) {
+                    this.fileError = `El archivo '${invalidFile.name}' supera el peso máximo permitido (5MB).`;
+                    event.target.value = '';
+                    this.evidenciasCount = 0;
+                    this.evidenciasNombres = [];
+                    return;
+                }
+
                 this.evidenciasCount = files.length;
-                this.evidenciasNombres = Array.from(files).map(f => f.name);
+                this.evidenciasNombres = files.map(f => f.name);
             },
 
             verDetalle(denuncia) {
@@ -41,10 +65,10 @@
 
             get isFormValid() {
                 if (!this.tipoContaminacion || !this.comuna || !this.sector) return false;
-                if (!this.puntoReferencia.trim() || !this.descripcion.trim()) return false;
-                if (this.tipoContaminacion === 'Otro' && !this.otroTipoContaminacion.trim()) return false;
-                if (this.gravedad === 'alta' && !this.justificacionGravedad.trim()) return false;
-                if (this.evidenciasCount < 1) return false;
+                if (this.puntoReferencia.trim().length < 5 || this.descripcion.trim().length < 20) return false;
+                if (this.tipoContaminacion === 'Otro' && this.otroTipoContaminacion.trim().length < 3) return false;
+                if (this.gravedad === 'alta' && this.justificacionGravedad.trim().length < 15) return false;
+                if (this.evidenciasCount < 1 || this.fileError !== '') return false;
                 return true;
             }
         }"
@@ -284,7 +308,13 @@
                     <button @click="openModal = false" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer leading-none">&times;</button>
                 </div>
 
-                <form action="{{ route('ciudadano.reportes.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <form 
+                    action="{{ route('ciudadano.reportes.store') }}" 
+                    method="POST" 
+                    enctype="multipart/form-data" 
+                    class="space-y-4"
+                    @submit="isSubmitting = true"
+                >
                     @csrf
                     
                     <div>
@@ -351,66 +381,98 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Evidencias Fotográficas <span class="text-rose-500">*</span></label>
-                        <div class="relative border-2 border-dashed rounded-2xl p-4 transition-all text-center group cursor-pointer flex flex-col items-center justify-center min-h-[130px]"
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Evidencias Fotográficas <span class="text-rose-500">*</span>
+                        </label>
+
+                        {{-- Contenedor Drag & Drop / Clic interactivo --}}
+                        <div 
+                            @click="$refs.fileInput.click()"
+                            class="relative border-2 border-dashed rounded-2xl p-4 transition-all text-center group cursor-pointer flex flex-col items-center justify-center min-h-[130px]"
                             :class="evidenciasCount > 0 ? 'border-emerald-400 bg-emerald-50/20' : 'border-slate-200 hover:border-amber-400 bg-slate-50/50 hover:bg-amber-50/20'"
                         >
+                            {{-- Input nativo oculto pero referenciado por Alpine.js ($refs.fileInput) --}}
                             <input 
+                                x-ref="fileInput"
                                 type="file" 
                                 name="evidencias[]" 
                                 multiple 
-                                accept="image/*" 
-                                @change="handleFileChange"
+                                accept="image/jpeg,image/png,image/webp" 
+                                @change="handleFileChange" 
                                 required 
-                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                class="hidden"
                             >
-                            
-                            <div class="flex flex-col items-center justify-center space-y-2 pointer-events-none">
-                                <div class="p-2.5 rounded-full shadow-xs transition-colors"
-                                    :class="evidenciasCount > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-white group-hover:bg-amber-100 text-amber-500'"
-                                >
-                                    <template x-if="evidenciasCount === 0">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                    </template>
-                                    <template x-if="evidenciasCount > 0">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                    </template>
-                                </div>
-                                <div>
-                                    <template x-if="evidenciasCount === 0">
-                                        <div>
-                                            <span class="text-xs font-bold text-amber-600 group-hover:underline">Haz clic para adjuntar imágenes</span>
-                                            <span class="text-xs text-slate-500"> o arrastra los archivos aquí</span>
-                                        </div>
-                                    </template>
-                                    <template x-if="evidenciasCount > 0">
-                                        <div class="text-xs font-bold text-emerald-700">
-                                            <span x-text="evidenciasCount"></span> <span x-text="evidenciasCount === 1 ? 'imagen seleccionada' : 'imágenes seleccionadas'"></span>
-                                        </div>
-                                    </template>
-                                </div>
-                                <p class="text-[10px] text-slate-400" x-show="evidenciasCount === 0">JPG, PNG, WEBP (Máx. 5MB por imagen)</p>
-                                
+
+                            {{-- Iconos contextuales --}}
+                            <div class="p-2.5 rounded-full shadow-xs transition-colors mb-2"
+                                :class="evidenciasCount > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-white group-hover:bg-amber-100 text-amber-500'"
+                            >
+                                <template x-if="evidenciasCount === 0">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </template>
                                 <template x-if="evidenciasCount > 0">
-                                    <ul class="text-[10px] text-slate-500 max-w-xs truncate space-y-0.5">
-                                        <template x-for="nombre in evidenciasNombres" :key="nombre">
-                                            <li x-text="nombre" class="truncate"></li>
-                                        </template>
-                                    </ul>
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
                                 </template>
                             </div>
+
+                            {{-- Textos de instrucción / Información de archivos seleccionados --}}
+                            <div class="space-y-1">
+                                <template x-if="evidenciasCount === 0">
+                                    <div>
+                                        <span class="text-xs font-bold text-amber-600 group-hover:underline">Haz clic para adjuntar imágenes</span>
+                                        <span class="text-xs text-slate-500"> o arrastra los archivos aquí</span>
+                                        <p class="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WEBP (Máx. 5MB por imagen, hasta 5 imágenes)</p>
+                                    </div>
+                                </template>
+
+                                <template x-if="evidenciasCount > 0">
+                                    <div>
+                                        <div class="text-xs font-bold text-emerald-700">
+                                            <span x-text="evidenciasCount"></span> 
+                                            <span x-text="evidenciasCount === 1 ? 'imagen seleccionada' : 'imágenes seleccionadas'"></span>
+                                        </div>
+                                        <ul class="text-[10px] text-slate-600 max-w-xs truncate space-y-0.5 mt-2 bg-white/60 p-2 rounded-xl border border-emerald-100">
+                                            <template x-for="nombre in evidenciasNombres" :key="nombre">
+                                                <li x-text="nombre" class="truncate"></li>
+                                            </template>
+                                        </ul>
+                                        <p class="text-[10px] text-emerald-600 mt-1 hover:underline">Haz clic si deseas cambiar la selección</p>
+                                    </div>
+                                </template>
+                            </div>
+
+                            {{-- Mensaje de Error --}}
+                            <template x-if="fileError">
+                                <p class="text-[11px] font-semibold text-rose-600 mt-2" x-text="fileError"></p>
+                            </template>
                         </div>
                     </div>
-
-                    <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                        <button type="button" @click="openModal = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer">Cancelar</button>
+                    
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                        <button 
+                            type="button" 
+                            @click="openModal = false" 
+                            :disabled="isSubmitting"
+                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                            Cancelar
+                        </button>
                         <button 
                             type="submit" 
-                            :disabled="!isFormValid"
-                            class="px-5 py-2 text-white text-xs font-bold rounded-xl shadow-md transition-all border-0"
-                            :class="isFormValid ? 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700 cursor-pointer' : 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'"
+                            :disabled="!isFormValid || isSubmitting"
+                            class="px-5 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                            Guardar Denuncia
+                            <template x-if="isSubmitting">
+                                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </template>
+                            <span x-text="isSubmitting ? 'Guardando...' : 'Registrar Denuncia'"></span>
                         </button>
                     </div>
                 </form>

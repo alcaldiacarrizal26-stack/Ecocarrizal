@@ -7,6 +7,7 @@
             showSuccessAlert: true,
             solicitudSeleccionada: null,
             archivosAnexos: {},
+            isSubmitting: false,
             
             territorios: {{ json_encode($territorios) }},
             
@@ -77,6 +78,12 @@
             aplicaVariablesAmbientales: false,
             esPersonaJuridica: false,
             archivosSubidos: {},
+
+            submitForm(form) {
+                if (this.isSubmitting) return;
+                this.isSubmitting = true;
+                form.submit();
+            },
 
             onTramiteChange() {
                 this.archivosSubidos = {};
@@ -185,14 +192,12 @@
                 });
             },
 
-            // HELPER: Calcular el tiempo restante en formato legible
             obtenerTiempoRestante(fechaLimite) {
                 if (!fechaLimite) return null;
 
                 const limite = new Date(fechaLimite);
                 const hoy = new Date();
                 
-                // Reset de horas para comparar días exactos
                 limite.setHours(23, 59, 59, 999);
                 
                 const diferenciaMs = limite - hoy;
@@ -301,17 +306,15 @@
                                         @endif
                                     </td>
                                     
-                                    {{-- COLUMNA DE TIMER/PLAZO EN TABLA --}}
+                                    {{-- COLUMNA DE TIMER/PLAZO --}}
                                     <td class="p-4 text-center">
                                         @php
-                                            // Definición de plazos por tipo de trámite (días)
                                             $plazosDias = [
                                                 'poda_deshierbe' => 90,
                                                 'desmalezamiento_conformacion' => 90,
                                                 'inspeccion' => 0,
                                             ];
 
-                                            // 1. Tomar la fecha límite de la BD o calcularla dinámicamente basada en la fecha de creación
                                             $diasPlazo = $plazosDias[$tramite->tipo_tramite] ?? 0;
                                             $fechaLimite = $tramite->fecha_limite_documentos 
                                                 ? \Carbon\Carbon::parse($tramite->fecha_limite_documentos) 
@@ -365,7 +368,7 @@
                     <button @click="openModalCrear = false" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer leading-none">&times;</button>
                 </div>
 
-                <form action="{{ route('ciudadano.solicitudes.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <form @submit.prevent="submitForm($el)" action="{{ route('ciudadano.solicitudes.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                     @csrf
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                         <div class="space-y-3 w-full">
@@ -510,7 +513,19 @@
 
                     <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
                         <button type="button" @click="openModalCrear = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl cursor-pointer">Cancelar</button>
-                        <button type="submit" :disabled="!esFormularioValido" :class="esFormularioValido ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'" class="px-5 py-2 text-xs font-bold rounded-xl transition-all border-0">Registrar Solicitud</button>
+                        <button 
+                            type="submit" 
+                            :disabled="!esFormularioValido || isSubmitting"
+                            class="px-5 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            <template x-if="isSubmitting">
+                                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </template>
+                            <span x-text="isSubmitting ? 'Procesando...' : 'Registrar Solicitud'"></span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -531,7 +546,7 @@
                             <button @click="openModalDetalle = false" type="button" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer leading-none">&times;</button>
                         </div>
 
-                        <div class="bg-slate-50 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-slate-50 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs border border-slate-100">
                             <div>
                                 <span class="text-slate-400 font-semibold block text-[10px] uppercase">Dirección Exacta:</span>
                                 <p class="text-slate-700 font-medium mt-0.5" x-text="solicitudSeleccionada.direccion_exacta"></p>
@@ -587,7 +602,7 @@
                             </div>
                         </div>
 
-                        <!-- Requisitos Pendientes + BANNER CON TIMER/INDICADOR DE TIEMPO LÍMITE -->
+                        <!-- Requisitos Pendientes -->
                         <div class="space-y-3 pt-2 border-t border-slate-100" x-data="{ infoTimer: obtenerTiempoRestante(solicitudSeleccionada.fecha_limite_documentos) }">
                             <div class="flex items-center justify-between">
                                 <h4 class="text-xs font-bold text-slate-800 flex items-center gap-2">
@@ -596,7 +611,6 @@
                                 </h4>
                             </div>
 
-                            <!-- Banner Informativo del Tiempo Límit e -->
                             <template x-if="solicitudSeleccionada.fecha_limite_documentos && requisitosPendientesModal.length > 0">
                                 <div 
                                     class="p-3.5 rounded-2xl border flex items-center justify-between gap-3"

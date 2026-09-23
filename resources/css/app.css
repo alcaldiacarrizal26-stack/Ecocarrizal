@@ -1,7 +1,7 @@
 /* resources/css/app.css */
 @import "tailwindcss";
 
-:root {
+@theme {
   --color-primary: #05772a;
   --color-secondary: #0e7970;
   --color-mint: #78ad8b;
