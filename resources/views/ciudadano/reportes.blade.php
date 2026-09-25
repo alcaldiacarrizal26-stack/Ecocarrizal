@@ -7,7 +7,7 @@
             showSuccessAlert: true,
             filtroEstatus: 'todos',
             selectedDenuncia: null,
-            isSubmitting: false, // Prevención de doble clic
+            isSubmitting: false,
 
             denunciasLista: {{ json_encode($denuncias->pluck('estatus')->map(fn($e) => strtolower(trim($e)))) }},
 
@@ -32,9 +32,10 @@
 
             handleFileChange(event) {
                 const files = Array.from(event.target.files);
+                if (files.length === 0) return;
+
                 this.fileError = '';
 
-                // Validar máximo 5 imágenes
                 if (files.length > 5) {
                     this.fileError = 'Solo puedes adjuntar un máximo de 5 imágenes.';
                     event.target.value = '';
@@ -43,7 +44,6 @@
                     return;
                 }
 
-                // Validar peso de cada archivo (máx 5MB por imagen)
                 const maxSize = 5 * 1024 * 1024;
                 const invalidFile = files.find(f => f.size > maxSize);
                 if (invalidFile) {
@@ -65,9 +65,12 @@
 
             get isFormValid() {
                 if (!this.tipoContaminacion || !this.comuna || !this.sector) return false;
-                if (this.puntoReferencia.trim().length < 5 || this.descripcion.trim().length < 20) return false;
+                if (this.puntoReferencia.trim().length < 3 || this.descripcion.trim().length < 5) return false;
                 if (this.tipoContaminacion === 'Otro' && this.otroTipoContaminacion.trim().length < 3) return false;
-                if (this.gravedad === 'alta' && this.justificacionGravedad.trim().length < 15) return false;
+                
+                // Si es alta, requiere al menos 3 caracteres en justificación
+                if (this.gravedad === 'alta' && this.justificacionGravedad.trim().length < 3) return false;
+                
                 if (this.evidenciasCount < 1 || this.fileError !== '') return false;
                 return true;
             }
@@ -158,7 +161,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 font-medium">
-                                @foreach($denuncias as $denuncia)
+                                @foreach ($denuncias as $denuncia)
                                     <tr 
                                         x-show="filtroEstatus === 'todos' || filtroEstatus === '{{ strtolower(trim($denuncia->estatus)) }}'"
                                         class="hover:bg-slate-50/50"
@@ -331,7 +334,12 @@
                     </div>
 
                     <div x-show="tipoContaminacion === 'Otro'" x-cloak class="space-y-1">
-                        <label class="block text-xs font-semibold text-slate-700">Título / Especificación de la incidencia <span class="text-rose-500">*</span></label>
+                        <div class="flex justify-between items-center">
+                            <label class="block text-xs font-semibold text-slate-700">Título / Especificación de la incidencia <span class="text-rose-500">*</span></label>
+                            <span class="text-[10px]" :class="otroTipoContaminacion.trim().length >= 3 ? 'text-emerald-600' : 'text-slate-400'">
+                                <span x-text="otroTipoContaminacion.trim().length"></span>/3 mín
+                            </span>
+                        </div>
                         <input type="text" name="otro_tipo_contaminacion" x-model="otroTipoContaminacion" maxlength="100" placeholder="Ej. Emisión de polvos industriales" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
 
@@ -357,7 +365,12 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Dirección Exacta / Referencia <span class="text-rose-500">*</span></label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-semibold text-slate-700">Dirección Exacta / Referencia <span class="text-rose-500">*</span></label>
+                            <span class="text-[10px]" :class="puntoReferencia.trim().length >= 3 ? 'text-emerald-600' : 'text-slate-400'">
+                                <span x-text="puntoReferencia.trim().length"></span>/3 mín
+                            </span>
+                        </div>
                         <input type="text" name="punto_referencia" x-model="puntoReferencia" placeholder="Ej. Av. Principal, frente al comercio X" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
 
@@ -371,12 +384,22 @@
                     </div>
 
                     <div x-show="gravedad === 'alta'" x-cloak class="space-y-1">
-                        <label class="block text-xs font-semibold text-rose-700">Justificación de Gravedad Alta <span class="text-rose-500">*</span></label>
+                        <div class="flex justify-between items-center">
+                            <label class="block text-xs font-semibold text-rose-700">Justificación de Gravedad Alta <span class="text-rose-500">*</span></label>
+                            <span class="text-[10px]" :class="justificacionGravedad.trim().length >= 3 ? 'text-emerald-600' : 'text-rose-500'">
+                                <span x-text="justificacionGravedad.trim().length"></span>/3 mín
+                            </span>
+                        </div>
                         <textarea name="justificacion_gravedad" x-model="justificacionGravedad" rows="2" placeholder="Explique por qué considera que la situación requiere atención prioritaria..." class="w-full border border-rose-200 bg-rose-50/30 rounded-xl px-3 py-2 text-xs text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none resize-none"></textarea>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Descripción detallada <span class="text-rose-500">*</span></label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-semibold text-slate-700">Descripción detallada <span class="text-rose-500">*</span></label>
+                            <span class="text-[10px]" :class="descripcion.trim().length >= 5 ? 'text-emerald-600' : 'text-slate-400'">
+                                <span x-text="descripcion.trim().length"></span>/5 mín
+                            </span>
+                        </div>
                         <textarea name="descripcion" x-model="descripcion" rows="3" placeholder="Describe detalladamente los hechos acontecidos..." required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none resize-none"></textarea>
                     </div>
 
@@ -385,13 +408,11 @@
                             Evidencias Fotográficas <span class="text-rose-500">*</span>
                         </label>
 
-                        {{-- Contenedor Drag & Drop / Clic interactivo --}}
                         <div 
                             @click="$refs.fileInput.click()"
                             class="relative border-2 border-dashed rounded-2xl p-4 transition-all text-center group cursor-pointer flex flex-col items-center justify-center min-h-[130px]"
                             :class="evidenciasCount > 0 ? 'border-emerald-400 bg-emerald-50/20' : 'border-slate-200 hover:border-amber-400 bg-slate-50/50 hover:bg-amber-50/20'"
                         >
-                            {{-- Input nativo oculto pero referenciado por Alpine.js ($refs.fileInput) --}}
                             <input 
                                 x-ref="fileInput"
                                 type="file" 
@@ -399,11 +420,9 @@
                                 multiple 
                                 accept="image/jpeg,image/png,image/webp" 
                                 @change="handleFileChange" 
-                                required 
                                 class="hidden"
                             >
 
-                            {{-- Iconos contextuales --}}
                             <div class="p-2.5 rounded-full shadow-xs transition-colors mb-2"
                                 :class="evidenciasCount > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-white group-hover:bg-amber-100 text-amber-500'"
                             >
@@ -419,7 +438,6 @@
                                 </template>
                             </div>
 
-                            {{-- Textos de instrucción / Información de archivos seleccionados --}}
                             <div class="space-y-1">
                                 <template x-if="evidenciasCount === 0">
                                     <div>
@@ -445,7 +463,6 @@
                                 </template>
                             </div>
 
-                            {{-- Mensaje de Error --}}
                             <template x-if="fileError">
                                 <p class="text-[11px] font-semibold text-rose-600 mt-2" x-text="fileError"></p>
                             </template>

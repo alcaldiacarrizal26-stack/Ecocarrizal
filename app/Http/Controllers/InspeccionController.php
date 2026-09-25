@@ -7,6 +7,8 @@ use App\Models\Inspeccion;
 use App\Models\Solicitud;
 use App\Models\Denuncia;
 use App\Models\Inspector;
+use App\Models\Compensacion;
+use App\Services\CompensacionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +24,6 @@ class InspeccionController extends Controller
         $inspector = $user->inspector ?? null;
 
         if ($rol === 'inspector' && $inspector) {
-            // Filtrar asignaciones exclusivas del inspector autenticado
             $solicitudes = Solicitud::where('inspector_id', $inspector->id)
                 ->whereIn('estado', ['inspector_asignado', 'en_inspeccion'])
                 ->get();
@@ -36,7 +37,6 @@ class InspeccionController extends Controller
                 ->latest()
                 ->paginate(10);
         } else {
-            // Para Director y Admin: Ver todas las asignaciones y expedientes pendientes
             $solicitudes = Solicitud::whereIn('estado', ['inspector_asignado', 'en_inspeccion'])
                 ->with('inspector.user')
                 ->get();
@@ -50,7 +50,6 @@ class InspeccionController extends Controller
                 ->paginate(10);
         }
 
-        // Unificamos Solicitudes y Denuncias
         $asignacionesPendientes = $solicitudes->concat($denuncias);
 
         return view('inspecciones.index', compact(
@@ -61,23 +60,24 @@ class InspeccionController extends Controller
     }
 
     /**
-     * Pasa un expediente a estado de revisión/inspección.
+     * Pasa un expediente a estado de revisión/inspección y fija fecha_inicio_inspeccion.
      */
-    public function iniciarRevision(Request $request, $tipo, $id)
+    public function iniciarRevision(Request $request, $id)
     {
         $user = auth()->user();
         $rol = strtolower($user->role->nombre ?? '');
 
-        if ($tipo === 'solicitud') {
-            $expediente = Solicitud::findOrFail($id);
+        // Intentamos buscar primero en Solicitud; si no existe, buscamos en Denuncia
+        $solicitud = Solicitud::find($id);
+
+        if ($solicitud) {
+            $expediente = $solicitud;
             $campoEstatus = 'estado';
             $nuevoEstado = 'en_inspeccion';
-        } elseif ($tipo === 'denuncia') {
+        } else {
             $expediente = Denuncia::findOrFail($id);
             $campoEstatus = 'estatus';
             $nuevoEstado = 'en_revision';
-        } else {
-            abort(404, 'Tipo de expediente no válido.');
         }
 
         // Validación de autorización para inspectores
@@ -85,16 +85,20 @@ class InspeccionController extends Controller
             abort(403, 'No tienes permiso para actualizar este expediente.');
         }
 
-        $expediente->update([
+        $payload = [
             $campoEstatus => $nuevoEstado
-        ]);
+        ];
 
-        return redirect()->back()->with('success', 'El expediente ha pasado a estado "En Revisión".');
+        // Se registra la fecha de inicio de inspección solo la primera vez que inicia
+        if (!$expediente->fecha_inicio_inspeccion) {
+            $payload['fecha_inicio_inspeccion'] = now();
+        }
+
+        $expediente->update($payload);
+
+        return redirect()->back()->with('success', 'El expediente ha pasado a estado "En Inspección".');
     }
 
-    /**
-     * Muestra el formulario para evaluar por tipo y ID explícitos.
-     */
     public function evaluar($tipo, $id)
     {
         if (!in_array($tipo, ['solicitud', 'denuncia'])) {
@@ -112,9 +116,6 @@ class InspeccionController extends Controller
         return view('inspecciones.evaluar', compact('expediente', 'tipoOrigen'));
     }
 
-    /**
-     * Redirección/Alias para mantener compatibilidad con rutas resource o legacy.
-     */
     public function edit($id)
     {
         $solicitud = Solicitud::with(['solicitante', 'inspector.user'])->find($id);
@@ -138,16 +139,20 @@ class InspeccionController extends Controller
             'recomendaciones' => 'nullable|string',
             'evidencias' => 'nullable|array',
             'evidencias.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+
+            // Campos específicos para evaluación de Tala / Compensación
+            'cantidad_arboles_talar' => 'nullable|required_if:dictamen,APROBADO|integer|min:1',
+            'especie_afectada' => 'nullable|string|max:100',
+            'es_especie_protegida' => 'nullable|boolean',
+            'especie_compensacion' => 'nullable|required_if:dictamen,APROBADO|string|max:100',
         ]);
 
         $user = auth()->user();
         
-        // Obtención del origen
         $origen = $validated['tipo_origen'] === 'solicitud' 
             ? Solicitud::findOrFail($validated['origen_id'])
             : Denuncia::findOrFail($validated['origen_id']);
 
-        // Definición del Inspector asignado a la evaluación
         $inspectorId = $user->inspector?->id ?? $origen->inspector_id;
 
         if (!$inspectorId) {
@@ -159,7 +164,6 @@ class InspeccionController extends Controller
         DB::transaction(function () use ($validated, $request, $inspectorId, $origen) {
             $evidenciasPaths = [];
 
-            // Subida de evidencias
             if ($request->hasFile('evidencias')) {
                 foreach ($request->file('evidencias') as $foto) {
                     $evidenciasPaths[] = $foto->store('inspecciones/evidencias', 'public');
@@ -179,17 +183,23 @@ class InspeccionController extends Controller
                 'fotos_evidencia' => $evidenciasPaths,
             ];
 
-            // Actualización de estados según origen y dictamen
+            // 1. Actualización de Estados y Fechas
             if ($validated['tipo_origen'] === 'solicitud') {
                 $inspeccionData['solicitud_id'] = $origen->id;
 
                 $nuevoEstado = match($validated['dictamen']) {
-                    'APROBADO' => 'aprobada',
-                    'RECHAZADO' => 'rechazada',
+                    'APROBADO' => 'aprobado',
+                    'RECHAZADO' => 'rechazado',
                     default => 'en_inspeccion'
                 };
                 
-                $origen->update(['estado' => $nuevoEstado]);
+                $updateData = ['estado' => $nuevoEstado];
+
+                if (in_array($nuevoEstado, ['aprobado', 'rechazado'])) {
+                    $updateData['fecha_cierre'] = now();
+                }
+
+                $origen->update($updateData);
 
             } else {
                 $inspeccionData['denuncia_id'] = $origen->id;
@@ -200,13 +210,50 @@ class InspeccionController extends Controller
                     default => 'en_revision'
                 };
                 
-                $origen->update(['estatus' => $nuevoEstatus]);
+                $updateData = ['estatus' => $nuevoEstatus];
+
+                if (in_array($nuevoEstatus, ['atendido', 'desestimado'])) {
+                    $updateData['fecha_cierre'] = now();
+                }
+
+                $origen->update($updateData);
             }
 
-            Inspeccion::create($inspeccionData);
+            // 2. Creación del Registro de Inspección
+            $inspeccion = Inspeccion::create($inspeccionData);
+
+            // 3. Generación del Expediente de Compensación (Si es Solicitud de Tala Aprobada)
+            if (
+                $validated['tipo_origen'] === 'solicitud' &&
+                $origen->tipo_tramite === 'tala' &&
+                $validated['dictamen'] === 'APROBADO'
+            ) {
+                $cantidadTalar = (int) $validated['cantidad_arboles_talar'];
+                $esProtegida = (bool) ($request->es_especie_protegida ?? false);
+
+                // Cálculo 1:8 con multiplicador por especie protegida
+                $cantidadAsignada = CompensacionService::calcularEjemplares(
+                    $cantidadTalar,
+                    $esProtegida,
+                    8
+                );
+
+                Compensacion::create([
+                    'codigo_resolucion' => 'RES-COMP-' . date('Y') . '-' . strtoupper(Str::random(5)),
+                    'solicitud_id'      => $origen->id,
+                    'user_id'           => $origen->user_id,
+                    'inspeccion_id'     => $inspeccion->id,
+                    'especie_requerida' => $validated['especie_compensacion'] ?? 'Araguaney / Apamate',
+                    'cantidad_asignada' => $cantidadAsignada,
+                    'cantidad_entregada' => 0,
+                    'estatus'            => 'PENDIENTE',
+                    'observaciones'     => "Compensación por tala de {$cantidadTalar} árbol(es). " . 
+                                           ($esProtegida ? 'Aplica recargo por Especie Protegida/Vedada (Ratio 1:16).' : 'Ratio estándar (1:8).'),
+                ]);
+            }
         });
 
         return redirect()->route('inspecciones.index')
-            ->with('success', 'Informe y acta de inspección registrados exitosamente.');
+            ->with('success', 'Informe, dictamen y resolución de compensación registrados exitosamente.');
     }
 }

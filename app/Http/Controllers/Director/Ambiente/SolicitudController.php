@@ -67,8 +67,11 @@ class SolicitudController extends Controller
             return redirect()->back()->with('error', 'El usuario seleccionado no cuenta con un perfil de inspector.');
         }
 
-        // Guarda la PK de la tabla inspectores (id = 1 en este caso)
         $solicitud->inspector_id = $funcionario->inspector->id;
+        
+        // --- CAMBIO AQUÍ ---
+        // Cambiamos 'fecha_asignacion' por el nombre de la columna en BD: 'fecha_asignacion_inspector'
+        $solicitud->fecha_asignacion_inspector = now();
 
         if ($solicitud->estado === 'pendiente') {
             $solicitud->estado = 'inspector_asignado';

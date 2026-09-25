@@ -14,17 +14,16 @@ return new class extends Migration
             "tipo_racda_enum"          => "'NO_APLICA', 'RACDA_GENERADOR', 'RACDA_MANEJADOR'",
             "estado_documento_enum"    => "'PENDIENTE', 'APROBADO', 'OBSERVADO'",
             "dictamen_inspeccion_enum" => "'APROBADO', 'CON_OBSERVACIONES', 'RECHAZADO', 'REINSPECCION_REQUERIDA'",
+            "estatus_compensacion_enum"=> "'PENDIENTE', 'PARCIAL', 'COMPLETADO'",
+            "tipo_tramite_enum"        => "'inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion', 'tala'",
+            "estado_solicitud_enum"    => "'pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'aprobado', 'rechazado'",
         ];
 
         if (DB::getDriverName() === 'pgsql') {
             foreach ($enums as $name => $values) {
-                DB::statement("
-                    DO $$ BEGIN
-                        CREATE TYPE {$name} AS ENUM ({$values});
-                    EXCEPTION
-                        WHEN duplicate_object THEN NULL;
-                    END $$;
-                ");
+                // Garantiza eliminar el tipo previo si existe para que se vuelva a crear con todos los valores
+                DB::statement("DROP TYPE IF EXISTS {$name} CASCADE;");
+                DB::statement("CREATE TYPE {$name} AS ENUM ({$values});");
             }
         }
 
@@ -105,7 +104,6 @@ return new class extends Migration
             $table->text('descripcion');
             $table->jsonb('evidencias')->nullable();
             
-            // Se incorpora 'en_inspeccion' para sincronizar con el ciclo de vida del trámite
             $table->enum('estatus', [
                 'pendiente', 
                 'inspector_asignado', 
@@ -114,7 +112,7 @@ return new class extends Migration
                 'desestimado'
             ])->default('pendiente');
             
-            // Control de auditoría temporal
+            $table->timestampTz('fecha_asignacion_inspector')->nullable();
             $table->timestampTz('fecha_inicio_inspeccion')->nullable();
             $table->timestampTz('fecha_cierre')->nullable();
 
@@ -127,48 +125,57 @@ return new class extends Migration
         // 5. Trámites y Solicitudes
         Schema::create('solicitudes', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('codigo_expediente')->nullable()->unique();
-            $table->foreignId('user_id')->constrained('users')->nullOnDelete();
-            $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
-
-            $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion']);
-            $table->enum('estado', [
-                'incompleta', 
-                'pendiente', 
-                'inspector_asignado', 
-                'en_inspeccion', 
-                'aprobada', 
-                'rechazada'
-            ])->default('pendiente');
+            $table->string('codigo_expediente')->unique();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->onDelete('set null');
 
             $table->string('comuna');
             $table->string('sector');
             $table->text('direccion_exacta');
             $table->text('motivo_descripcion');
-            $table->jsonb('datos_especificos')->nullable();
-
-            $table->timestampTz('fecha_limite_documentos')->nullable();
+            $table->json('datos_especificos')->nullable();
             
-            // Control de auditoría temporal
+            // Trazabilidad de fechas
+            $table->timestampTz('fecha_limite_documentos')->nullable();
+            $table->timestampTz('fecha_asignacion_inspector')->nullable();
             $table->timestampTz('fecha_inicio_inspeccion')->nullable();
             $table->timestampTz('fecha_cierre')->nullable();
-
+            
             $table->timestampsTz();
 
+            $table->index(['user_id', 'created_at']);
+        });
+
+        // Asignación de tipos enum para solicitudes
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE solicitudes 
+                ADD COLUMN tipo_tramite tipo_tramite_enum NOT NULL,
+                ADD COLUMN estado estado_solicitud_enum NOT NULL DEFAULT 'pendiente';
+            ");
+        } else {
+            Schema::table('solicitudes', function (Blueprint $table) {
+                $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion', 'tala']);
+                $table->enum('estado', ['pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'aprobado', 'rechazado'])->default('pendiente');
+            });
+        }
+
+        Schema::table('solicitudes', function (Blueprint $table) {
             $table->index('estado');
         });
 
         Schema::create('solicitud_recaudos', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('solicitud_id')->constrained('solicitudes')->cascadeOnDelete();
-
+            $table->foreignUuid('solicitud_id')->constrained('solicitudes')->onDelete('cascade');
             $table->string('tipo_recaudo');
-            $table->text('nombre_archivo');
-            $table->text('bucket_path');
-            $table->text('archivo_url');
+            $table->string('nombre_archivo');
+            $table->string('bucket_path');
+            $table->string('archivo_url');
             $table->boolean('es_evidencia_fotografica')->default(false);
-
+            
             $table->timestampsTz();
+
+            $table->index('solicitud_id');
         });
 
         // 6. Empresas y Expedientes
@@ -228,10 +235,16 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement("
-            ALTER TABLE perfiles_ambientales 
-            ADD COLUMN tipo_racda tipo_racda_enum NOT NULL DEFAULT 'NO_APLICA';
-        ");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE perfiles_ambientales 
+                ADD COLUMN tipo_racda tipo_racda_enum NOT NULL DEFAULT 'NO_APLICA';
+            ");
+        } else {
+            Schema::table('perfiles_ambientales', function (Blueprint $table) {
+                $table->enum('tipo_racda', ['NO_APLICA', 'RACDA_GENERADOR', 'RACDA_MANEJADOR'])->default('NO_APLICA');
+            });
+        }
 
         Schema::create('documentos_expediente', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -246,10 +259,16 @@ return new class extends Migration
             $table->timestampsTz();
         });
 
-        DB::statement("
-            ALTER TABLE documentos_expediente 
-            ADD COLUMN estado estado_documento_enum NOT NULL DEFAULT 'PENDIENTE';
-        ");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE documentos_expediente 
+                ADD COLUMN estado estado_documento_enum NOT NULL DEFAULT 'PENDIENTE';
+            ");
+        } else {
+            Schema::table('documentos_expediente', function (Blueprint $table) {
+                $table->enum('estado', ['PENDIENTE', 'APROBADO', 'OBSERVADO'])->default('PENDIENTE');
+            });
+        }
 
         // 7. Inspecciones y Acta de Evaluación
         Schema::create('inspecciones', function (Blueprint $table) {
@@ -269,14 +288,52 @@ return new class extends Migration
             $table->timestampsTz();
         });
 
-        DB::statement("
-            ALTER TABLE inspecciones 
-            ADD COLUMN dictamen dictamen_inspeccion_enum NOT NULL DEFAULT 'CON_OBSERVACIONES';
-        ");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE inspecciones 
+                ADD COLUMN dictamen dictamen_inspeccion_enum NOT NULL DEFAULT 'CON_OBSERVACIONES';
+            ");
+        } else {
+            Schema::table('inspecciones', function (Blueprint $table) {
+                $table->enum('dictamen', ['APROBADO', 'CON_OBSERVACIONES', 'RECHAZADO', 'REINSPECCION_REQUERIDA'])->default('CON_OBSERVACIONES');
+            });
+        }
+
+        // 8. Módulo de Compensación Ambiental (Tala Aprobada)
+        Schema::create('compensaciones', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('codigo_resolucion', 30)->unique();
+            
+            $table->foreignUuid('solicitud_id')->constrained('solicitudes')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete();
+
+            $table->string('especie_requerida')->comment('Ej. Araguaney, Apamate, Bucare');
+            $table->integer('cantidad_asignada')->default(0);
+            $table->integer('cantidad_entregada')->default(0);
+
+            $table->text('comprobante_path')->nullable();
+            $table->timestampTz('fecha_entrega')->nullable();
+            $table->text('observaciones')->nullable();
+
+            $table->timestampsTz();
+        });
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE compensaciones 
+                ADD COLUMN estatus estatus_compensacion_enum NOT NULL DEFAULT 'PENDIENTE';
+            ");
+        } else {
+            Schema::table('compensaciones', function (Blueprint $table) {
+                $table->enum('estatus', ['PENDIENTE', 'PARCIAL', 'COMPLETADO'])->default('PENDIENTE');
+            });
+        }
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('compensaciones');
         Schema::dropIfExists('inspecciones');
         Schema::dropIfExists('documentos_expediente');
         Schema::dropIfExists('perfiles_ambientales');
@@ -290,8 +347,13 @@ return new class extends Migration
         Schema::dropIfExists('direcciones');
         Schema::dropIfExists('roles');
 
-        DB::statement("DROP TYPE IF EXISTS dictamen_inspeccion_enum CASCADE");
-        DB::statement("DROP TYPE IF EXISTS estado_documento_enum CASCADE");
-        DB::statement("DROP TYPE IF EXISTS tipo_racda_enum CASCADE");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("DROP TYPE IF EXISTS estado_solicitud_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS tipo_tramite_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS estatus_compensacion_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS dictamen_inspeccion_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS estado_documento_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS tipo_racda_enum CASCADE");
+        }
     }
 };

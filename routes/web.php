@@ -12,6 +12,7 @@ use App\Http\Controllers\Ciudadano\PerfilController;
 use App\Http\Controllers\Ciudadano\SolicitudController;
 use App\Http\Controllers\Ciudadano\ReporteController;
 use App\Http\Controllers\Ciudadano\EmpresaController as CiudadanoEmpresaController;
+use App\Http\Controllers\Ciudadano\CompensacionController;
 
 // Controladores Director por Dirección
 use App\Http\Controllers\Director\Ambiente\InspectorController as AmbienteInspectorController;
@@ -68,6 +69,9 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
 
         // Empresas (Perfil Comercial / RACDA)
         Route::post('/empresas', [CiudadanoEmpresaController::class, 'store'])->name('empresas.store');
+
+        // Compensación Ambiental
+        Route::post('/compensacion', [CompensacionController::class, 'store'])->name('compensacion.store');
     });
 
     // Consultas de vista
@@ -76,7 +80,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     Route::get('/empresas', [CiudadanoEmpresaController::class, 'index'])->name('empresas');
 
     // Compensación Ambiental y Soporte
-    Route::view('/compensacion', 'ciudadano.compensacion')->name('compensacion');
+    Route::get('/compensacion', [CompensacionController::class, 'index'])->name('compensacion');
     Route::view('/soporte', 'soporte')->name('soporte');
 });
 

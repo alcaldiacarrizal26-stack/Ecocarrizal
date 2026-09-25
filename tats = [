@@ -1,0 +1,20 @@
+[90m= [39m[34;4mIlluminate\Database\Eloquent\Collection[39;24m {#8258
+    [34mall[39m: [
+      [34;4mApp\Models\Compensacion[39;24m {#8262
+        [34mid[39m: [32m"[39m[32m01a0d934-03da-7217-a912-f02cf1bf4cbc[39m[32m"[39m,
+        [34mcodigo_resolucion[39m: [32m"[39m[32mRES-COMP-2026-RIUIU[39m[32m"[39m,
+        [34msolicitud_id[39m: [32m"[39m[32m01a0d90d-c85e-717e-9ede-8f89ff2d270d[39m[32m"[39m,
+        [34muser_id[39m: [35m1[39m,
+        [34minspeccion_id[39m: [32m"[39m[32m01a0d934-03d9-7124-aeb3-185f3e893f58[39m[32m"[39m,
+        [34mespecie_requerida[39m: [32m"[39m[32mCuji Yaque[39m[32m"[39m,
+        [34mcantidad_asignada[39m: [35m8[39m,
+        [34mcantidad_entregada[39m: [35m0[39m,
+        [34mcomprobante_path[39m: [36mnull[39m,
+        [34mfecha_entrega[39m: [36mnull[39m,
+        [34mobservaciones[39m: [32m"[39m[32mCompensación por tala de 1 árbol(es). Ratio estándar (1:8).[39m[32m"[39m,
+        [34mcreated_at[39m: [32m"[39m[32m2026-09-25 15:34:19+00[39m[32m"[39m,
+        [34mupdated_at[39m: [32m"[39m[32m2026-09-25 15:34:19+00[39m[32m"[39m,
+        [34mestatus[39m: [32m"[39m[32mPENDIENTE[39m[32m"[39m,
+      },
+    ],
+  }

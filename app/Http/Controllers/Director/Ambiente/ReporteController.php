@@ -33,7 +33,6 @@ class ReporteController extends Controller
             'total_denuncias'  => Denuncia::count(),
             'atendidas'        => Denuncia::where('estatus', 'atendido')->count(),
             'pendientes'       => Denuncia::where('estatus', 'pendiente')->count(),
-            // Incluye inspecciones en curso o recién asignadas en el mes
             'inspecciones_mes' => Denuncia::whereIn('estatus', ['inspector_asignado', 'en_revision'])
                                     ->whereMonth('created_at', now()->month)
                                     ->count(),
@@ -48,7 +47,7 @@ class ReporteController extends Controller
     }
 
     /**
-     * Asignar un inspector a la denuncia y actualizar el estatus.
+     * Asignar un inspector a la denuncia y actualizar el estatus y la fecha de asignación.
      */
     public function asignar(Request $request, Denuncia $denuncia)
     {
@@ -63,7 +62,8 @@ class ReporteController extends Controller
         }
 
         $denuncia->inspector_id = $funcionario->inspector->id;
-        $denuncia->estatus = 'inspector_asignado'; // Se actualiza al estatus correspondiente tras asignar
+        $denuncia->estatus = 'inspector_asignado';
+        $denuncia->fecha_asignacion_inspector = now(); // <-- Registro de marca de tiempo
         $denuncia->save();
 
         return redirect()->back()->with('success', 'Inspector asignado correctamente.');

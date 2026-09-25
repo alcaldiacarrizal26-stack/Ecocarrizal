@@ -31,12 +31,14 @@ class Denuncia extends Model
         'descripcion',
         'evidencias',
         'estatus',
+        'fecha_asignacion_inspector', // <-- Agregado
         'fecha_inicio_inspeccion',
         'fecha_cierre',
     ];
 
     protected $casts = [
         'evidencias' => 'array',
+        'fecha_asignacion_inspector' => 'datetime', // <-- Agregado
         'fecha_inicio_inspeccion' => 'datetime',
         'fecha_cierre' => 'datetime',
     ];
@@ -47,12 +49,12 @@ class Denuncia extends Model
             $anioActual = date('Y');
             $prefix = 'DEN-' . $anioActual . '-';
 
-            $ultimoUltimoRegistro = static::where('codigo', 'LIKE', $prefix . '%')
+            $ultimoRegistro = static::where('codigo', 'LIKE', $prefix . '%')
                 ->latest('created_at')
                 ->first();
 
-            if ($ultimoUltimoRegistro) {
-                $partes = explode('-', $ultimoUltimoRegistro->codigo);
+            if ($ultimoRegistro) {
+                $partes = explode('-', $ultimoRegistro->codigo);
                 $numero = (int) end($partes) + 1;
             } else {
                 $numero = 1;
@@ -67,9 +69,6 @@ class Denuncia extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /**
-     * Relación con el inspector asignado (Tabla 'inspectores')
-     */
     public function inspector()
     {
         return $this->belongsTo(Inspector::class, 'inspector_id');

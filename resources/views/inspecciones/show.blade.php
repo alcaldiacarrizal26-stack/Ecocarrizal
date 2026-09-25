@@ -64,7 +64,7 @@
             <div class="space-y-2">
                 <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Registro Fotográfico de Campo</h3>
                 <div class="grid grid-cols-3 gap-4">
-                    @foreach($inspeccion->fotos_evidencia as $foto)
+                    @foreach ($inspeccion->fotos_evidencia as $foto)
                         <img src="{{ asset('storage/'.$foto) }}" alt="Evidencia" class="w-full h-32 object-cover rounded-xl border border-slate-200">
                     @endforeach
                 </div>

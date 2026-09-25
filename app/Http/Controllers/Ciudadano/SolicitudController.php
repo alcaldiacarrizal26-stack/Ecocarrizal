@@ -30,11 +30,11 @@ class SolicitudController extends Controller
             ],
             'poda_deshierbe' => [
                 'nombre' => 'Solicitud de Permiso para Poda o Deshierbe',
-                'descripcion' => 'Autorización técnica para labores de mantenimiento, acondicionamiento de vegetación o poda de árboles.',
+                'descripcion' => 'Autorización técnica para labores de mantenimiento, fitosanitarias o poda de formación de vegetación.',
                 'plazoDias' => 90,
                 'requisitosObligatorios' => [
                     ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
-                    ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar motivos e intervención']
+                    ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar motivos y ramas a intervenir']
                 ],
                 'requisitosCondicionales' => [
                     [
@@ -66,8 +66,49 @@ class SolicitudController extends Controller
                     ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                     ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                     ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
-                    ['key' => 'constancia_catastral', 'label' => 'Constancia Catastral Vigente', 'hint' => 'Catastro municipal'],
-                    ['key' => 'carta_compromiso', 'label' => 'Carta de Compromiso de Reposición', 'hint' => 'En caso de afectación a bienes públicos']
+                    ['key' => 'constancia_catastral', 'label' => 'Constancia Catastral Vigente', 'hint' => 'Catastro municipal']
+                ]
+            ],
+            'tala' => [
+                'nombre' => 'Solicitud de Permiso para Tala de Árboles',
+                'descripcion' => 'Autorización técnica para el derribo/remoción de ejemplares arbóreos por riesgo, infraestructura o enfermedad.',
+                'plazoDias' => 90,
+                'requisitosObligatorios' => [
+                    ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
+                    ['key' => 'carta_explicativa', 'label' => 'Carta Justificativa de Tala', 'hint' => 'Detallar motivos de riesgo, daño a infraestructura o estado fitosanitario del árbol'],
+                    ['key' => 'carta_compromiso', 'label' => 'Carta de Compromiso de Compensación Ambiental', 'hint' => 'Compromiso firmado para la donación o reforestación de ejemplares']
+                ],
+                'requisitosCondicionales' => [
+                    [
+                        'key' => 'autorizacion_propietario', 
+                        'label' => 'Autorización del Propietario', 
+                        'hint' => 'Requerido si no eres el propietario directo del inmueble/terreno',
+                        'flag_check' => 'aplica_autorizacion_propietario'
+                    ],
+                    [
+                        'key' => 'variables_ambientales', 
+                        'label' => 'Variables Ambientales (MINEC)', 
+                        'hint' => 'Requerido si el terreno se encuentra en Zona Protectora o de resguardo hídrico',
+                        'flag_check' => 'aplica_variables_ambientales'
+                    ],
+                    [
+                        'key' => 'registro_mercantil', 
+                        'label' => 'Copia del Registro Mercantil', 
+                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
+                        'flag_check' => 'es_persona_juridica'
+                    ],
+                    [
+                        'key' => 'rif_empresa', 
+                        'label' => 'Copia del RIF Vigente de la Empresa', 
+                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
+                        'flag_check' => 'es_persona_juridica'
+                    ]
+                ],
+                'requisitosOpcionales' => [
+                    ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
+                    ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
+                    ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
+                    ['key' => 'constancia_catastral', 'label' => 'Constancia Catastral Vigente', 'hint' => 'Catastro municipal']
                 ]
             ],
             'desmalezamiento_conformacion' => [
@@ -132,7 +173,7 @@ class SolicitudController extends Controller
     {
         $userId = auth()->id();
 
-        // 1. CAPA ANTI-SPAM: Throttle Rate Limiting (Máx 3 solicitudes cada 10 minutos)
+        // 1. CAPA ANTI-SPAM: Throttle Rate Limiting
         $rateLimitKey = 'solicitud-submission:' . $userId;
         if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
@@ -158,7 +199,7 @@ class SolicitudController extends Controller
 
         // 3. VALIDACIÓN DE DATOS
         $validated = $request->validate([
-            'tipo_tramite'                     => 'required|string|in:inspeccion,poda_deshierbe,desmalezamiento_conformacion',
+            'tipo_tramite'                     => 'required|string|in:inspeccion,poda_deshierbe,desmalezamiento_conformacion,tala',
             'comuna'                           => 'required|string',
             'sector'                           => 'required|string',
             'direccion_exacta'                 => 'required|string|max:500',
@@ -167,24 +208,28 @@ class SolicitudController extends Controller
             'aplica_variables_ambientales'     => 'nullable|boolean',
             'es_persona_juridica'              => 'nullable|boolean',
             'documentos'                       => 'required|array|min:1',
-            'documentos.*'                     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // Máx 10MB por documento
+            'documentos.*'                     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
-        // 4. TRANSACCIÓN ATÓMICA DE REGISTRO
+        // Ejecutar Transacción
         DB::transaction(function () use ($request, $validated, $userId) {
             $yearActual = Carbon::now()->year;
 
-            // Bloqueamos la fila más reciente del año para asegurar concurrencia
-            DB::table('solicitudes')
-                ->whereYear('created_at', $yearActual)
-                ->orderBy('created_at', 'desc')
-                ->lockForUpdate()
-                ->first();
-
-            // Conteo secuencial
+            /*
+             * PREVENCIÓN DE RACE CONDITION EN POSTGRESQL:
+             * 1. Hacemos el conteo total para saber la cantidad acumulada.
+             * 2. Consultamos la última fila insertada en el año aplicando lockForUpdate().
+             * Esto bloquea la transacción concurrente sin dar error sintáctico con agregaciones.
+             */
             $conteoAno = DB::table('solicitudes')
                 ->whereYear('created_at', $yearActual)
                 ->count();
+
+            $ultimaSolicitud = DB::table('solicitudes')
+                ->whereYear('created_at', $yearActual)
+                ->latest('created_at')
+                ->lockForUpdate()
+                ->first();
 
             $ultimoSecuencial = $conteoAno + 1;
             $codigoExpediente = sprintf('SOL-%d-%04d', $yearActual, $ultimoSecuencial);
@@ -208,9 +253,6 @@ class SolicitudController extends Controller
                     if (!empty($req['flag_check']) && $request->boolean($req['flag_check'])) {
                         $keysEsperadas[] = $req['key'];
                     }
-                }
-                foreach ($configActual['requisitosOpcionales'] as $req) {
-                    $keysEsperadas[] = $req['key'];
                 }
             }
 
@@ -264,7 +306,7 @@ class SolicitudController extends Controller
             }
         });
 
-        // Registrar hit en el limitador (expira en 600s / 10 minutos)
+        // Registrar intento en RateLimiter tras guardar con éxito
         RateLimiter::hit($rateLimitKey, 600);
 
         return redirect()

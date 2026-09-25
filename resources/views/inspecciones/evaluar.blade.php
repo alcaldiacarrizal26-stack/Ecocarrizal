@@ -8,7 +8,7 @@
             </a>
         </div>
 
-        <!-- Alerta global si ocurre un error de validación al enviar -->
+        <!-- Alerta global de errores de validación -->
         @if ($errors->any())
             <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm space-y-1">
                 <strong class="font-semibold block">Por favor revisa los siguientes errores antes de guardar:</strong>
@@ -38,16 +38,21 @@
                     ?? $evaluador->cargo 
                     ?? ($evaluador->inspector ? 'Inspector Ambiental' : 'Funcionario Ambiental');
 
-                // 3. Ubicación flexible (Soporta Solicitud y Denuncia)
+                // 3. Ubicación flexible
                 $sector = $expediente->sector ?? $expediente->ubicacion_sector ?? 'N/E';
                 $comuna = $expediente->comuna ?? $expediente->ubicacion_comuna ?? 'N/E';
+
+                // 4. Verificación de trámite de tala
+                $esTala = ($tipoOrigen === 'solicitud' && ($expediente->tipo_tramite ?? '') === 'tala');
             @endphp
 
             <!-- Metadata del Expediente, Solicitante e Inspector -->
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                     <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Origen:</span>
-                    <strong class="text-slate-800">{{ $tipoOrigen === 'solicitud' ? 'Trámite / Solicitud' : 'Denuncia Ambiental' }}</strong>
+                    <strong class="text-slate-800">
+                        {{ $tipoOrigen === 'solicitud' ? 'Trámite: ' . strtoupper($expediente->tipo_tramite ?? 'Solicitud') : 'Denuncia Ambiental' }}
+                    </strong>
                 </div>
 
                 <div>
@@ -70,7 +75,7 @@
                     </span>
                 </div>
 
-                <!-- Funcionario Evaluador Corrección \vert{} -->
+                <!-- Funcionario Evaluador -->
                 <div>
                     <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Funcionario Evaluador:</span>
                     <strong class="text-slate-800">
@@ -95,19 +100,19 @@
             <!-- Campos del Formulario de Inspección -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha y Hora de Cierre / Evaluación</label>
-                    <input type="datetime-local" name="fecha_cierre" value="{{ old('fecha_cierre', now()->format('Y-m-d\TH:i')) }}" required
-                           class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('fecha_cierre') border-red-500 @enderror">
-                    @error('fecha_cierre')
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha y Hora de la Visita</label>
+                    <input type="datetime-local" name="fecha_visita" value="{{ old('fecha_visita', now()->format('Y-m-d\TH:i')) }}" required
+                           class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('fecha_visita') border-red-500 @enderror">
+                    @error('fecha_visita')
                         <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Dictamen de la Inspección</label>
-                    <select name="dictamen" required class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('dictamen') border-red-500 @enderror">
+                    <select name="dictamen" id="dictamen_select" required onchange="toggleCompensacionSection()" class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('dictamen') border-red-500 @enderror">
                         <option value="APROBADO" {{ old('dictamen') === 'APROBADO' ? 'selected' : '' }}>APROBADO (Conforme)</option>
-                        <option value="CON_OBSERVACIONES" {{ old('dictamen') === 'CON_OBSERVACIONES' ? 'selected' : '' }}>CON OBSERVACIONES (Requiere adecuación)</option>
+                        <option value="CON_OBSERVACIONES" {{ old('dictamen', 'CON_OBSERVACIONES') === 'CON_OBSERVACIONES' ? 'selected' : '' }}>CON OBSERVACIONES (Requiere adecuación)</option>
                         <option value="REINSPECCION_REQUERIDA" {{ old('dictamen') === 'REINSPECCION_REQUERIDA' ? 'selected' : '' }}>REINSPECCIÓN REQUERIDA</option>
                         <option value="RECHAZADO" {{ old('dictamen') === 'RECHAZADO' ? 'selected' : '' }}>RECHAZADO (No conforme / Improcedente)</option>
                     </select>
@@ -117,7 +122,55 @@
                 </div>
             </div>
 
-            <!-- Observaciones Técnicas (Mínimo 10 caracteres) -->
+            <!-- Módulo Condicional de Compensación Ambiental por Tala -->
+            @if($esTala)
+                <div id="seccion_compensacion" class="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-4 transition-all duration-300 hidden">
+                    <div class="flex items-center gap-2 text-emerald-800 font-semibold border-b border-emerald-200/80 pb-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span>Cálculo de Compensación Ambiental (Tala Autorizada)</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Árboles Autorizados a Talar</label>
+                            <input type="number" name="cantidad_arboles_talar" id="cant_talar" min="1" value="{{ old('cantidad_arboles_talar', 1) }}"
+                                   oninput="recalcularCompensacion()"
+                                   class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Especie a Solicitar (Entrega)</label>
+                            <select name="especie_compensacion" class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm">
+                                <option value="Araguaney" {{ old('especie_compensacion') === 'Araguaney' ? 'selected' : '' }}>Araguaney (Árbol Nacional)</option>
+                                <option value="Apamate" {{ old('especie_compensacion') === 'Apamate' ? 'selected' : '' }}>Apamate</option>
+                                <option value="Bucare" {{ old('especie_compensacion') === 'Bucare' ? 'selected' : '' }}>Bucare</option>
+                                <option value="Cuji Yaque" {{ old('especie_compensacion') === 'Cuji Yaque' ? 'selected' : '' }}>Cují Yaque</option>
+                                <option value="Caoba" {{ old('especie_compensacion') === 'Caoba' ? 'selected' : '' }}>Caoba</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center pt-5">
+                            <label class="relative flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" name="es_especie_protegida" value="1" id="check_protegida" onchange="recalcularCompensacion()"
+                                       {{ old('es_especie_protegida') ? 'checked' : '' }}
+                                       class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
+                                <span class="text-xs font-semibold text-amber-900">¿Especie Protegida / Vedada? (Ratio 1:16)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-emerald-200/60 flex items-center justify-between text-xs sm:text-sm">
+                        <span class="text-slate-600">Relación de Compensación Aplicada: <strong id="ratio_text" class="text-slate-800">1:8 (Estándar)</strong></span>
+                        <div class="text-emerald-800 font-bold">
+                            Total a Compensar: <span id="total_compensar_badge" class="text-base text-emerald-600 font-extrabold">8</span> ejemplares
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Observaciones Técnicas -->
             <div>
                 <div class="flex items-center justify-between mb-1">
                     <label class="block text-sm font-medium text-slate-700">Observaciones de Campo / Diagnóstico Técnico</label>
@@ -132,7 +185,7 @@
                 @enderror
             </div>
 
-            <!-- Recomendaciones (Mínimo 10 caracteres) -->
+            <!-- Recomendaciones -->
             <div>
                 <div class="flex items-center justify-between mb-1">
                     <label class="block text-sm font-medium text-slate-700">Recomendaciones o Medidas Correctivas</label>
@@ -147,7 +200,7 @@
                 @enderror
             </div>
 
-            <!-- Carga de Fotografía / Evidencias de Campo -->
+            <!-- Carga de Evidencias -->
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Evidencias Fotográficas de la Visita</label>
                 
@@ -194,7 +247,7 @@
         </form>
     </div>
 
-    <!-- Scripts de Previsualización y Contadores de Caracteres -->
+    <!-- Scripts de Interacción -->
     <script>
         function updateCount(inputId, counterId, minLength) {
             const input = document.getElementById(inputId);
@@ -209,6 +262,39 @@
             } else {
                 counter.textContent = `${length} caracteres (¡Mínimo cumplido!)`;
                 counter.className = 'text-xs font-semibold text-emerald-600';
+            }
+        }
+
+        function toggleCompensacionSection() {
+            const dictamenSelect = document.getElementById('dictamen_select');
+            const seccionCompensacion = document.getElementById('seccion_compensacion');
+            
+            if (!seccionCompensacion || !dictamenSelect) return;
+
+            if (dictamenSelect.value === 'APROBADO') {
+                seccionCompensacion.classList.remove('hidden');
+                recalcularCompensacion();
+            } else {
+                seccionCompensacion.classList.add('hidden');
+            }
+        }
+
+        function recalcularCompensacion() {
+            const cantInput = document.getElementById('cant_talar');
+            const checkProtegida = document.getElementById('check_protegida');
+            const totalBadge = document.getElementById('total_compensar_badge');
+            const ratioText = document.getElementById('ratio_text');
+
+            if (!cantInput || !totalBadge) return;
+
+            const cant = Math.max(1, parseInt(cantInput.value) || 1);
+            const esProtegida = checkProtegida ? checkProtegida.checked : false;
+            const ratio = esProtegida ? 16 : 8;
+
+            totalBadge.textContent = cant * ratio;
+            
+            if (ratioText) {
+                ratioText.textContent = esProtegida ? '1:16 (Protegida/Vedada)' : '1:8 (Estándar)';
             }
         }
 
@@ -249,6 +335,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateCount('observaciones_campo', 'counter_observaciones', 10);
             updateCount('recomendaciones', 'counter_recomendaciones', 10);
+            toggleCompensacionSection();
         });
     </script>
 </x-layouts.app>

@@ -24,15 +24,15 @@
                 },
                 'poda_deshierbe': {
                     nombre: 'Solicitud de Permiso para Poda o Deshierbe',
-                    descripcion: 'Autorización técnica para labores de mantenimiento, acondicionamiento de vegetación o poda de árboles.',
+                    descripcion: 'Autorización técnica para labores de mantenimiento, fitosanitarias o poda de formación de vegetación.',
                     plazoDias: 90,
                     requisitosObligatorios: [
                         { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'Requisito inicial obligatorio' },
-                        { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar', hint: 'Detallar motivos e intervención' }
+                        { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar', hint: 'Detallar motivos y ramas a intervenir' }
                     ],
                     requisitosCondicionales: [
                         { key: 'autorizacion_propietario', label: 'Autorización del Propietario', hint: 'Si no es el propietario directo del inmueble/terreno', flag: 'aplicaAutorizacionPropietario' },
-                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora AMC o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' },
+                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' },
                         { key: 'registro_mercantil', label: 'Copia del Registro Mercantil', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' },
                         { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' }
                     ],
@@ -40,8 +40,29 @@
                         { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado', hint: 'Título o documento legal' },
                         { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno', hint: 'Croquis o plano de mensura' },
                         { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente', hint: 'Emitida por la Alcaldía' },
-                        { key: 'constancia_catastral', label: 'Constancia Catastral Vigente', hint: 'Catastro municipal' },
-                        { key: 'carta_compromiso', label: 'Carta de Compromiso de Reposición', hint: 'En caso de afectación a bienes públicos' }
+                        { key: 'constancia_catastral', label: 'Constancia Catastral Vigente', hint: 'Catastro municipal' }
+                    ]
+                },
+                'tala': {
+                    nombre: 'Solicitud de Permiso para Tala de Árboles',
+                    descripcion: 'Autorización técnica para el derribo/remoción de ejemplares arbóreos por riesgo, infraestructura o enfermedad.',
+                    plazoDias: 90,
+                    requisitosObligatorios: [
+                        { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'Requisito inicial obligatorio' },
+                        { key: 'carta_explicativa', label: 'Carta Justificativa de Tala', hint: 'Detallar motivos de riesgo o estado fitosanitario' },
+                        { key: 'carta_compromiso', label: 'Carta de Compromiso de Compensación Ambiental', hint: 'Compromiso firmado para reforestación o donación' }
+                    ],
+                    requisitosCondicionales: [
+                        { key: 'autorizacion_propietario', label: 'Autorización del Propietario', hint: 'Si no es el propietario directo del inmueble/terreno', flag: 'aplicaAutorizacionPropietario' },
+                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora o resguardo hídrico', flag: 'aplicaVariablesAmbientales' },
+                        { key: 'registro_mercantil', label: 'Copia del Registro Mercantil', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' },
+                        { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' }
+                    ],
+                    requisitosOpcionales: [
+                        { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado', hint: 'Título o documento legal' },
+                        { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno', hint: 'Croquis o plano de mensura' },
+                        { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente', hint: 'Emitida por la Alcaldía' },
+                        { key: 'constancia_catastral', label: 'Constancia Catastral Vigente', hint: 'Catastro municipal' }
                     ]
                 },
                 'desmalezamiento_conformacion': {
@@ -54,7 +75,7 @@
                     ],
                     requisitosCondicionales: [
                         { key: 'autorizacion_propietario', label: 'Autorización del Propietario', hint: 'Si no es el propietario directo del inmueble/terreno', flag: 'aplicaAutorizacionPropietario' },
-                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora AMC o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' },
+                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' },
                         { key: 'registro_mercantil', label: 'Copia del Registro Mercantil', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' },
                         { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' }
                     ],
@@ -166,6 +187,7 @@
                 const condicionales = (config.requisitosCondicionales || []).filter(req => {
                     if (req.key === 'autorizacion_propietario') return Boolean(datos.aplica_autorizacion_propietario);
                     if (req.key === 'variables_ambientales') return Boolean(datos.aplica_variables_ambientales);
+                    if (req.key === 'registro_mercantil' || req.key === 'rif_empresa') return Boolean(datos.es_persona_juridica);
                     return false;
                 });
 
@@ -239,7 +261,7 @@
             </button>
         </div>
 
-        {{-- Alertas de Éxito --}}
+        {{-- Alertas de Éxito y Error --}}
         @if (session('success'))
             <div x-show="showSuccessAlert" x-transition class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-2xl flex items-center justify-between gap-2 shadow-xs">
                 <div class="flex items-center gap-2">
@@ -249,6 +271,15 @@
                 <button @click="showSuccessAlert = false" type="button" class="text-emerald-500 hover:text-emerald-800 p-1 rounded-lg cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl flex items-center justify-between gap-2 shadow-xs">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>{{ session('error') }}</span>
+                </div>
             </div>
         @endif
 
@@ -283,7 +314,9 @@
                             @foreach ($tramites as $tramite)
                                 <tr class="hover:bg-slate-50/50 transition-colors">
                                     <td class="p-4 font-bold text-slate-800">{{ $tramite->codigo_expediente ?? '#' . $tramite->id }}</td>
-                                    <td class="p-4 text-slate-700 font-semibold">{{ $tramite->tipo_tramite }}</td>
+                                    <td class="p-4 text-slate-700 font-semibold">
+                                        {{ $tiposTramites[$tramite->tipo_tramite]['nombre'] ?? $tramite->tipo_tramite }}
+                                    </td>
                                     <td class="p-4">{{ $tramite->comuna }} — {{ $tramite->sector }}</td>
                                     <td class="p-4 text-slate-400">{{ $tramite->created_at->format('d/m/Y') }}</td>
                                     <td class="p-4">
@@ -311,6 +344,7 @@
                                         @php
                                             $plazosDias = [
                                                 'poda_deshierbe' => 90,
+                                                'tala' => 90,
                                                 'desmalezamiento_conformacion' => 90,
                                                 'inspeccion' => 0,
                                             ];
@@ -318,7 +352,7 @@
                                             $diasPlazo = $plazosDias[$tramite->tipo_tramite] ?? 0;
                                             $fechaLimite = $tramite->fecha_limite_documentos 
                                                 ? \Carbon\Carbon::parse($tramite->fecha_limite_documentos) 
-                                                : ($diasPlazo > 0 ? $tramite->created_at->addDays($diasPlazo) : null);
+                                                : ($diasPlazo > 0 && $tramite->estado === 'incompleta' ? $tramite->created_at->addDays($diasPlazo) : null);
                                         @endphp
 
                                         @if($fechaLimite)
@@ -573,6 +607,12 @@
                                 >
                                     <span x-text="datosEspecificosModal.aplica_variables_ambientales ? '✓ Requiere Acreditación MINEC' : '✗ No requiere MINEC'"></span>
                                 </span>
+                                <span 
+                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold border"
+                                    :class="datosEspecificosModal.es_persona_juridica ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200'"
+                                >
+                                    <span x-text="datosEspecificosModal.es_persona_juridica ? '✓ Persona Jurídica / Empresa' : '✗ Persona Natural'"></span>
+                                </span>
                             </div>
                         </div>
 
@@ -635,7 +675,7 @@
 
                             <template x-if="requisitosPendientesModal.length === 0">
                                 <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-center text-xs text-emerald-800 font-bold">
-                                    Has consignado la totalidad de los documentos para este expediente
+                                    Has consignado la totalidad de los documentos para este expediente.
                                 </div>
                             </template>
 

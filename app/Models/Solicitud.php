@@ -16,7 +16,7 @@ class Solicitud extends Model
 
     protected $table = 'solicitudes';
 
-protected $fillable = [
+    protected $fillable = [
         'codigo_expediente',
         'user_id',
         'inspector_id',
@@ -28,6 +28,7 @@ protected $fillable = [
         'tipo_tramite',
         'estado',
         'fecha_limite_documentos',
+        'fecha_asignacion_inspector', // <-- Agregado
         'fecha_inicio_inspeccion',
         'fecha_cierre',
     ];
@@ -35,6 +36,7 @@ protected $fillable = [
     protected $casts = [
         'datos_especificos' => 'array',
         'fecha_limite_documentos' => 'datetime',
+        'fecha_asignacion_inspector' => 'datetime', // <-- Agregado
         'fecha_inicio_inspeccion' => 'datetime',
         'fecha_cierre' => 'datetime',
     ];
@@ -46,7 +48,6 @@ protected $fillable = [
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // CAMBIO AQUÍ: Ahora apunta al modelo Inspector
     public function inspector(): BelongsTo
     {
         return $this->belongsTo(Inspector::class, 'inspector_id');
