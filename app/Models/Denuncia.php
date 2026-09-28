@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Observers\DenunciaObserver;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,9 @@ use Illuminate\Database\Eloquent\Model;
 #[ObservedBy([DenunciaObserver::class])]
 class Denuncia extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, Auditable;
+
+    protected string $moduloBitacora = 'denuncias';
 
     protected $table = 'denuncias';
     

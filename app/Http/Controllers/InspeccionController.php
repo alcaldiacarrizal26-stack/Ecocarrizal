@@ -25,11 +25,11 @@ class InspeccionController extends Controller
 
         if ($rol === 'inspector' && $inspector) {
             $solicitudes = Solicitud::where('inspector_id', $inspector->id)
-                ->whereIn('estado', ['inspector_asignado', 'en_inspeccion'])
+                ->whereIn('estado', ['inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion'])
                 ->get();
 
             $denuncias = Denuncia::where('inspector_id', $inspector->id)
-                ->whereIn('estatus', ['inspector_asignado', 'en_revision'])
+                ->whereIn('estatus', ['inspector_asignado', 'en_revision', 'en_inspeccion', 'requiere_reinspeccion'])
                 ->get();
 
             $inspeccionesRealizadas = Inspeccion::where('inspector_id', $inspector->id)
@@ -37,11 +37,11 @@ class InspeccionController extends Controller
                 ->latest()
                 ->paginate(10);
         } else {
-            $solicitudes = Solicitud::whereIn('estado', ['inspector_asignado', 'en_inspeccion'])
+            $solicitudes = Solicitud::whereIn('estado', ['inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion'])
                 ->with('inspector.user')
                 ->get();
 
-            $denuncias = Denuncia::whereIn('estatus', ['inspector_asignado', 'en_revision'])
+            $denuncias = Denuncia::whereIn('estatus', ['inspector_asignado', 'en_revision', 'en_inspeccion', 'requiere_reinspeccion'])
                 ->with('inspector.user')
                 ->get();
 
@@ -188,9 +188,10 @@ class InspeccionController extends Controller
                 $inspeccionData['solicitud_id'] = $origen->id;
 
                 $nuevoEstado = match($validated['dictamen']) {
-                    'APROBADO' => 'aprobado',
-                    'RECHAZADO' => 'rechazado',
-                    default => 'en_inspeccion'
+                    'APROBADO'               => 'aprobado',
+                    'RECHAZADO'              => 'rechazado',
+                    'REINSPECCION_REQUERIDA' => 'requiere_reinspeccion',
+                    default                  => 'en_inspeccion'
                 };
                 
                 $updateData = ['estado' => $nuevoEstado];
@@ -206,8 +207,9 @@ class InspeccionController extends Controller
 
                 $nuevoEstatus = match($validated['dictamen']) {
                     'APROBADO', 'CON_OBSERVACIONES' => 'atendido',
-                    'RECHAZADO' => 'desestimado',
-                    default => 'en_revision'
+                    'RECHAZADO'                      => 'desestimado',
+                    'REINSPECCION_REQUERIDA'        => 'requiere_reinspeccion',
+                    default                          => 'en_revision'
                 };
                 
                 $updateData = ['estatus' => $nuevoEstatus];
@@ -254,6 +256,6 @@ class InspeccionController extends Controller
         });
 
         return redirect()->route('inspecciones.index')
-            ->with('success', 'Informe, dictamen y resolución de compensación registrados exitosamente.');
+            ->with('success', 'Informe y dictamen registrados exitosamente.');
     }
 }

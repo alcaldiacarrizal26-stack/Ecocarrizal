@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Inspeccion extends Model
 {
-    use HasUuids;
+    use HasUuids, Auditable;
 
+    protected string $moduloBitacora = 'inspecciones';
     protected $table = 'inspecciones';
 
     protected $fillable = [

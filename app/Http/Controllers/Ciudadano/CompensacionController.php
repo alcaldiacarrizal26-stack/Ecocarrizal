@@ -4,24 +4,22 @@ namespace App\Http\Controllers\Ciudadano;
 
 use App\Http\Controllers\Controller;
 use App\Models\Compensacion;
+use App\Models\EntregaCompensacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class CompensacionController extends Controller
 {
-    /**
-     * Muestra la vista principal de compensación ambiental para el ciudadano.
-     */
     public function index()
     {
         $userId = Auth::id();
 
-        // Obtener las compensaciones del usuario autenticado
-        $compensaciones = Compensacion::where('user_id', $userId)
+        $compensaciones = Compensacion::with('entregas')
+            ->where('user_id', $userId)
             ->latest()
             ->get();
 
-        // Calcular las métricas con base en los registros reales
         $stats = [
             'arboles_comprometidos' => (int) $compensaciones->sum('cantidad_asignada'),
             'arboles_entregados'    => (int) $compensaciones->sum('cantidad_entregada'),
@@ -31,18 +29,42 @@ class CompensacionController extends Controller
         return view('ciudadano.compensacion', compact('compensaciones', 'stats'));
     }
 
-    /**
-     * Procesa la solicitud o registro de entrega de compensación ambiental.
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'tipo_especie' => 'required|string|max:255',
-            'cantidad'     => 'required|integer|min:1|max:1000',
-            'observacion'  => 'nullable|string|max:500',
-            'comprobante'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
+            'compensacion_id' => 'required|exists:compensaciones,id',
+            'tipo_especie'    => 'required|string|max:255',
+            'cantidad'        => 'required|integer|min:1',
+            'observacion'     => 'nullable|string|max:500',
+            'comprobante'     => 'required|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
 
-        return redirect()->back()->with('success', 'Registro de compensación ambiental procesado exitosamente.');
+        $compensacion = Compensacion::where('id', $request->compensacion_id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        // Validar que no entregue más de la deuda restante
+        $pendiente = $compensacion->cantidad_asignada - $compensacion->cantidad_entregada;
+        if ($request->cantidad > $pendiente) {
+            return redirect()->back()->withErrors([
+                'cantidad' => "La cantidad ingresada ({$request->cantidad}) supera la cantidad pendiente ({$pendiente})."
+            ]);
+        }
+
+        // Guardar archivo
+        $path = $request->file('comprobante')->store('compensaciones/comprobantes', 'public');
+
+        // Registrar entrega/abono
+        EntregaCompensacion::create([
+            'compensacion_id'       => $compensacion->id,
+            'user_id'               => Auth::id(),
+            'cantidad_entregada'    => $request->cantidad,
+            'especie_entregada'     => $request->tipo_especie,
+            'comprobante_path'      => $path,
+            'observacion_ciudadano' => $request->observacion,
+            'estatus'               => 'PENDIENTE',
+        ]);
+
+        return redirect()->back()->with('success', 'Abono de compensación registrado exitosamente. En espera de verificación por la Dirección de Ambiente.');
     }
 }

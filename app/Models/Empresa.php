@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,8 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Empresa extends Model
 {
-    use HasUuids;
-
+    use HasUuids, Auditable;
+    protected string $moduloBitacora = 'empresas';
     protected $fillable = [
         'user_id',
         'rif',

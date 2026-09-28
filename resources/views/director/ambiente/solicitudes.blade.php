@@ -1,5 +1,125 @@
 <x-layouts.app title="Gestión de Solicitudes Ambientales" active="ambiente_solicitudes">
-<div class="p-6 max-w-7xl mx-auto space-y-6" x-data="{ modalOpen: false, modalAsignarOpen: false, solicitudActual: null }">
+<div 
+    class="p-6 max-w-7xl mx-auto space-y-6" 
+    x-data="{ 
+        modalOpen: false, 
+        modalAsignarOpen: false, 
+        solicitudActual: null,
+
+        tiposTramites: {
+            'inspeccion': {
+                nombre: 'Solicitud de Inspección TÉCNICA',
+                requisitosObligatorios: [
+                    { key: 'cedula', label: 'Copia de la Cédula de Identidad' }
+                ],
+                requisitosCondicionales: [],
+                requisitosOpcionales: []
+            },
+            'poda_deshierbe': {
+                nombre: 'Solicitud de Permiso para Poda o Deshierbe',
+                requisitosObligatorios: [
+                    { key: 'cedula', label: 'Copia de la Cédula de Identidad' },
+                    { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar' }
+                ],
+                requisitosCondicionales: [
+                    { key: 'autorizacion_propietario', label: 'Autorización del Propietario' },
+                    { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)' },
+                    { key: 'registro_mercantil', label: 'Copia del Registro Mercantil' },
+                    { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa' }
+                ],
+                requisitosOpcionales: [
+                    { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado' },
+                    { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno' },
+                    { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente' },
+                    { key: 'constancia_catastral', label: 'Constancia Catastral Vigente' }
+                ]
+            },
+            'tala': {
+                nombre: 'Solicitud de Permiso para Tala de Árboles',
+                requisitosObligatorios: [
+                    { key: 'cedula', label: 'Copia de la Cédula de Identidad' },
+                    { key: 'carta_explicativa', label: 'Carta Justificativa de Tala' },
+                    { key: 'carta_compromiso', label: 'Carta de Compromiso de Compensación Ambiental' }
+                ],
+                requisitosCondicionales: [
+                    { key: 'autorizacion_propietario', label: 'Autorización del Propietario' },
+                    { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)' },
+                    { key: 'registro_mercantil', label: 'Copia del Registro Mercantil' },
+                    { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa' }
+                ],
+                requisitosOpcionales: [
+                    { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado' },
+                    { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno' },
+                    { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente' },
+                    { key: 'constancia_catastral', label: 'Constancia Catastral Vigente' }
+                ]
+            },
+            'desmalezamiento_conformacion': {
+                nombre: 'Permiso de Desmalezamiento y Conformación de Terreno',
+                requisitosObligatorios: [
+                    { key: 'cedula', label: 'Copia de la Cédula de Identidad' },
+                    { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar' }
+                ],
+                requisitosCondicionales: [
+                    { key: 'autorizacion_propietario', label: 'Autorización del Propietario' },
+                    { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)' },
+                    { key: 'registro_mercantil', label: 'Copia del Registro Mercantil' },
+                    { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa' }
+                ],
+                requisitosOpcionales: [
+                    { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado' },
+                    { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno' },
+                    { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente' },
+                    { key: 'constancia_catastral', label: 'Constancia Catastral Vigente' },
+                    { key: 'carta_compromiso', label: 'Carta de Compromiso de Reposición' }
+                ]
+            }
+        },
+
+        get datosEspecificosModal() {
+            if (!this.solicitudActual || !this.solicitudActual.datos_especificos) return {};
+            let datos = this.solicitudActual.datos_especificos;
+            if (typeof datos === 'string') {
+                try { datos = JSON.parse(datos); } catch(e) { datos = {}; }
+            }
+            return datos || {};
+        },
+
+        // Helper para evaluar booleanos desde JSON
+        evaluarBool(valor) {
+            if (typeof valor === 'boolean') return valor;
+            if (typeof valor === 'number') return valor === 1;
+            if (typeof valor === 'string') {
+                const v = valor.trim().toLowerCase();
+                return v === '1' || v === 'true';
+            }
+            return Boolean(valor);
+        },
+
+        obtenerEtiquetaRecaudo(recaudo) {
+            if (!this.solicitudActual) return recaudo.nombre_archivo || recaudo.tipo_recaudo;
+            const config = this.tiposTramites[this.solicitudActual.tipo_tramite];
+            if (!config) return recaudo.nombre_archivo || recaudo.tipo_recaudo;
+
+            const todosRequisitos = [
+                ...(config.requisitosObligatorios || []),
+                ...(config.requisitosCondicionales || []),
+                ...(config.requisitosOpcionales || [])
+            ];
+
+            const reqConfig = todosRequisitos.find(r => r.key === recaudo.tipo_recaudo);
+            return reqConfig ? reqConfig.label : (recaudo.nombre_archivo || recaudo.tipo_recaudo);
+        },
+
+        // REGLA DEL PUNTO 1: Permite reasignación SOLAMENTE en:
+        // - 'pendiente' (A la espera de asignación)
+        // - 'inspector_asignado' (Asignado pero aún no ha iniciado la inspección)
+        // - 'requiere_reinspeccion' (Pendiente para reinspeccionar)
+        puedeReasignar(estado) {
+            return ['pendiente', 'inspector_asignado', 'requiere_reinspeccion'].includes(estado);
+        }
+    }"
+>
 
     <!-- ALERTAS DE NOTIFICACIÓN -->
     @if(session('success'))
@@ -201,14 +321,14 @@
                             
                             <!-- Acciones en la tabla -->
                             <td class="px-6 py-4 text-right whitespace-nowrap space-x-2">
-                                @if(!in_array($solicitud->estado, ['aprobada', 'rechazada', 'incompleta']))
+                                <template x-if="puedeReasignar('{{ $solicitud->estado }}')">
                                     <button 
                                         @click="solicitudActual = {{ json_encode($solicitud->load(['solicitante', 'inspector.user', 'recaudos'])) }}; modalAsignarOpen = true"
                                         class="text-indigo-600 hover:text-indigo-900 font-medium text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors inline-flex items-center"
                                     >
                                         {{ $solicitud->inspector ? 'Reasignar' : 'Asignar' }}
                                     </button>
-                                @endif
+                                </template>
 
                                 <button 
                                     @click="solicitudActual = {{ json_encode($solicitud->load(['solicitante', 'inspector.user', 'recaudos'])) }}; modalOpen = true"
@@ -300,6 +420,30 @@
                     <span class="text-xs px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 capitalize font-medium" x-text="solicitudActual?.estado?.replace(/_/g, ' ') || 'Sin Estatus'"></span>
                 </div>
 
+                <!-- PUNTO 2: CONDICIONALES ESPECÍFICAS EVALUADAS CORRECTAMENTE -->
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                    <span class="block text-xs text-slate-500 uppercase font-bold">Condiciones Específicas del Expediente</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <!-- Condición 1: Propietario / Autorización -->
+                        <div class="p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full" :class="evaluarBool(datosEspecificosModal?.aplica_autorizacion_propietario) ? 'bg-amber-500' : 'bg-emerald-500'"></span>
+                            <span class="font-medium text-slate-700" x-text="evaluarBool(datosEspecificosModal?.aplica_autorizacion_propietario) ? 'Requiere Autorización de Propietario' : 'Es Propietario Directo'"></span>
+                        </div>
+
+                        <!-- Condición 2: MINEC / Variables Ambientales -->
+                        <div class="p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full" :class="evaluarBool(datosEspecificosModal?.aplica_variables_ambientales) ? 'bg-indigo-500' : 'bg-slate-300'"></span>
+                            <span class="font-medium text-slate-700" x-text="evaluarBool(datosEspecificosModal?.aplica_variables_ambientales) ? 'Aplica MINEC / Zona Protectora' : 'No Aplica MINEC'"></span>
+                        </div>
+
+                        <!-- Condición 3: Persona Jurídica vs Natural -->
+                        <div class="p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full" :class="evaluarBool(datosEspecificosModal?.es_persona_juridica) ? 'bg-sky-500' : 'bg-slate-300'"></span>
+                            <span class="font-medium text-slate-700" x-text="evaluarBool(datosEspecificosModal?.es_persona_juridica) ? 'Persona Jurídica (Empresa)' : 'Persona Natural'"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <span class="block text-xs text-gray-400 uppercase font-semibold mb-1">Datos del Solicitante</span>
                     <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -323,16 +467,19 @@
                     </div>
                 </template>
 
-                <!-- Documentos / Recaudos Adjuntos -->
+                <!-- RECAUDOS CONSIGNADOS CON TÍTULO / ETIQUETA DESCRIPTIVA -->
                 <template x-if="solicitudActual?.recaudos && solicitudActual.recaudos.length">
                     <div>
                         <span class="block text-xs text-gray-400 uppercase font-semibold mb-2">Recaudos Consignados</span>
                         <div class="space-y-2">
                             <template x-for="(rec, idx) in solicitudActual.recaudos" :key="idx">
                                 <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                                    <div class="flex items-center gap-2 truncate">
-                                        <svg class="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                        <span class="font-medium text-slate-700 truncate" x-text="rec.nombre_archivo || rec.tipo_recaudo || ('Recaudo ' + (idx + 1))"></span>
+                                    <div class="flex items-center gap-2 truncate pr-2">
+                                        <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                        <div class="truncate">
+                                            <p class="font-bold text-slate-800 truncate" x-text="obtenerEtiquetaRecaudo(rec)"></p>
+                                            <p class="text-[11px] text-slate-500 truncate" x-text="rec.nombre_archivo || 'Archivo adjunto'"></p>
+                                        </div>
                                     </div>
                                     <a :href="rec.archivo_url || ('/storage/' + rec.bucket_path)" target="_blank" class="text-emerald-600 hover:text-emerald-800 font-semibold text-xs hover:underline flex-shrink-0">
                                         Ver Documento
@@ -344,9 +491,9 @@
                 </template>
             </div>
 
-            <!-- PIE DEL MODAL CON BOTÓN DE ASIGNAR / REASIGNAR -->
+            <!-- PIE DEL MODAL -->
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
-                <template x-if="!['aprobada', 'rechazada', 'incompleta'].includes(solicitudActual?.estado)">
+                <template x-if="puedeReasignar(solicitudActual?.estado)">
                     <button 
                         @click="modalOpen = false; modalAsignarOpen = true"
                         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors inline-flex items-center shadow-sm"
@@ -356,8 +503,8 @@
                     </button>
                 </template>
 
-                <template x-if="['aprobada', 'rechazada', 'incompleta'].includes(solicitudActual?.estado)">
-                    <span></span>
+                <template x-if="!puedeReasignar(solicitudActual?.estado)">
+                    <span class="text-xs text-slate-400 italic">Asignación no disponible para este estado</span>
                 </template>
 
                 <button @click="modalOpen = false" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium rounded-lg transition-colors">

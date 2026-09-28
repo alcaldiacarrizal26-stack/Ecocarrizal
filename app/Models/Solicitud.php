@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Observers\SolicitudObserver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -12,9 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ObservedBy([SolicitudObserver::class])]
 class Solicitud extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, Auditable;
 
     protected $table = 'solicitudes';
+
+    protected string $moduloBitacora = 'solicitudes';
 
     protected $fillable = [
         'codigo_expediente',

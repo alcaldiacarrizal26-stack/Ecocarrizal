@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class PerfilAmbiental extends Model
 {
-    use HasUuids;
-
+    use HasUuids, Auditable;
+    protected string $moduloBitacora = 'perfiles_ambientales';
     protected $table = 'perfiles_ambientales';
 
     protected $fillable = [

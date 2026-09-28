@@ -14,16 +14,13 @@ class InspectorController extends Controller
 {
     public function index()
     {
-        $inspectores = Inspector::with([
-            'user', 
-            'denuncias' => function($q) {
-                $q->whereIn('estatus', ['en_revision', 'asignada', 'asignado', 'inspector_asignado', 'en_proceso', 'en_inspeccion', 'inspeccion']);
-            }, 
-            'solicitudes' => function($q) {
-                // Incluimos 'inspeccion' y 'pendiente' que son los estados reales en la tabla
-                $q->whereIn('estado', ['asignada', 'asignado', 'inspector_asignado', 'en_inspeccion', 'inspeccion', 'recibido']); 
-            }
-        ])->get();
+        $inspectores = Inspector::with(['user', 'solicitudes' => function ($query) {
+            // Usar los valores exactos definidos en estado_solicitud_enum
+            $query->whereIn('estado', ['inspector_asignado', 'en_inspeccion']);
+        }, 'denuncias' => function ($query) {
+            // Si estatus_denuncia_enum también usa minúsculas, mantener la congruencia
+            $query->whereIn('estatus', ['asignada', 'en_inspeccion']);
+        }])->get();
 
         return view('director.ambiente.inspectores', compact('inspectores'));
     }

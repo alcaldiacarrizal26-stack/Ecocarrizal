@@ -15,13 +15,14 @@ return new class extends Migration
             "estado_documento_enum"    => "'PENDIENTE', 'APROBADO', 'OBSERVADO'",
             "dictamen_inspeccion_enum" => "'APROBADO', 'CON_OBSERVACIONES', 'RECHAZADO', 'REINSPECCION_REQUERIDA'",
             "estatus_compensacion_enum"=> "'PENDIENTE', 'PARCIAL', 'COMPLETADO'",
+            "estatus_entrega_enum"     => "'PENDIENTE', 'APROBADO', 'RECHAZADO'",
             "tipo_tramite_enum"        => "'inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion', 'tala'",
-            "estado_solicitud_enum"    => "'pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'aprobado', 'rechazado'",
+            "estado_solicitud_enum"    => "'pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'aprobado', 'rechazado'",
+            "nivel_bitacora_enum"     => "'info', 'warning', 'danger', 'critical'",
         ];
 
         if (DB::getDriverName() === 'pgsql') {
             foreach ($enums as $name => $values) {
-                // Garantiza eliminar el tipo previo si existe para que se vuelva a crear con todos los valores
                 DB::statement("DROP TYPE IF EXISTS {$name} CASCADE;");
                 DB::statement("CREATE TYPE {$name} AS ENUM ({$values});");
             }
@@ -104,10 +105,13 @@ return new class extends Migration
             $table->text('descripcion');
             $table->jsonb('evidencias')->nullable();
             
+            // Se incluye 'requiere_reinspeccion'
             $table->enum('estatus', [
                 'pendiente', 
                 'inspector_asignado', 
                 'en_inspeccion', 
+                'en_revision',
+                'requiere_reinspeccion',
                 'atendido', 
                 'desestimado'
             ])->default('pendiente');
@@ -133,7 +137,7 @@ return new class extends Migration
             $table->string('sector');
             $table->text('direccion_exacta');
             $table->text('motivo_descripcion');
-            $table->json('datos_especificos')->nullable();
+            $table->jsonb('datos_especificos')->nullable();
             
             // Trazabilidad de fechas
             $table->timestampTz('fecha_limite_documentos')->nullable();
@@ -146,7 +150,6 @@ return new class extends Migration
             $table->index(['user_id', 'created_at']);
         });
 
-        // Asignación de tipos enum para solicitudes
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("
                 ALTER TABLE solicitudes 
@@ -156,7 +159,7 @@ return new class extends Migration
         } else {
             Schema::table('solicitudes', function (Blueprint $table) {
                 $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion', 'tala']);
-                $table->enum('estado', ['pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'aprobado', 'rechazado'])->default('pendiente');
+                $table->enum('estado', ['pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'aprobado', 'rechazado'])->default('pendiente');
             });
         }
 
@@ -299,7 +302,7 @@ return new class extends Migration
             });
         }
 
-        // 8. Módulo de Compensación Ambiental (Tala Aprobada)
+        // 8. Módulo de Compensación Ambiental
         Schema::create('compensaciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_resolucion', 30)->unique();
@@ -308,12 +311,11 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete();
 
-            $table->string('especie_requerida')->comment('Ej. Araguaney, Apamate, Bucare');
+            $table->string('especie_requerida');
             $table->integer('cantidad_asignada')->default(0);
             $table->integer('cantidad_entregada')->default(0);
 
-            $table->text('comprobante_path')->nullable();
-            $table->timestampTz('fecha_entrega')->nullable();
+            $table->timestampTz('fecha_limite')->nullable();
             $table->text('observaciones')->nullable();
 
             $table->timestampsTz();
@@ -329,10 +331,78 @@ return new class extends Migration
                 $table->enum('estatus', ['PENDIENTE', 'PARCIAL', 'COMPLETADO'])->default('PENDIENTE');
             });
         }
+
+        Schema::create('entregas_compensacion', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('compensacion_id')->constrained('compensaciones')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+
+            $table->integer('cantidad_entregada');
+            $table->string('especie_entregada');
+            $table->text('comprobante_path');
+            $table->text('observacion_ciudadano')->nullable();
+            $table->text('observacion_director')->nullable();
+            $table->timestampTz('fecha_revision')->nullable();
+
+            $table->timestampsTz();
+        });
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE entregas_compensacion 
+                ADD COLUMN estatus estatus_entrega_enum NOT NULL DEFAULT 'PENDIENTE';
+            ");
+        } else {
+            Schema::table('entregas_compensacion', function (Blueprint $table) {
+                $table->enum('estatus', ['PENDIENTE', 'APROBADO', 'RECHAZADO'])->default('PENDIENTE');
+            });
+        }
+
+        // 9. Tabla de Bitácora / Auditoría de Eventos e Intentos Fallidos
+        Schema::create('bitacora_eventos', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            
+            // Usuario en sesión (null para usuarios no autenticados o fallos de login)
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            
+            $table->string('modulo', 50)->default('general'); // 'solicitudes', 'denuncias', 'autenticacion', 'compensaciones'
+            $table->string('tipo_evento', 50); // 'crear', 'editar', 'eliminar', 'intento_fallido', 'acceso_denegado'
+            
+            $table->string('descripcion');
+            
+            // Permite vincular la bitácora tanto a modelos con UUID (solicitud, denuncia) como con BIGINT (user)
+            $table->string('auditable_type')->nullable();
+            $table->string('auditable_id')->nullable(); 
+
+            $table->jsonb('valores_anteriores')->nullable();
+            $table->jsonb('valores_nuevos')->nullable();
+
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+
+            $table->timestampsTz();
+
+            $table->index(['modulo', 'tipo_evento']);
+            $table->index(['auditable_type', 'auditable_id']);
+            $table->index('created_at');
+        });
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE bitacora_eventos 
+                ADD COLUMN nivel nivel_bitacora_enum NOT NULL DEFAULT 'info';
+            ");
+        } else {
+            Schema::table('bitacora_eventos', function (Blueprint $table) {
+                $table->enum('nivel', ['info', 'warning', 'danger', 'critical'])->default('info');
+            });
+        }
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('bitacora_eventos');
+        Schema::dropIfExists('entregas_compensacion');
         Schema::dropIfExists('compensaciones');
         Schema::dropIfExists('inspecciones');
         Schema::dropIfExists('documentos_expediente');
@@ -348,10 +418,11 @@ return new class extends Migration
         Schema::dropIfExists('roles');
 
         if (DB::getDriverName() === 'pgsql') {
+            DB::statement("DROP TYPE IF EXISTS nivel_bitacora_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS estado_solicitud_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS tipo_tramite_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS estatus_entrega_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS estatus_compensacion_enum CASCADE");
-            DB::statement("DROP TYPE IF EXISTS dictamen_inspeccion_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS estado_documento_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS tipo_racda_enum CASCADE");
         }

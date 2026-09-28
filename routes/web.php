@@ -18,6 +18,7 @@ use App\Http\Controllers\Ciudadano\CompensacionController;
 use App\Http\Controllers\Director\Ambiente\InspectorController as AmbienteInspectorController;
 use App\Http\Controllers\Director\Ambiente\ReporteController as AmbienteReporteController;
 use App\Http\Controllers\Director\Ambiente\SolicitudController as AmbienteSolicitudController;
+use App\Http\Controllers\Director\Ambiente\CompensacionController as AmbienteCompensacionController;
 use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
 use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaController;
 
@@ -71,7 +72,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
         Route::post('/empresas', [CiudadanoEmpresaController::class, 'store'])->name('empresas.store');
 
         // Compensación Ambiental
-        Route::post('/compensacion', [CompensacionController::class, 'store'])->name('compensacion.store');
+        Route::put('/compensacion/{compensacion}', [CompensacionController::class, 'store'])->name('compensacion.store');
     });
 
     // Consultas de vista
@@ -113,6 +114,10 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
         Route::get('/denuncias/{id}', [AmbienteReporteController::class, 'show'])->name('denuncias.show');
         Route::post('/denuncias/{id}/asignar', [AmbienteReporteController::class, 'asignarInspector'])->name('denuncias.asignar');
         Route::put('/reportes/{denuncia}/asignar', [AmbienteReporteController::class, 'asignar'])->name('reportes.asignar');
+
+        // Compensación Ambiental
+        Route::get('/compensacion', [AmbienteCompensacionController::class, 'index'])->name('compensacion');
+        Route::post('/compensacion/entregas/{entrega}/evaluar', [AmbienteCompensacionController::class, 'evaluarEntrega'])->name('compensacion.evaluar');
     });
 
     // ---------------------------------------------------------

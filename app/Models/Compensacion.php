@@ -45,8 +45,7 @@ class Compensacion extends Model
         'especie_requerida',
         'cantidad_asignada',
         'cantidad_entregada',
-        'comprobante_path',
-        'fecha_entrega',
+        'fecha_limite',
         'observaciones',
         'estatus',
     ];
@@ -59,7 +58,7 @@ class Compensacion extends Model
     protected $casts = [
         'cantidad_asignada'  => 'integer',
         'cantidad_entregada' => 'integer',
-        'fecha_entrega'      => 'datetime',
+        'fecha_limite'       => 'datetime',
         'created_at'         => 'datetime',
         'updated_at'         => 'datetime',
     ];
@@ -90,5 +89,13 @@ class Compensacion extends Model
     public function inspeccion(): BelongsTo
     {
         return $this->belongsTo(Inspeccion::class, 'inspeccion_id');
+    }
+
+    /**
+     * Relación con los abonos o entregas registradas.
+     */
+    public function entregas()
+    {
+        return $this->hasMany(EntregaCompensacion::class, 'compensacion_id');
     }
 }
