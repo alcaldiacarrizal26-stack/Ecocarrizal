@@ -8,13 +8,30 @@ use Illuminate\Http\Request;
 
 class EmpresaController extends Controller
 {
-    public function index()
+    /**
+     * Muestra el listado general de empresas registradas para la Dirección de Residuos.
+     */
+    public function index(Request $request)
     {
-        $empresas = Empresa::with(['user', 'perfilAmbiental'])
-            ->latest()
-            ->paginate(15);
+        $query = Empresa::with(['user', 'perfilAmbiental']);
 
-        return view('director.residuos.empresas', compact('empresas'));
+        // Filtro opcional por búsqueda (RIF o Razón Social)
+        if ($request->filled('buscar')) {
+            $buscar = $request->input('buscar');
+            $query->where(function ($q) use ($buscar) {
+                $q->where('rif', 'like', "%{$buscar}%")
+                  ->orWhere('razon_social', 'like', "%{$buscar}%");
+            });
+        }
+
+        // Filtro opcional por estatus de la empresa
+        if ($request->filled('estatus')) {
+            $query->where('estatus', $request->input('estatus'));
+        }
+
+        $empresas = $query->latest()->paginate(15)->appends($request->all());
+
+        return view('director.residuos.empresas.index', compact('empresas'));
     }
 
     /**
@@ -22,16 +39,20 @@ class EmpresaController extends Controller
      */
     public function show(Empresa $empresa)
     {
-        // Carga de relaciones completas para la revisión técnica
-        $empresa->load(['user', 'perfilAmbiental', 'documentosExpediente']);
+        // Carga de relaciones completas para la revisión técnica del expediente
+        $empresa->load([
+            'user', 
+            'perfilAmbiental', 
+            'documentosExpediente'
+        ]);
 
-        return view('director.residuos.show', compact('empresa'));
+        return view('director.residuos.empresas.show', compact('empresa'));
     }
 
     /**
-     * Procesa el veredicto del Director (Aprobado, Rechazado u Observado).
+     * Procesa la evaluación / veredicto del expediente de la empresa por parte del Director.
      */
-    public function evaluarEmpresa(Request $request, Empresa $empresa)
+    public function evaluar(Request $request, Empresa $empresa)
     {
         $validated = $request->validate([
             'estatus' => 'required|in:APROBADO,RECHAZADO,OBSERVADO',
@@ -46,7 +67,7 @@ class EmpresaController extends Controller
         ]);
 
         return redirect()
-            ->route('director.empresas')
-            ->with('success', 'El veredicto para la empresa ' . $empresa->razon_social . ' ha sido registrado.');
+            ->route('director.residuos.empresas.show', $empresa->id)
+            ->with('success', 'El veredicto para la empresa ' . $empresa->razon_social . ' ha sido registrado exitosamente.');
     }
 }

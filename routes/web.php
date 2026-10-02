@@ -79,6 +79,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes');
     Route::get('/solicitudes', [SolicitudController::class, 'index'])->name('solicitudes');
     Route::get('/empresas', [CiudadanoEmpresaController::class, 'index'])->name('empresas');
+    Route::get('/empresas/crear', [CiudadanoEmpresaController::class, 'create'])->name('empresas.create');
 
     // Compensación Ambiental y Soporte
     Route::get('/compensacion', [CompensacionController::class, 'index'])->name('compensacion');
@@ -126,10 +127,25 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
     Route::prefix('residuos')->name('residuos.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'dashboardResiduos'])->name('dashboard');
         
-        // Fiscalización y Expedientes de Empresas
-        Route::get('/empresas', [ResiduosEmpresaController::class, 'index'])->name('empresas');
-        Route::get('/empresas/{empresa}', [ResiduosEmpresaController::class, 'show'])->name('empresas.show');
-        Route::patch('/empresas/{empresa}/estatus', [ResiduosEmpresaController::class, 'updateEstatus'])->name('empresas.updateEstatus');
+        // Módulo de Gestión de Empresas
+        Route::prefix('empresas')->name('empresas.')->group(function () {
+            // 1. Listado y Expediente Comercial
+            Route::get('/', [ResiduosEmpresaController::class, 'index'])->name('index');
+            Route::get('/{empresa}', [ResiduosEmpresaController::class, 'show'])->name('show');
+            Route::post('/{empresa}/evaluar', [ResiduosEmpresaController::class, 'evaluar'])->name('evaluar');
+            Route::patch('/{empresa}/estatus', [ResiduosEmpresaController::class, 'updateEstatus'])->name('updateEstatus');
+
+            // 2. Fiscalización e Inspecciones de la Empresa
+            Route::get('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'inspecciones'])->name('inspecciones.index');
+            Route::post('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'asignarInspeccion'])->name('inspecciones.store');
+
+            // 3. Monitoreo de Declaraciones y Desechos
+            Route::get('/{empresa}/declaraciones', [ResiduosEmpresaController::class, 'declaraciones'])->name('declaraciones');
+
+            // 4. Citaciones y Sanciones Administrativas
+            Route::post('/{empresa}/sanciones', [ResiduosEmpresaController::class, 'asignarSancion'])->name('sanciones.store');
+            Route::patch('/sanciones/{sancion}/resolver', [ResiduosEmpresaController::class, 'resolverSancion'])->name('sanciones.resolver');
+        });
     });
 
     // Soporte Director

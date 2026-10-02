@@ -1,8 +1,8 @@
 <x-layouts.app title="Empresa - Panel Ciudadano" active="empresas">
-<div class="p-4 sm:p-6 max-w-6xl mx-auto space-y-6" x-data="{ modalOpen: false, openDetailModal: false, selectedEmpresa: null }">
+<div class="p-4 sm:p-6 max-w-6xl mx-auto space-y-6" x-data="{ openDetailModal: false, selectedEmpresa: null }">
     
     @php
-        // Garantizamos obtener el objeto individual de empresa desde la colección
+        // Garantizamos obtener el objeto individual de empresa desde la colección o variable directa
         $empresa = $empresa ?? $empresas->first();
     @endphp
 
@@ -21,13 +21,12 @@
         </div>
 
         @if(!$empresa)
-            <button 
-                type="button" 
-                @click="modalOpen = true"
+            <a 
+                href="{{ route('ciudadano.empresas.crear') }}"
                 class="px-4 py-2.5 bg-[#0d5238] hover:bg-[#073825] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Vincular Empresa
-            </button>
+            </a>
         @endif
     </div>
 
@@ -45,13 +44,12 @@
                     Como ciudadano registrado, puedes vincular tu firma comercial para consignar el perfil ambiental y solicitar certificaciones de residuos.
                 </p>
             </div>
-            <button 
-                type="button" 
-                @click="modalOpen = true"
+            <a 
+                href="{{ route('ciudadano.empresas.crear') }}"
                 class="px-5 py-2.5 bg-[#0d5238] hover:bg-[#073825] text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Vincular Empresa
-            </button>
+            </a>
         </div>
     @else
         <!-- CASO B: El ciudadano ya posee su empresa vinculada -->
@@ -123,18 +121,10 @@
             <!-- Pie de tarjeta: Fecha y Botones alineados a la derecha -->
             <div class="pt-3 flex items-center justify-between border-t border-gray-100 text-xs">
                 <span class="text-gray-400 font-medium">
-                    Registrado el: {{ $empresa->created_at->format('d/m/Y') }}
+                    Registrado el: {{ $empresa->created_at ? $empresa->created_at->format('d/m/Y') : 'N/A' }}
                 </span>
 
                 <div class="flex items-center gap-2">
-                    <button 
-                        type="button" 
-                        @click="modalOpen = true" 
-                        class="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors cursor-pointer"
-                    >
-                        Editar Datos
-                    </button>
-
                     <button 
                         type="button"
                         @click="selectedEmpresa = {{ $empresa->toJson() }}; openDetailModal = true"
@@ -194,7 +184,7 @@
                             </div>
                             <button 
                                 @click="openDetailModal = false" 
-                                class="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all"
+                                class="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all cursor-pointer"
                             >
                                 ✕
                             </button>
@@ -206,7 +196,7 @@
                             <!-- Seccion 1: Datos de Contacto y Ubicación -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 text-xs">
-                                    <h4 class="font-extrabold text-gray-800 uppercase tracking-wider border-b pb-1">Ubicación Territorial</h4>
+                                    <h4 class="font-extrabold text-gray-800 uppercase tracking-wider border-b border-gray-200 pb-1">Ubicación Territorial</h4>
                                     <p><strong class="text-gray-500">Comuna:</strong> <span x-text="selectedEmpresa.comuna"></span></p>
                                     <p><strong class="text-gray-500">Sector:</strong> <span x-text="selectedEmpresa.sector"></span></p>
                                     <p><strong class="text-gray-500">Calle/Avenida:</strong> <span x-text="selectedEmpresa.calle_avenida"></span></p>
@@ -214,7 +204,7 @@
                                 </div>
 
                                 <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 text-xs">
-                                    <h4 class="font-extrabold text-gray-800 uppercase tracking-wider border-b pb-1">Contacto Comercial</h4>
+                                    <h4 class="font-extrabold text-gray-800 uppercase tracking-wider border-b border-gray-200 pb-1">Contacto Comercial</h4>
                                     <p><strong class="text-gray-500">Correo:</strong> <span x-text="selectedEmpresa.correo_comercial"></span></p>
                                     <p><strong class="text-gray-500">Teléfono:</strong> <span x-text="selectedEmpresa.telefono_comercial"></span></p>
                                     <p><strong class="text-gray-500">Estatus:</strong> 
@@ -222,7 +212,7 @@
                                             :class="{
                                                 'bg-amber-100 text-amber-800': selectedEmpresa.estatus === 'PENDIENTE_APROBACION',
                                                 'bg-emerald-100 text-emerald-800': selectedEmpresa.estatus === 'APROBADO',
-                                                'bg-rose-100 text-rose-800': selectedEmpresa.estatus === 'RECHAZADO'
+                                                'bg-rose-100 text-rose-800': selectedEmpresa.estatus === 'RECHAZADO' || selectedEmpresa.estatus === 'OBSERVADO'
                                             }"
                                             x-text="selectedEmpresa.estatus.replace('_', ' ')">
                                         </span>
@@ -233,7 +223,7 @@
                             <!-- Sección 2: Perfil Ambiental -->
                             <template x-if="selectedEmpresa.perfil_ambiental">
                                 <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4 text-xs">
-                                    <h4 class="font-extrabold text-[#0d5238] uppercase tracking-wider border-b pb-1">Diagnóstico Ambiental</h4>
+                                    <h4 class="font-extrabold text-[#0d5238] uppercase tracking-wider border-b border-gray-200 pb-1">Diagnóstico Ambiental</h4>
                                     
                                     <!-- Datos Principales del Perfil -->
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -294,13 +284,11 @@
 
                                     <!-- Residuos Generados Declarados -->
                                     <div class="pt-3 border-t border-gray-200/60" x-data="{
-                                        // Helper para parsear array si viene como JSON string o array directo
                                         getResiduosList(data) {
                                             if (!data) return [];
                                             if (Array.isArray(data)) return data;
                                             try { return JSON.parse(data); } catch(e) { return []; }
                                         },
-                                        // Mapeo de slugs a nombres descriptivos
                                         getNombreResiduo(key) {
                                             const mapa = {
                                                 'organicos': 'Orgánicos / Biodegradables',
@@ -314,7 +302,6 @@
                                     }">
                                         <span class="text-gray-400 block text-[10px] uppercase font-semibold mb-2">Tipos de Residuos Generados</span>
 
-                                        <!-- Si hay residuos declarados -->
                                         <template x-if="selectedEmpresa?.perfil_ambiental?.residuos_tipos && getResiduosList(selectedEmpresa.perfil_ambiental.residuos_tipos).length > 0">
                                             <div class="flex flex-wrap gap-1.5">
                                                 <template x-for="item in getResiduosList(selectedEmpresa.perfil_ambiental.residuos_tipos)" :key="item">
@@ -328,7 +315,6 @@
                                             </div>
                                         </template>
 
-                                        <!-- Si no hay residuos -->
                                         <template x-if="!selectedEmpresa?.perfil_ambiental?.residuos_tipos || getResiduosList(selectedEmpresa.perfil_ambiental.residuos_tipos).length === 0">
                                             <p class="text-gray-400 italic text-[11px]">No se declararon tipos de residuos generados.</p>
                                         </template>
@@ -338,7 +324,7 @@
 
                             <!-- Seccion 3: Documentos Subidos -->
                             <div class="space-y-3">
-                                <h4 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider border-b pb-1">Documentos Consignados</h4>
+                                <h4 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider border-b border-gray-200 pb-1">Documentos Consignados</h4>
                                 
                                 <template x-if="selectedEmpresa.documentos_expediente && selectedEmpresa.documentos_expediente.length > 0">
                                     <div class="grid grid-cols-1 gap-2">
@@ -349,9 +335,9 @@
                                                     <span class="text-[10px] text-gray-400 font-mono" x-text="'CÓDIGO: ' + doc.codigo_requisito"></span>
                                                 </div>
                                                 <a 
-                                                    :href="'/expedientes/documentos/' + doc.id" 
+                                                    :href="'/ciudadano/empresas/documentos/' + doc.id" 
                                                     target="_blank"
-                                                    class="px-3 py-1.5 bg-white border border-gray-300 hover:border-[#0d5238] hover:text-[#0d5238] rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm"
+                                                    class="px-3 py-1.5 bg-white border border-gray-300 hover:border-[#0d5238] hover:text-[#0d5238] rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer"
                                                 >
                                                     📄 Ver Archivo
                                                 </a>
@@ -371,7 +357,7 @@
                         <div class="bg-gray-50 p-4 rounded-b-3xl flex justify-end border-t border-gray-100">
                             <button 
                                 @click="openDetailModal = false" 
-                                class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded-xl transition-all"
+                                class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded-xl transition-all cursor-pointer"
                             >
                                 Cerrar
                             </button>
@@ -381,8 +367,5 @@
             </div>
         </div>
     </div>
-
-    <!-- Incluir la Modal Blade/Alpine para Vincular / Editar -->
-    @include('ciudadano.partials.vincular-modal')
 </div>
 </x-layouts.app>

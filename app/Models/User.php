@@ -104,4 +104,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(Solicitud::class);
     }
+
+    public function empresa()
+    {
+        return $this->hasOne(Empresa::class, 'user_id');
+    }
+
+    public function tieneEmpresa(): bool
+    {
+        return !is_null($this->empresa);
+    }
+
+    public function tieneEmpresaAprobada(): bool
+    {
+        return $this->empresa && $this->empresa->estatus === 'APROBADO';
+    }
 }
