@@ -99,7 +99,8 @@ class EmpresaController extends Controller
                 $empresa->perfilAmbiental()->create([
                     'rol_ambiental'         => $perfilData['rol_ambiental'] ?? 'GENERADOR',
                     'subtipo_generador'     => $perfilData['subtipo_generador'] ?? 'PEQUENO',
-                    'numero_racda'          => $perfilData['numero_racda'] ?? 'RACDA No aplica',
+                    'tipo_racda'            => $perfilData['tipo_racda'] ?? 'NO_APLICA',
+                    'numero_racda'          => $perfilData['numero_racda'] ?? null,
                     'genera_efluentes'      => filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN),
                     'genera_emisiones'      => filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN),
                     'genera_peligrosos'     => filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN),

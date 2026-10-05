@@ -30,7 +30,16 @@
             </div>
         @endif
 
-        <!-- Tarjetas de Resumen Acumulado -->
+        @if(session('warning'))
+            <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-3 shadow-sm">
+                <svg class="w-5 h-5 shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span>{{ session('warning') }}</span>
+            </div>
+        @endif
+
+        <!-- Tarjetas de Resumen Acumulado (De los registros visibles en página actual o colección) -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center gap-4">
                 <div class="p-3 bg-slate-100 text-slate-600 rounded-xl">
@@ -40,7 +49,7 @@
                 </div>
                 <div>
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Comunes Generados</p>
-                    <p class="text-xl font-bold text-slate-800 font-mono">{{ number_format($declaraciones->sum('toneladas_comunes'), 2) }} <span class="text-xs font-normal text-slate-400">Ton</span></p>
+                    <p class="text-xl font-bold text-slate-800 font-mono">{{ number_format($declaraciones->getCollection()->sum('toneladas_comunes'), 2) }} <span class="text-xs font-normal text-slate-400">Ton</span></p>
                 </div>
             </div>
 
@@ -52,7 +61,7 @@
                 </div>
                 <div>
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Reciclables / Recupe.</p>
-                    <p class="text-xl font-bold text-slate-800 font-mono">{{ number_format($declaraciones->sum('toneladas_reciclables'), 2) }} <span class="text-xs font-normal text-slate-400">Ton</span></p>
+                    <p class="text-xl font-bold text-slate-800 font-mono">{{ number_format($declaraciones->getCollection()->sum('toneladas_reciclables'), 2) }} <span class="text-xs font-normal text-slate-400">Ton</span></p>
                 </div>
             </div>
 
@@ -64,7 +73,7 @@
                 </div>
                 <div>
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Peligrosos / Especiales</p>
-                    <p class="text-xl font-bold text-slate-800 font-mono">{{ number_format($declaraciones->sum('toneladas_peligrosas'), 2) }} <span class="text-xs font-normal text-slate-400">Ton</span></p>
+                    <p class="text-xl font-bold text-slate-800 font-mono">{{ number_format($declaraciones->getCollection()->sum('toneladas_peligrosas'), 2) }} <span class="text-xs font-normal text-slate-400">Ton</span></p>
                 </div>
             </div>
         </div>
@@ -78,6 +87,7 @@
                             <th scope="col" class="px-6 py-4">Período / Rango</th>
                             <th scope="col" class="px-6 py-4 text-center">Desglose (Ton)</th>
                             <th scope="col" class="px-6 py-4 text-center">Total (Ton)</th>
+                            <th scope="col" class="px-6 py-4 text-center">Ítems</th>
                             <th scope="col" class="px-6 py-4">Soportes</th>
                             <th scope="col" class="px-6 py-4">Estatus</th>
                             <th scope="col" class="px-6 py-4 text-right">Acción</th>
@@ -89,18 +99,23 @@
                                 <td class="px-6 py-4">
                                     <div class="font-bold text-slate-800 font-mono">{{ $dec->periodo }}</div>
                                     <div class="text-xs text-slate-400">
-                                        {{ $dec->fecha_inicio_periodo->format('d/m/Y') }} al {{ $dec->fecha_fin_periodo->format('d/m/Y') }}
+                                        {{ \Carbon\Carbon::parse($dec->fecha_inicio_periodo)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($dec->fecha_fin_periodo)->format('d/m/Y') }}
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     <div class="text-xs space-y-0.5 font-mono">
-                                        <span class="text-slate-600">Org: <b>{{ $dec->toneladas_comunes }}</b></span> | 
-                                        <span class="text-emerald-600">Rec: <b>{{ $dec->toneladas_reciclables }}</b></span> | 
-                                        <span class="text-amber-600">Pel: <b>{{ $dec->toneladas_peligrosas }}</b></span>
+                                        <span class="text-slate-600">Org: <b>{{ number_format($dec->toneladas_comunes, 2) }}</b></span> | 
+                                        <span class="text-emerald-600">Rec: <b>{{ number_format($dec->toneladas_reciclables, 2) }}</b></span> | 
+                                        <span class="text-amber-600">Pel: <b>{{ number_format($dec->toneladas_peligrosas, 2) }}</b></span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-center font-bold font-mono text-slate-800">
-                                    {{ number_format($dec->total_toneladas, 2) }}
+                                    {{ number_format($dec->toneladas_comunes + $dec->toneladas_reciclables + $dec->toneladas_peligrosas, 2) }}
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                                        {{ $dec->detalles->count() }} renglón(es)
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4 text-xs">
                                     @if(!empty($dec->manifiestos_archivos) && count($dec->manifiestos_archivos) > 0)
@@ -143,7 +158,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                                <td colspan="7" class="px-6 py-12 text-center text-slate-400">
                                     <p class="text-sm">No se han registrado declaraciones de residuos para esta empresa.</p>
                                 </td>
                             </tr>

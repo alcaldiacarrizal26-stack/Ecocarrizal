@@ -19,6 +19,9 @@ return new class extends Migration
             "tipo_tramite_enum"        => "'inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion', 'tala'",
             "estado_solicitud_enum"    => "'pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'aprobado', 'rechazado'",
             "nivel_bitacora_enum"     => "'info', 'warning', 'danger', 'critical'",
+            "estatus_declaracion_enum" => "'BORRADOR', 'PRESENTADA', 'OBSERVADA', 'CONFORME'",
+            "frecuencia_declaracion_enum" => "'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'",
+            "categoria_residuo_enum"   => "'COMUN', 'RECICLABLE', 'PELIGROSO'",
         ];
 
         if (DB::getDriverName() === 'pgsql') {
@@ -273,32 +276,70 @@ return new class extends Migration
             });
         }
 
+        // 6. Declaraciones de Residuos (Cabecera)
         Schema::create('declaraciones_residuos', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users'); // Quién declaró
+            $table->foreignId('user_id')->constrained('users'); // Usuario declarante
 
-            $table->string('periodo', 20); // Ej: "2026-Q1", "2026-03", "2026-ANUAL"
+            $table->string('periodo', 20); // Ej: "2026-03", "2026-Q1", "2026-ANUAL"
             $table->date('fecha_inicio_periodo');
             $table->date('fecha_fin_periodo');
 
-            // Desglose volumétrico / pesaje
-            $table->decimal('toneladas_comunes', 10, 2)->default(0.00);
-            $table->decimal('toneladas_reciclables', 10, 2)->default(0.00);
-            $table->decimal('toneladas_peligrosas', 10, 2)->default(0.00);
+            // Desglose de totales calculados automáticamente
+            $table->decimal('toneladas_comunes', 12, 3)->default(0.000);
+            $table->decimal('toneladas_reciclables', 12, 3)->default(0.000);
+            $table->decimal('toneladas_peligrosas', 12, 3)->default(0.000);
 
-            // Evidencia operativa (manifiestos de transporte, recibos de la manejadora RACDA)
-            $table->jsonb('manifiestos_archivos')->nullable(); 
+            // Información complementaria y manejadora general
             $table->string('manejadora_rif', 15)->nullable();
+            $table->string('manejadora_nombre')->nullable();
+            $table->jsonb('manifiestos_archivos')->nullable(); // Archivos generales
 
-            $table->enum('estatus', ['BORRADOR', 'PRESENTADA', 'OBSERVADA', 'CONFORME'])
-                ->default('PRESENTADA');
-            
             $table->text('observaciones_fiscalia')->nullable();
             $table->timestampsTz();
 
             $table->index(['empresa_id', 'periodo']);
         });
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE declaraciones_residuos 
+                ADD COLUMN frecuencia frecuencia_declaracion_enum NOT NULL DEFAULT 'MENSUAL',
+                ADD COLUMN estatus estatus_declaracion_enum NOT NULL DEFAULT 'PRESENTADA';
+            ");
+        } else {
+            Schema::table('declaraciones_residuos', function (Blueprint $table) {
+                $table->enum('frecuencia', ['MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'])->default('MENSUAL');
+                $table->enum('estatus', ['BORRADOR', 'PRESENTADA', 'OBSERVADA', 'CONFORME'])->default('PRESENTADA');
+            });
+        }
+
+        // Tabla de Detalles por Tipo de Residuo
+        Schema::create('declaracion_residuo_detalles', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('declaracion_id')->constrained('declaraciones_residuos')->cascadeOnDelete();
+
+            $table->string('codigo_residuo', 100); // Ej: "peligrosos_aceites", "carton", "organicos"
+            $table->string('nombre_residuo');
+            $table->decimal('cantidad', 12, 3);
+            $table->string('unidad_medida', 10)->default('TON'); // TON, KG, M3, LITROS
+            $table->decimal('cantidad_toneladas', 12, 3); // Convertido a TON para totales estandarizados
+
+            $table->string('manifiesto_path')->nullable(); // Manifiesto de transporte/recibo de este residuo
+            $table->timestampsTz();
+        });
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE declaracion_residuo_detalles 
+                ADD COLUMN categoria categoria_residuo_enum NOT NULL DEFAULT 'COMUN';
+            ");
+        } else {
+            Schema::table('declaracion_residuo_detalles', function (Blueprint $table) {
+                $table->enum('categoria', ['COMUN', 'RECICLABLE', 'PELIGROSO'])->default('COMUN');
+            });
+        }
 
         // 7. Inspecciones y Acta de Evaluación
         Schema::create('inspecciones', function (Blueprint $table) {
@@ -445,6 +486,8 @@ return new class extends Migration
         Schema::dropIfExists('login_attempts');
         Schema::dropIfExists('direcciones');
         Schema::dropIfExists('roles');
+        Schema::dropIfExists('declaracion_residuo_detalles');
+        Schema::dropIfExists('declaraciones_residuos');
 
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("DROP TYPE IF EXISTS nivel_bitacora_enum CASCADE");
@@ -454,6 +497,9 @@ return new class extends Migration
             DB::statement("DROP TYPE IF EXISTS estatus_compensacion_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS estado_documento_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS tipo_racda_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS categoria_residuo_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS frecuencia_declaracion_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS estatus_declaracion_enum CASCADE");
         }
     }
 };

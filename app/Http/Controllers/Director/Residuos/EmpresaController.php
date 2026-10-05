@@ -37,33 +37,35 @@ class EmpresaController extends Controller
     /**
      * Muestra la vista detallada del expediente para revisión del Director.
      */
-    public function show(Empresa $empresa)
+    public function show($id)
     {
-        // Carga de relaciones completas para la revisión técnica del expediente
-        $empresa->load([
-            'user', 
-            'perfilAmbiental', 
-            'documentosExpediente'
-        ]);
+        // Cargamos las relaciones exactamente como están definidas en Empresa.php
+        $empresa = Empresa::with(['perfilAmbiental', 'documentosExpediente'])->findOrFail($id);
 
         return view('director.residuos.empresas.show', compact('empresa'));
     }
 
-    /**
-     * Procesa la evaluación / veredicto del expediente de la empresa por parte del Director.
-     */
-    public function evaluar(Request $request, Empresa $empresa)
+    public function evaluar(Request $request, $id)
     {
+        $empresa = Empresa::findOrFail($id);
+
+        // Prevenir modificación si ya tiene veredicto final
+        if (in_array(strtoupper($empresa->estatus), ['APROBADO', 'RECHAZADO'])) {
+            return redirect()
+                ->back()
+                ->withErrors(['error' => 'No es posible modificar el veredicto de una empresa cuyo expediente ya fue APROBADO o RECHAZADO.']);
+        }
+
         $validated = $request->validate([
             'estatus' => 'required|in:APROBADO,RECHAZADO,OBSERVADO',
             'observaciones_fiscalia' => 'required_if:estatus,RECHAZADO,OBSERVADO|nullable|string|max:1000',
         ], [
-            'observaciones_fiscalia.required_if' => 'Es obligatorio indicar el motivo cuando el veredicto es Rechazado u Observado.',
+            'observaciones_fiscalia.required_if' => 'Es obligatorio indicar el motivo u observación cuando el veredicto es Rechazado u Observado.',
         ]);
 
         $empresa->update([
             'estatus' => $validated['estatus'],
-            'observaciones_fiscalia' => $validated['observaciones_fiscalia'] ?? null,
+            'observaciones_fiscalia' => $validated['observaciones_fiscalia'] ?? $empresa->observaciones_fiscalia,
         ]);
 
         return redirect()

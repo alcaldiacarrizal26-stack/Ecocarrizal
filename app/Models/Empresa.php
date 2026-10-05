@@ -43,4 +43,9 @@ class Empresa extends Model
     {
         return $this->hasMany(DocumentoExpediente::class, 'empresa_id', 'id');
     }
+
+    public function declaracionesResiduos()
+    {
+        return $this->hasMany(DeclaracionResiduo::class, 'empresa_id', 'id');
+    }
 }

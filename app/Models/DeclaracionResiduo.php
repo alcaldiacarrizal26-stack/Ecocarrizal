@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DeclaracionResiduo extends Model
 {
@@ -13,13 +14,11 @@ class DeclaracionResiduo extends Model
 
     protected $table = 'declaraciones_residuos';
 
-    /**
-     * Los atributos asignables en masa.
-     */
     protected $fillable = [
         'empresa_id',
         'user_id',
         'periodo',
+        'frecuencia',
         'fecha_inicio_periodo',
         'fecha_fin_periodo',
         'toneladas_comunes',
@@ -27,41 +26,35 @@ class DeclaracionResiduo extends Model
         'toneladas_peligrosas',
         'manifiestos_archivos',
         'manejadora_rif',
+        'manejadora_nombre',
         'estatus',
         'observaciones_fiscalia',
     ];
 
-    /**
-     * Casts para conversión automática de datos.
-     */
     protected $casts = [
         'fecha_inicio_periodo' => 'date',
         'fecha_fin_periodo'    => 'date',
-        'toneladas_comunes'    => 'decimal:2',
-        'toneladas_reciclables' => 'decimal:2',
-        'toneladas_peligrosas' => 'decimal:2',
+        'toneladas_comunes'    => 'decimal:3',
+        'toneladas_reciclables' => 'decimal:3',
+        'toneladas_peligrosas' => 'decimal:3',
         'manifiestos_archivos' => 'array',
     ];
 
-    /**
-     * Relación con la Empresa declarante.
-     */
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class, 'empresa_id');
     }
 
-    /**
-     * Relación con el Usuario que realiza la declaración.
-     */
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /**
-     * Atributo dinámico para calcular el tonelaje total declarado.
-     */
+    public function detalles(): HasMany
+    {
+        return $this->hasMany(DeclaracionResiduoDetalle::class, 'declaracion_id');
+    }
+
     public function getTotalToneladasAttribute(): float
     {
         return (float) ($this->toneladas_comunes + $this->toneladas_reciclables + $this->toneladas_peligrosas);
