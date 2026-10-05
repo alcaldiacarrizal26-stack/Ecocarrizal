@@ -273,6 +273,33 @@ return new class extends Migration
             });
         }
 
+        Schema::create('declaraciones_residuos', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users'); // Quién declaró
+
+            $table->string('periodo', 20); // Ej: "2026-Q1", "2026-03", "2026-ANUAL"
+            $table->date('fecha_inicio_periodo');
+            $table->date('fecha_fin_periodo');
+
+            // Desglose volumétrico / pesaje
+            $table->decimal('toneladas_comunes', 10, 2)->default(0.00);
+            $table->decimal('toneladas_reciclables', 10, 2)->default(0.00);
+            $table->decimal('toneladas_peligrosas', 10, 2)->default(0.00);
+
+            // Evidencia operativa (manifiestos de transporte, recibos de la manejadora RACDA)
+            $table->jsonb('manifiestos_archivos')->nullable(); 
+            $table->string('manejadora_rif', 15)->nullable();
+
+            $table->enum('estatus', ['BORRADOR', 'PRESENTADA', 'OBSERVADA', 'CONFORME'])
+                ->default('PRESENTADA');
+            
+            $table->text('observaciones_fiscalia')->nullable();
+            $table->timestampsTz();
+
+            $table->index(['empresa_id', 'periodo']);
+        });
+
         // 7. Inspecciones y Acta de Evaluación
         Schema::create('inspecciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -281,6 +308,8 @@ return new class extends Migration
             $table->foreignUuid('solicitud_id')->nullable()->constrained('solicitudes')->nullOnDelete();
             $table->foreignUuid('denuncia_id')->nullable()->constrained('denuncias')->nullOnDelete();
             $table->foreignId('inspector_id')->constrained('inspectores')->cascadeOnDelete();
+            // En la tabla inspecciones:
+            $table->foreignUuid('empresa_id')->nullable()->constrained('empresas')->nullOnDelete();
 
             $table->timestampTz('fecha_visita');
             $table->text('observaciones_campo');

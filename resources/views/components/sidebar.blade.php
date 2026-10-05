@@ -10,25 +10,24 @@
 
     // Mapeo de prefijos según el rol
     $prefix = match(true) {
-        in_array($rol, ['admin', 'administrador', 'director', 'director_ambiente', 'director_residuos']) => 'director',
+        in_array($rol, ['admin', 'administrador']) => 'admin',
+        in_array($rol, ['director', 'director_ambiente', 'director_residuos']) => 'director',
         $rol === 'inspector' => 'inspector',
         default => 'ciudadano',
     };
 
     // Determinación de visibilidad de áreas
     $esAdmin = in_array($rol, ['admin', 'administrador']);
-    $verAmbiente = $esAdmin || $direccionId === 1 || $rol === 'director_ambiente';
-    $verResiduos = $esAdmin || $direccionId === 2 || $rol === 'director_residuos';
+    $verAmbiente = $esAdmin || $direccionId === 1 || $rol === 'director_ambiente' || $rol === 'director';
+    $verResiduos = $esAdmin || $direccionId === 2 || $rol === 'director_residuos' || $rol === 'director';
 
     // Ruta del Dashboard dinámico según rol y permisos
     $dashboardRoute = match(true) {
+        $prefix === 'admin' => Route::has('admin.dashboard') ? route('admin.dashboard') : url('/admin/dashboard'),
         $prefix === 'inspector' => Route::has('inspector.dashboard') ? route('inspector.dashboard') : url('/inspector/dashboard'),
-        $verResiduos && !$verAmbiente => Route::has('director.residuos.dashboard') 
-            ? route('director.residuos.dashboard') 
-            : (Route::has("{$prefix}.dashboard") ? route("{$prefix}.dashboard") : url("/{$prefix}/dashboard")),
-        default => Route::has("{$prefix}.ambiente.dashboard") 
-            ? route("{$prefix}.ambiente.dashboard") 
-            : (Route::has("{$prefix}.dashboard") ? route("{$prefix}.dashboard") : url("/{$prefix}/dashboard")),
+        $prefix === 'director' && $verResiduos && !$verAmbiente => Route::has('director.residuos.dashboard') ? route('director.residuos.dashboard') : url('/director/residuos/dashboard'),
+        $prefix === 'director' => Route::has('director.ambiente.dashboard') ? route('director.ambiente.dashboard') : url('/director/ambiente/dashboard'),
+        default => Route::has('ciudadano.dashboard') ? route('ciudadano.dashboard') : url('/ciudadano/dashboard'),
     };
 
     // Detección inteligente del Ítem Activo
@@ -37,17 +36,17 @@
     if (is_null($currentActive) || $currentActive === '') {
         if (request()->routeIs('*.dashboard') || request()->is('*/dashboard')) {
             $currentActive = 'inicio';
+        } elseif (request()->routeIs('director.residuos.declaraciones*') || request()->is('director/residuos/declaraciones*')) {
+            $currentActive = 'residuos_declaraciones';
         } elseif (request()->routeIs('director.residuos.empresas*') || request()->is('director/residuos/empresas*')) {
             $currentActive = 'residuos_empresas';
-        } elseif (request()->routeIs('*inspecciones*') || request()->is('*/inspecciones*')) {
+        } elseif (request()->routeIs('*declaraciones*') || request()->is('*/declaraciones*')) {
+            $currentActive = 'declaraciones';
+        } elseif (request()->routeIs('inspecciones*') || request()->is('inspecciones*')) {
             $currentActive = 'inspecciones';
-        } elseif (request()->routeIs('*empresas.residuos*') || request()->is('*/empresas/residuos*')) {
-            $currentActive = 'empresa_residuos';
-        } elseif (request()->routeIs('*empresas.documentos*') || request()->is('*/empresas/documentos*')) {
-            $currentActive = 'empresa_documentos';
         } elseif (request()->routeIs('*empresas*') || request()->is('*/empresas*')) {
             $currentActive = $prefix === 'ciudadano' ? 'empresas' : 'residuos_empresas';
-        } elseif (request()->routeIs('*ambiente.reportes*') || request()->is('*/ambiente/reportes*')) {
+        } elseif (request()->routeIs('*ambiente.reportes*') || request()->routeIs('*denuncias*') || request()->is('*/ambiente/reportes*')) {
             $currentActive = 'ambiente_reportes';
         } elseif (request()->routeIs('*ambiente.solicitudes*') || request()->is('*/ambiente/solicitudes*')) {
             $currentActive = 'ambiente_solicitudes';
@@ -65,6 +64,9 @@
             $currentActive = 'soporte';
         }
     }
+
+    // Ruta de soporte adaptada por rol
+    $soporteRoute = Route::has("{$prefix}.soporte") ? route("{$prefix}.soporte") : url("/{$prefix}/soporte");
 @endphp
 
 <!-- Overlay para pantallas móviles -->
@@ -136,12 +138,18 @@
                         <span>Registrar Empresa</span>
                     </a>
                 @elseif($empresa->estatus === 'APROBADO')
-                    <a href="{{ Route::has('ciudadano.empresas.index') ? route('ciudadano.empresas.index') : url('/ciudadano/empresas') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'empresas' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <a href="{{ Route::has('ciudadano.empresas') ? route('ciudadano.empresas') : url('/ciudadano/empresas') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'empresas' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/></svg>
                         <span class="truncate">{{ $empresa->razon_social ?? 'Mi Empresa' }}</span>
                     </a>
+
+                    {{-- Acceso a Declaraciones para Empresa Aprobada --}}
+                    <a href="{{ Route::has('ciudadano.declaraciones.index') ? route('ciudadano.declaraciones.index') : url('/ciudadano/declaraciones') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'declaraciones' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>Declaración Residuos</span>
+                    </a>
                 @else
-                    <a href="{{ Route::has('ciudadano.empresas.index') ? route('ciudadano.empresas.index') : url('/ciudadano/empresas') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'empresas' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <a href="{{ Route::has('ciudadano.empresas') ? route('ciudadano.empresas') : url('/ciudadano/empresas') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'empresas' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                         <div class="flex items-center gap-3 overflow-hidden">
                             <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span class="truncate">Estatus Empresa</span>
@@ -175,9 +183,9 @@
             {{-- ================================================= --}}
             {{-- 3. MENÚ DIRECTOR / ADMINISTRADOR                  --}}
             {{-- ================================================= --}}
-            @if($prefix === 'director')
+            @if(in_array($prefix, ['director', 'admin']))
                 <a href="{{ $dashboardRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 00-1 1m-6 0h6"/></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011 1v4a1 1 0 00-1 1m-6 0h6"/></svg>
                     <span>Inicio</span>
                 </a>
 
@@ -213,9 +221,13 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/></svg>
                         <span>Gestión de Empresas</span>
                     </a>
+                    <a href="{{ Route::has('director.residuos.declaraciones.index') ? route('director.residuos.declaraciones.index') : url('/director/residuos/declaraciones') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'residuos_declaraciones' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>Revisión Declaraciones</span>
+                    </a>
                 @endif
 
-                {{-- Módulo Campo compartido para Directores --}}
+                {{-- Módulo Campo compartido para Directores y Admin --}}
                 <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
                     Módulo Campo
                 </div>
@@ -230,7 +242,7 @@
 
     <!-- Footer / Soporte Técnico -->
     <div class="p-3 border-t border-slate-800 space-y-1 shrink-0">
-        <a href="{{ Route::has($prefix . '.soporte') ? route($prefix . '.soporte') : url('/' . $prefix . '/soporte') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all font-medium text-sm {{ $currentActive === 'soporte' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+        <a href="{{ $soporteRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all font-medium text-sm {{ $currentActive === 'soporte' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
             <span>Soporte Técnico</span>
         </a>
