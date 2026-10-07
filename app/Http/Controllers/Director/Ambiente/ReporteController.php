@@ -47,7 +47,7 @@ class ReporteController extends Controller
     }
 
     /**
-     * Asignar un inspector a la denuncia y actualizar el estatus y la fecha de asignación.
+     * Asignar un inspector o director a la denuncia y actualizar el estatus y la fecha de asignación.
      */
     public function asignar(Request $request, Denuncia $denuncia)
     {
@@ -57,15 +57,24 @@ class ReporteController extends Controller
 
         $funcionario = User::with('inspector')->findOrFail($request->user_id);
 
-        if (!$funcionario->inspector) {
-            return redirect()->back()->with('error', 'El usuario seleccionado no cuenta con un perfil de inspector válido.');
+        // Si el usuario es Director/Inspector pero no tiene perfil de inspector creado en la tabla 'inspectores', 
+        // se crea automáticamente para poder mantener la integridad referencial (inspector_id en denuncias)
+        $inspector = $funcionario->inspector;
+
+        if (!$inspector) {
+            $inspector = \App\Models\Inspector::create([
+                'user_id' => $funcionario->id,
+                'codigo_credencial' => 'DIR-' . str_pad($funcionario->id, 4, '0', STR_PAD_LEFT),
+                'especialidad' => 'Dirección y Supervisión',
+                'estatus' => 'activo'
+            ]);
         }
 
-        $denuncia->inspector_id = $funcionario->inspector->id;
+        $denuncia->inspector_id = $inspector->id;
         $denuncia->estatus = 'inspector_asignado';
-        $denuncia->fecha_asignacion_inspector = now(); // <-- Registro de marca de tiempo
+        $denuncia->fecha_asignacion_inspector = now();
         $denuncia->save();
 
-        return redirect()->back()->with('success', 'Inspector asignado correctamente.');
+        return redirect()->back()->with('success', 'Funcionario asignado correctamente a la denuncia.');
     }
 }

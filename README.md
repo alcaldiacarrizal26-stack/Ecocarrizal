@@ -1,58 +1,86 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🌿 Sistema de Gestión Ambiental y Manejo Integral de Residuos (EcoSistema)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema integral desarrollado en **Laravel** para la digitalización, fiscalización, recepción de trámites y monitoreo de declaraciones ambientales y manejo de residuos en la gestión municipal.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📌 Tabla de Contenidos
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. [Características Principales](#-características-principales)
+2. [Arquitectura de Roles](#-arquitectura-de-roles)
+3. [Módulos del Sistema](#-módulos-del-sistema)
+4. [Estructura de Rutas Clave](#-estructura-de-rutas-clave)
+5. [Requisitos del Sistema](#-requisitos-del-sistema)
+6. [Instalación y Configuración](#-instalación-y-configuración)
+7. [Buenas Prácticas y Convenciones](#-buenas-prácticas-y-convenciones)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🚀 Características Principales
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+* **Gestión de Empresas:** Registro de Perfil Ambiental de empresas del municipio, clasificación por tipo de actividad y evaluación de riesgos.
+* **Declaraciones de Residuos Estandarizadas:**
+  * Notificación simplificada para bajo impacto (`NO_APLICA`).
+  * Registro detallado para empresas **Generadoras** y **Manejadoras/Empresas de Servicios**.
+  * Trazabilidad completa (Hojas de seguimiento, RIF de origen/destino, Placas de vehículos, Manifiestos en PDF/imágenes).
+  * Conversión automática de cantidades a Toneladas métricas según la unidad de medida utilizada.
+* **Fiscalización e Inspecciones:** Asignación de inspectores, programación de auditorías en campo y registro de evidencias en tiempo real.
+* **Módulo de Sanciones y Citaciones:** Registro y resolución de procedimientos administrativos.
+* **Compensación Ambiental:** Gestión y evaluación de entregas/compromisos ambientales.
+* **Panel de Denuncias y Reportes:** Recepción y atención de denuncias ciudadanas.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## 👥 Arquitectura de Roles
 
-## Agentic Development
+El sistema utiliza un Middleware de control de acceso basado en roles (`role:nombre_rol`):
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+| Rol | Descripción | Prefijo de Ruta |
+| :--- | :--- | :--- |
+| **Ciudadano / Empresa** | Declara residuos, solicita trámites, adjunta documentos y gestiona su perfil. | `/ciudadano/*` |
+| **Director de Ambiente** | Gestiona trámites ambientales, inspectores, denuncias y compensación. | `/director/ambiente/*` |
+| **Director de Residuos** | Supervisa las declaraciones de residuos, fiscaliza empresas y emite sanciones. | `/director/residuos/*` |
+| **Inspector** | Realiza visitas técnicas, evalúa trámites en campo y genera actas de inspección. | `/inspector/*` |
+| **Administrador** | Configuración global del sistema y gestión de usuarios. | `/admin/*` |
+
+---
+
+## 🗂️ Módulos del Sistema
+
+### 1. Módulo Ciudadano / Empresa
+* **Ficha de Empresa:** Mantiene al día el Perfil Ambiental de la organización.
+* **Declaración de Residuos:** Interfaz modularizada con soporte para carga múltiple de manifiestos y cálculo dinámico por renglón.
+
+### 2. Módulo Director de Residuos
+* **Controlador General de Declaraciones (`Director\Residuos\DeclaracionResiduoController`):**
+  * Vista unificada de declaraciones ambientales (`/director/residuos/declaraciones`).
+  * Filtros dinámicos por Rol Declarante (`GENERADOR`, `MANEJADOR`, `NO_APLICA`), Estatus y Período.
+  * Flujo de revisión y cambio de estatus (*PRESENTADA*, *EN_REVISION*, *APROBADA*, *OBSERVADA*, *RECHAZADA*).
+* **Gestión de Empresas y Sanciones (`Director\Residuos\EmpresaController`):**
+  * Historial de fiscalización por empresa.
+  * Emisión y resolución de citaciones y sanciones.
+
+---
+
+## 🗺️ Estructura de Rutas Clave
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
-```
-
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+/
+├── /login & /register              # Autenticación con Throttle
+├── /dashboard                      # Despachador según Rol
+│
+├── /ciudadano
+│   ├── /empresas                   # Gestión de Empresas
+│   ├── /declaraciones              # Historial y Formulario de Declaraciones
+│   ├── /solicitudes                # Trámites Ambientales
+│   └── /reportes                   # Denuncias Ciudadanas
+│
+└── /director
+    ├── /ambiente
+    │   ├── /solicitudes            # Asignación y revisión de solicitudes
+    │   ├── /inspectores            # Control de inspectores activos
+    │   └── /reportes               # Atención de denuncias
+    │
+    └── /residuos
+        ├── /declaraciones          # Módulo autónomo de auditoría de declaraciones
+        └── /empresas               # Control, inspecciones y sanciones a empresas

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Inspector extends Model
 {
@@ -25,6 +26,10 @@ class Inspector extends Model
         'disponible' => 'boolean',
     ];
 
+    // -------------------------------------------------------------
+    // Relaciones
+    // -------------------------------------------------------------
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -43,5 +48,39 @@ class Inspector extends Model
     public function solicitudes()
     {
         return $this->hasMany(Solicitud::class, 'inspector_id');
+    }
+
+    /**
+     * Inspecciones o fiscalizaciones en campo (incluyendo las sorpresa)
+     */
+    public function inspecciones()
+    {
+        return $this->hasMany(Inspeccion::class, 'inspector_id');
+    }
+
+    // -------------------------------------------------------------
+    // Scopes y Helpers
+    // -------------------------------------------------------------
+
+    /**
+     * Scope para filtrar únicamente inspectores disponibles
+     */
+    public function scopeDisponibles(Builder $query): Builder
+    {
+        return $query->where('disponible', true);
+    }
+
+    /**
+     * Scope para filtrar por Dirección adscrita o por especialidad
+     */
+    public function scopeParaDireccionOEspecialidad(Builder $query, int $direccionId, ?string $especialidad = null): Builder
+    {
+        return $query->where(function ($q) use ($direccionId, $especialidad) {
+            $q->where('direccion_id', $direccionId);
+
+            if ($especialidad) {
+                $q->orWhere('especialidad', 'like', "%{$especialidad}%");
+            }
+        });
     }
 }

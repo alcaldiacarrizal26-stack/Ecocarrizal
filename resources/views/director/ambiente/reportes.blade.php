@@ -1,5 +1,5 @@
 <x-layouts.app title="Gestión de Denuncias" active="ambiente_reportes">
-<div class="p-6 max-w-7xl mx-auto space-y-6" x-data="{ modalOpen: false, modalAsignarOpen: false, denunciaActual: null }">
+<div class="p-6 max-w-7xl mx-auto space-y-6" x-data="{ modalOpen: false, denunciaActual: null }">
 
     <!-- ALERTAS DE NOTIFICACIÓN DE SESIÓN -->
     @if(session('success'))
@@ -179,7 +179,13 @@
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap space-x-2">
                                 <button 
-                                    @click="denunciaActual = {{ json_encode($denuncia->load(['inspector.user'])) }}; modalAsignarOpen = true"
+                                    type="button"
+                                    onclick="abrirModalInspector({
+                                        actionUrl: '{{ route('director.ambiente.reportes.asignar', $denuncia->id) }}',
+                                        method: 'PUT',
+                                        titulo: 'Asignar Inspector a la Denuncia {{ $denuncia->codigo }}',
+                                        subtitulo: 'Sector: {{ $denuncia->sector }}'
+                                    })"
                                     class="text-indigo-600 hover:text-indigo-900 font-medium text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors inline-flex items-center"
                                 >
                                     <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
@@ -318,7 +324,13 @@
             <!-- Pie del Modal -->
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
                 <button 
-                    @click="modalOpen = false; modalAsignarOpen = true"
+                    type="button"
+                    @click="modalOpen = false; abrirModalInspector({
+                        actionUrl: '/director/ambiente/reportes/' + denunciaActual.id + '/asignar',
+                        method: 'PUT',
+                        titulo: 'Asignar Inspector a ' + denunciaActual.codigo,
+                        subtitulo: 'Sector: ' + denunciaActual.sector
+                    })"
                     class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors inline-flex items-center"
                 >
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
@@ -331,71 +343,8 @@
         </div>
     </div>
 
-    <!-- MODAL DE ASIGNAR INSPECTOR -->
-    <div 
-        x-show="modalAsignarOpen" 
-        x-cloak
-        class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4"
-        x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-    >
-        <div 
-            @click.away="modalAsignarOpen = false"
-            class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden transform transition-all border border-gray-100"
-        >
-            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-base font-bold text-gray-800">
-                    Asignar Inspector al Reporte <span class="text-indigo-600" x-text="denunciaActual?.codigo"></span>
-                </h3>
-                <button @click="modalAsignarOpen = false" class="text-gray-400 hover:text-gray-600 focus:outline-none">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-
-            <form :action="'/director/ambiente/reportes/' + denunciaActual?.id + '/asignar'" method="POST" class="p-6 space-y-4">
-                @csrf
-                @method('PUT')
-
-                <!-- RESUMEN ASIGNACIÓN PREVIA -->
-                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs text-gray-600 space-y-1">
-                    <div class="flex justify-between">
-                        <span>Inspector Actual:</span>
-                        <strong class="text-indigo-600" 
-                                x-text="denunciaActual?.inspector?.user ? (denunciaActual.inspector.user.nombre + ' ' + (denunciaActual.inspector.user.apellido || '')).trim() : (denunciaActual?.inspector?.user?.name || 'Ninguno')">
-                        </strong>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="user_id" class="block text-xs font-semibold text-gray-700 uppercase mb-2">Seleccionar Inspector</label>
-                    <select name="user_id" id="user_id" class="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 font-medium cursor-pointer" required>
-                        <option value="" disabled selected>Seleccione un funcionario...</option>
-                        @foreach ($funcionarios as $funcionario)
-                            <option value="{{ $funcionario->id }}">
-                                {{ $funcionario->nombre }} {{ $funcionario->apellido }} — {{ ucfirst($funcionario->role->nombre ?? 'Funcionario') }}
-                                @if(isset($funcionario->direccion))
-                                    ({{ $funcionario->direccion->nombre_direc }})
-                                @endif
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="modalAsignarOpen = false" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium rounded-lg transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
-                        Confirmar Asignación
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- COMPONENTE REUTILIZABLE NORMALIZADO PARA ASIGNACIÓN DE INSPECTORES -->
+    <x-modal-asignar-inspector />
 
 </div>
 </x-layouts.app>

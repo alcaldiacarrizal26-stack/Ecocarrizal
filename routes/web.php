@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
+//Modelos Utilizados
+use App\Models\Inspector;
+
 // Controladores Generales
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
@@ -195,4 +198,50 @@ Route::middleware(['auth', 'role:director,inspector,admin'])->group(function () 
 
     Route::get('/inspecciones/{id}/evaluar', [InspeccionController::class, 'edit'])->name('inspecciones.evaluar');
     Route::get('/inspecciones/{id}', [InspeccionController::class, 'show'])->name('inspecciones.show');
+});
+
+// -------------------------------------------------------------
+// Backend API para inspectores y directores disponibles
+// -------------------------------------------------------------
+Route::middleware(['auth', 'role:director,admin'])->group(function () {
+    Route::get('/api/inspectores/disponibles', function (\Illuminate\Http\Request $request) {
+        try {
+            // Se consultan los usuarios con rol de 'director' o 'inspector' que estén activos
+            $funcionarios = \App\Models\User::whereHas('role', function ($q) {
+                    $q->whereIn('nombre', ['director', 'inspector']);
+                })
+                ->where('is_active', true)
+                ->with(['role', 'direccion', 'inspector'])
+                ->get();
+
+            $resultado = $funcionarios->map(function ($user) {
+                $nombreCompleto = trim(($user->nombre ?? $user->name ?? '') . ' ' . ($user->apellido ?? ''));
+                $rolNombre = ucfirst($user->role->nombre ?? 'Funcionario');
+
+                // Si el usuario no tiene perfil en la tabla 'inspectores',
+                // enviamos su user_id, pero si tiene perfil 'inspector', tomamos inspector->id
+                $inspectorId = $user->inspector ? $user->inspector->id : null;
+
+                return [
+                    // Es importante que el ID devuelto coincida con el valor que espera el formulario
+                    'id' => $user->id, // Se envía user_id tal como lo valida $request->validate(['user_id' => ...])
+                    'nombre' => $nombreCompleto ?: 'Usuario #' . $user->id,
+                    'credencial' => $user->inspector->codigo_credencial ?? $rolNombre,
+                    'especialidad' => $user->inspector->especialidad ?? ($user->direccion->nombre ?? $rolNombre),
+                    'rol' => $rolNombre,
+                    'tiene_perfil_inspector' => !is_null($inspectorId),
+                ];
+            });
+
+            return response()->json($resultado, 200);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'error' => 'Error interno al consultar personal disponible',
+                'detalle' => $th->getMessage(),
+                'linea' => $th->getLine(),
+                'archivo' => $th->getFile()
+            ], 500);
+        }
+    })->name('api.inspectores.disponibles');
 });
