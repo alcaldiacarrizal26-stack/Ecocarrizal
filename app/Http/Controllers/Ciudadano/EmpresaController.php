@@ -9,6 +9,7 @@ use App\Models\DocumentoExpediente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class EmpresaController extends Controller
 {
@@ -19,7 +20,7 @@ class EmpresaController extends Controller
     {
         $user = auth()->user();
 
-        // Cargar la empresa vinculada al usuario excluyendo declaracionesResiduos por ahora
+        // Cargar la empresa vinculada al usuario
         $empresa = $user->empresa()->with([
             'perfilAmbiental',
             'documentosExpediente',
@@ -80,38 +81,65 @@ class EmpresaController extends Controller
         return DB::transaction(function () use ($request) {
             $empresa = Empresa::create([
                 'user_id'               => auth()->id(),
-                'rif'                   => $request->rif,
-                'razon_social'          => $request->razon_social,
-                'nombre_comercial'      => $request->nombre_comercial,
-                'numero_cuenta_patente' => $request->numero_cuenta_patente,
-                'correo_comercial'      => $request->correo_comercial,
-                'telefono_comercial'    => $request->telefono_comercial,
-                'comuna'                => $request->comuna,
-                'sector'                => $request->sector,
-                'calle_avenida'         => $request->calle_avenida,
-                'edificio_galpon_local' => $request->edificio_galpon_local,
+                'rif'                   => strtoupper(trim($request->rif)),
+                'razon_social'          => trim($request->razon_social),
+                'nombre_comercial'      => $request->nombre_comercial ? trim($request->nombre_comercial) : null,
+                'numero_cuenta_patente' => trim($request->numero_cuenta_patente),
+                'correo_comercial'      => strtolower(trim($request->correo_comercial)),
+                'telefono_comercial'    => trim($request->telefono_comercial),
+                'comuna'                => trim($request->comuna),
+                'sector'                => trim($request->sector),
+                'calle_avenida'         => trim($request->calle_avenida),
+                'edificio_galpon_local' => trim($request->edificio_galpon_local),
                 'estatus'               => 'PENDIENTE_APROBACION',
             ]);
 
             if ($request->has('perfil')) {
                 $perfilData = is_string($request->perfil) ? json_decode($request->perfil, true) : $request->perfil;
 
+                // Sanitización del RACDA para evitar "RACDA No aplica" como string
+                $tipoRacda = $perfilData['tipo_racda'] ?? 'NO_APLICA';
+                $numRacda  = $perfilData['numero_racda'] ?? null;
+
+                if ($tipoRacda === 'NO_APLICA' || Str::contains(strtolower($numRacda ?? ''), 'no aplica')) {
+                    $numRacda = null;
+                }
+
+                // Asegurar arrays limpios para campos JSON en Eloquent (el Cast del Modelo se encarga de json_encode)
+                $actividades = isset($perfilData['actividades_manejador']) && is_array($perfilData['actividades_manejador'])
+                    ? $perfilData['actividades_manejador']
+                    : null;
+
+                $residuosTipos = isset($perfilData['residuos_tipos']) && is_array($perfilData['residuos_tipos'])
+                    ? $perfilData['residuos_tipos']
+                    : null;
+
                 $empresa->perfilAmbiental()->create([
-                    'rol_ambiental'         => $perfilData['rol_ambiental'] ?? 'GENERADOR',
-                    'subtipo_generador'     => $perfilData['subtipo_generador'] ?? 'PEQUENO',
-                    'tipo_racda'            => $perfilData['tipo_racda'] ?? 'NO_APLICA',
-                    'numero_racda'          => $perfilData['numero_racda'] ?? null,
-                    'genera_efluentes'      => filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'genera_emisiones'      => filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'genera_peligrosos'     => filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'genera_ruidos'         => filter_var($perfilData['genera_ruidos'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'usa_pozo_agua'         => filter_var($perfilData['usa_pozo_agua'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'manejadora_contratada' => $perfilData['manejadora_contratada'] ?? null,
-                    'actividades_manejador'  => isset($perfilData['actividades_manejador']) ? json_encode($perfilData['actividades_manejador']) : null,
-                    'sustancias_manejadas'   => $perfilData['sustancias_manejadas'] ?? null,
-                    'residuos_tipos'        => isset($perfilData['residuos_tipos']) && !empty($perfilData['residuos_tipos']) 
-                                                ? json_encode($perfilData['residuos_tipos']) 
-                                                : null,
+                    'rol_ambiental'                => $perfilData['rol_ambiental'] ?? 'GENERADOR',
+                    'subtipo_generador'            => $perfilData['subtipo_generador'] ?? 'PEQUENO',
+                    'tipo_racda'                   => $tipoRacda,
+                    'numero_racda'                 => $numRacda,
+                    'genera_efluentes'             => filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_emisiones'             => filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_peligrosos'            => filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_ruidos'                => filter_var($perfilData['genera_ruidos'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'usa_pozo_agua'                => filter_var($perfilData['usa_pozo_agua'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    
+                    // Lógica de Manejadora o Generador Exclusivo
+                    'modalidad_manejadora'         => $perfilData['modalidad_manejadora'] ?? null,
+                    'manejadora_contratada'        => $perfilData['manejadora_contratada'] ?? null,
+                    'manejadora_nombre'            => $perfilData['manejadora_nombre'] ?? null,
+                    'manejadora_rif'               => $perfilData['manejadora_rif'] ?? null,
+                    'manejadora_racda'             => $perfilData['manejadora_racda'] ?? null,
+
+                    'modalidad_atencion_manejador' => $perfilData['modalidad_atencion_manejador'] ?? null,
+                    'generador_exclusivo_nombre'   => $perfilData['generador_exclusivo_nombre'] ?? null,
+                    'generador_exclusivo_rif'      => $perfilData['generador_exclusivo_rif'] ?? null,
+                    'generador_exclusivo_racda'    => $perfilData['generador_exclusivo_racda'] ?? null,
+
+                    'actividades_manejador'        => $actividades,
+                    'sustancias_manejadas'         => $perfilData['sustancias_manejadas'] ?? null,
+                    'residuos_tipos'               => $residuosTipos,
                 ]);
             }
 
@@ -129,12 +157,13 @@ class EmpresaController extends Controller
 
                 foreach ($request->file('documentos') as $codigoRequisito => $file) {
                     if ($file && $file->isValid()) {
-                        $path = $file->store("expedientes/{$empresa->id}", 'private');
+                        $path = $file->store("expedientes/{$empresa->id}", 'public');
 
                         $empresa->documentosExpediente()->create([
                             'codigo_requisito' => strtoupper($codigoRequisito),
                             'nombre_requisito' => $nombresRequisitos[$codigoRequisito] ?? 'Documento Adjunto',
                             'archivo_path'     => $path,
+                            'estado'           => 'PENDIENTE',
                         ]);
                     }
                 }
@@ -149,7 +178,7 @@ class EmpresaController extends Controller
     }
 
     /**
-     * Sirve archivos privados del expediente validando la propiedad de la empresa.
+     * Sirve archivos del expediente validando la propiedad de la empresa o roles administrativos.
      */
     public function verDocumento(DocumentoExpediente $documento)
     {
@@ -160,10 +189,14 @@ class EmpresaController extends Controller
             abort(403, 'No tienes permisos para visualizar este documento.');
         }
 
-        if (!Storage::disk('private')->exists($documento->archivo_path)) {
-            abort(404, 'El archivo solicitado no existe en el servidor.');
+        if (Storage::disk('public')->exists($documento->archivo_path)) {
+            return Storage::disk('public')->response($documento->archivo_path);
         }
 
-        return Storage::disk('private')->response($documento->archivo_path);
+        if (Storage::disk('private')->exists($documento->archivo_path)) {
+            return Storage::disk('private')->response($documento->archivo_path);
+        }
+
+        abort(404, 'El archivo solicitado no existe en el servidor.');
     }
 }

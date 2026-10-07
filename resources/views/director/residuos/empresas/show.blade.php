@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <!-- Alertas de Éxito o Mensajes de Sesión -->
+    <!-- Alertas de Éxito / Mensajes de Sesión -->
     @if (session('success') || session('status'))
         <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2">
             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -65,16 +65,45 @@
         </div>
     </div>
 
-    {{-- BLOQUE 2: Perfil y Diagnóstico Ambiental --}}
+    {{-- BLOQUE 2: Perfil Ambiental y Gestión de Residuos --}}
     @php
         $perfil = $empresa->perfilAmbiental;
+
+        // Limpieza de RACDA
+        $numRacda = $perfil ? trim($perfil->numero_racda ?? '') : '';
+        $tieneRacda = !empty($numRacda) && strtolower($numRacda) !== 'racda no aplica' && strtolower($numRacda) !== 'no aplica';
+
+        // Decodificación de Tipos de Residuos
+        $residuosTiposList = [];
+        if ($perfil && $perfil->residuos_tipos) {
+            if (is_array($perfil->residuos_tipos)) {
+                $residuosTiposList = $perfil->residuos_tipos;
+            } else {
+                $decoded = json_decode($perfil->residuos_tipos, true);
+                if (is_string($decoded)) $decoded = json_decode($decoded, true);
+                $residuosTiposList = is_array($decoded) ? $decoded : [];
+            }
+        }
+
+        // Decodificación de Actividades de Manejador
+        $actividadesManejador = [];
+        if ($perfil && $perfil->actividades_manejador) {
+            if (is_array($perfil->actividades_manejador)) {
+                $actividadesManejador = $perfil->actividades_manejador;
+            } else {
+                $decodedAct = json_decode($perfil->actividades_manejador, true);
+                if (is_string($decodedAct)) $decodedAct = json_decode($decodedAct, true);
+                $actividadesManejador = is_array($decodedAct) ? $decodedAct : [];
+            }
+        }
     @endphp
+
     <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-4 border-b border-slate-800 pb-2">Perfil y Diagnóstico Ambiental (Paso 2)</h2>
         
         @if($perfil)
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Rol y Subtipo -->
+                <!-- Rol Operativo -->
                 <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
                     <span class="block text-xs font-medium text-slate-400 uppercase">Rol Operativo Ambiental</span>
                     <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $perfil->rol_ambiental ?? 'GENERADOR' }}</span>
@@ -83,81 +112,123 @@
                     @endif
                 </div>
 
-                <!-- Registro RACDA Formalizado -->
+                <!-- Registro RACDA -->
                 <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
                     <span class="block text-xs font-medium text-slate-400 uppercase">Registro RACDA</span>
-                    @if(!empty($perfil->numero_racda) && \Illuminate\Support\Str::contains($perfil->numero_racda, 'RACDA-'))
+                    @if($tieneRacda && $perfil->tipo_racda && $perfil->tipo_racda !== 'NO_APLICA')
                         <span class="block text-sm font-semibold text-emerald-400 mt-1 font-mono">
-                            {{ $perfil->numero_racda }}
+                            {{ str_replace('_', ' ', $perfil->tipo_racda) }}
                         </span>
-                        <span class="block text-[11px] text-slate-400 mt-0.5">
-                            {{ \Illuminate\Support\Str::startsWith($perfil->numero_racda, 'RACDA-G-') ? 'Registro Generador' : 'Registro Manejador' }}
-                        </span>
+                        <span class="block text-xs font-mono text-slate-300 mt-0.5">N°: {{ $numRacda }}</span>
                     @else
-                        <span class="block text-sm font-semibold text-slate-400 mt-1">NO APLICA / SIN REGISTRO</span>
+                        <span class="block text-sm font-semibold text-slate-400 mt-1">NO APLICA</span>
+                        <span class="block text-[11px] text-slate-500 italic mt-0.5">Sin registro / Exento de RACDA</span>
                     @endif
                 </div>
 
-                <!-- Módulos de Impacto -->
+                <!-- Módulos de Generación -->
                 <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
-                    <span class="block text-xs font-medium text-slate-400 uppercase">Impactos Operativos</span>
+                    <span class="block text-xs font-medium text-slate-400 uppercase">Módulos de Generación</span>
                     <div class="flex flex-wrap gap-1.5 mt-2">
-                        @if($perfil->genera_efluentes) <span class="px-2 py-0.5 text-[10px] font-semibold bg-sky-950/60 text-sky-300 rounded border border-sky-800/50">Efluentes Líquidos</span> @endif
-                        @if($perfil->genera_emisiones) <span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-950/60 text-amber-300 rounded border border-amber-800/50">Emisiones / Calderas</span> @endif
+                        @if($perfil->genera_efluentes) <span class="px-2 py-0.5 text-[10px] font-semibold bg-sky-950/60 text-sky-300 rounded border border-sky-800/50">Efluentes</span> @endif
+                        @if($perfil->genera_emisiones) <span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-950/60 text-amber-300 rounded border border-amber-800/50">Emisiones</span> @endif
                         @if($perfil->genera_peligrosos) <span class="px-2 py-0.5 text-[10px] font-semibold bg-rose-950/60 text-rose-300 rounded border border-rose-800/50">Desechos Peligrosos</span> @endif
+                        @if($perfil->genera_ruidos) <span class="px-2 py-0.5 text-[10px] font-semibold bg-slate-800 text-slate-300 rounded border border-slate-700">Ruidos</span> @endif
+                        @if($perfil->usa_pozo_agua) <span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-950/60 text-blue-300 rounded border border-blue-800/50">Pozo Agua</span> @endif
 
-                        @if(!$perfil->genera_efluentes && !$perfil->genera_emisiones && !$perfil->genera_peligrosos)
-                            <span class="text-xs text-slate-400 italic">No reporta impactos especiales</span>
+                        @if(!$perfil->genera_efluentes && !$perfil->genera_emisiones && !$perfil->genera_peligrosos && !$perfil->genera_ruidos && !$perfil->usa_pozo_agua)
+                            <span class="text-xs text-slate-400 italic">Sin módulos especiales reportados</span>
                         @endif
                     </div>
                 </div>
             </div>
 
-            <!-- Detalle de Relación Comercial (Empresa Manejadora o Generador Exclusivo) -->
-            @if($perfil->rol_ambiental === 'GENERADOR' && $perfil->modalidad_manejadora === 'EXTERNA')
-                <div class="mt-4 p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-xs space-y-2">
-                    <span class="block text-[11px] font-bold uppercase text-emerald-400 tracking-wider">Empresa Manejadora Contratada</span>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-300">
-                        <div><span class="text-slate-500 block">Razón Social:</span> <span class="font-semibold text-slate-100">{{ $perfil->manejadora_nombre ?? 'N/A' }}</span></div>
-                        <div><span class="text-slate-500 block">RIF Manejadora:</span> <span class="font-mono text-emerald-400 font-semibold">{{ $perfil->manejadora_rif ?? 'N/A' }}</span></div>
-                        <div><span class="text-slate-500 block">RACDA Manejadora:</span> <span class="font-mono text-slate-200">{{ $perfil->manejadora_racda ?? 'N/A' }}</span></div>
-                    </div>
-                </div>
-            @elseif($perfil->rol_ambiental === 'MANEJADOR')
-                <!-- Actividades de Manejador -->
-                @if(is_array($perfil->actividades_manejador) && count($perfil->actividades_manejador) > 0)
-                    <div class="mt-4 p-3.5 bg-slate-950/50 rounded-xl border border-slate-800 text-xs">
-                        <span class="block text-slate-400 uppercase font-semibold mb-2 text-[10px]">Actividades de Manejo Autorizadas:</span>
-                        <div class="flex flex-wrap gap-1.5">
-                            @foreach($perfil->actividades_manejador as $actividad)
-                                <span class="px-2.5 py-1 text-[11px] bg-slate-800 text-emerald-300 rounded-lg border border-slate-700 capitalize">
-                                    {{ str_replace('_', ' ', $actividad) }}
+            {{-- DETALLE DE RECOLECCIÓN Y MANEJO DE RESIDUOS (PROPIA VS EXTERNA Y CLIENTES) --}}
+            <div class="mt-6 p-4 bg-slate-950/70 rounded-xl border border-slate-800 space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    Modalidad de Recolección y Logística de Residuos
+                </h3>
+
+                @if(($perfil->rol_ambiental ?? 'GENERADOR') === 'GENERADOR')
+                    {{-- Si es Generador: Verificar si maneja por sí mismo o externa --}}
+                    @php
+                        $modalidad = $perfil->modalidad_manejadora ?? ($perfil->manejadora_contratada ? 'EXTERNA' : 'PROPIA');
+                    @endphp
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800">
+                            <span class="text-slate-400 block mb-1">Modalidad de Manejo:</span>
+                            @if($modalidad === 'PROPIA')
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/60 text-emerald-300 font-semibold rounded border border-emerald-800/60">
+                                    Manejo Propio (Autogestión de Residuos)
                                 </span>
-                            @endforeach
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-950/60 text-sky-300 font-semibold rounded border border-sky-800/60">
+                                    Contrata Empresa Manejadora Externa
+                                </span>
+                            @endif
                         </div>
-                    </div>
-                @endif
 
-                @if($perfil->modalidad_atencion_manejador === 'EXCLUSIVO')
-                    <div class="mt-4 p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-xs space-y-2">
-                        <span class="block text-[11px] font-bold uppercase text-emerald-400 tracking-wider">Generador Exclusivo Atendido</span>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-300">
-                            <div><span class="text-slate-500 block">Razón Social:</span> <span class="font-semibold text-slate-100">{{ $perfil->generador_exclusivo_nombre ?? 'N/A' }}</span></div>
-                            <div><span class="text-slate-500 block">RIF Generador:</span> <span class="font-mono text-emerald-400 font-semibold">{{ $perfil->generador_exclusivo_rif ?? 'N/A' }}</span></div>
-                            <div><span class="text-slate-500 block">RACDA Generador:</span> <span class="font-mono text-slate-200">{{ $perfil->generador_exclusivo_racda ?? 'N/A' }}</span></div>
+                        @if($modalidad === 'EXTERNA')
+                            <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800 space-y-1">
+                                <span class="text-slate-400 block">Datos de la Empresa Contratada:</span>
+                                <p class="text-slate-200 font-semibold">{{ $perfil->manejadora_nombre ?? $perfil->manejadora_contratada ?? 'No especificada' }}</p>
+                                @if($perfil->manejadora_rif) <p class="text-slate-400 font-mono">RIF: {{ $perfil->manejadora_rif }}</p> @endif
+                                @if($perfil->manejadora_racda) <p class="text-emerald-400 font-mono">RACDA: {{ $perfil->manejadora_racda }}</p> @endif
+                            </div>
+                        @endif
+                    </div>
+
+                @elseif($perfil->rol_ambiental === 'MANEJADOR')
+                    {{-- Si es Manejador: Verificar si es exclusivo de un generador o transporte a varios --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800">
+                            <span class="text-slate-400 block mb-1">Esquema de Cobertura / Clientes:</span>
+                            @if(($perfil->modalidad_atencion_manejador ?? 'MULTIPLE') === 'EXCLUSIVO')
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-950/60 text-purple-300 font-semibold rounded border border-purple-800/60">
+                                    Atención Exclusiva (Un solo Generador)
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-950/60 text-indigo-300 font-semibold rounded border border-indigo-800/60">
+                                    Servicio Multicliente (Transporta / Maneja para Varios)
+                                </span>
+                            @endif
                         </div>
-                    </div>
-                @endif
-            @endif
 
-            <!-- Tipos de Residuos Físicos -->
-            @if(is_array($perfil->residuos_tipos) && count($perfil->residuos_tipos) > 0)
+                        @if(($perfil->modalidad_atencion_manejador ?? '') === 'EXCLUSIVO')
+                            <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800 space-y-1">
+                                <span class="text-slate-400 block">Generador Exclusivo Atendido:</span>
+                                <p class="text-slate-200 font-semibold">{{ $perfil->generador_exclusivo_nombre ?? 'N/A' }}</p>
+                                @if($perfil->generador_exclusivo_rif) <p class="text-slate-400 font-mono">RIF: {{ $perfil->generador_exclusivo_rif }}</p> @endif
+                                @if($perfil->generador_exclusivo_racda) <p class="text-emerald-400 font-mono">RACDA: {{ $perfil->generador_exclusivo_racda }}</p> @endif
+                            </div>
+                        @endif
+                    </div>
+
+                    @if(count($actividadesManejador) > 0)
+                        <div class="pt-2">
+                            <span class="block text-slate-400 text-xs font-semibold mb-2">Actividades de Manejo Autorizadas:</span>
+                            <div class="flex flex-wrap gap-1.5">
+                                @foreach($actividadesManejador as $act)
+                                    <span class="px-2.5 py-1 text-[11px] bg-slate-800 text-emerald-300 rounded-lg border border-slate-700 capitalize">
+                                        {{ str_replace('_', ' ', $act) }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                @endif
+            </div>
+
+            <!-- Tipos de Residuos Declarados -->
+            @if(count($residuosTiposList) > 0)
                 <div class="mt-4 pt-3 border-t border-slate-800/80">
-                    <span class="block text-xs font-semibold text-slate-400 uppercase mb-2">Tipos de Residuos Generados / Declarados</span>
+                    <span class="block text-xs font-semibold text-slate-400 uppercase mb-2">Tipos de Residuos Declarados:</span>
                     <div class="flex flex-wrap gap-1.5">
-                        @foreach($perfil->residuos_tipos as $tipo)
+                        @foreach($residuosTiposList as $tipo)
                             <span class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-slate-800/90 text-slate-300 rounded-lg border border-slate-700">
-                                {{ str_replace('_', ' ', $tipo) }}
+                                {{ str_replace(['_', '"', '[', ']'], [' ', '', '', ''], $tipo) }}
                             </span>
                         @endforeach
                     </div>
@@ -168,7 +239,7 @@
         @endif
     </div>
 
-    {{-- BLOQUE 3: Documentación Consolidada y Recaudos --}}
+    {{-- BLOQUE 3: Documentación y Expediente Digital --}}
     <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-4 border-b border-slate-800 pb-2">Expediente Digital y Recaudos</h2>
         
@@ -181,7 +252,6 @@
                                 <p class="text-sm font-semibold text-slate-200 truncate" title="{{ $doc->nombre_requisito }}">
                                     {{ $doc->nombre_requisito }}
                                 </p>
-                                {{-- Badge del estado individual del documento --}}
                                 <span class="px-1.5 py-0.5 text-[9px] font-semibold uppercase rounded border 
                                     {{ $doc->estado === 'APROBADO' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : ($doc->estado === 'OBSERVADO' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700') }}">
                                     {{ $doc->estado ?? 'PENDIENTE' }}
@@ -194,9 +264,10 @@
                         </div>
                         @if($doc->archivo_path)
                             @php
-                                $fileUrl = \Illuminate\Support\Str::startsWith($doc->archivo_path, 'http') 
-                                    ? $doc->archivo_path 
-                                    : asset('storage/' . $doc->archivo_path);
+                                $pathLimpio = ltrim($doc->archivo_path, '/');
+                                $fileUrl = \Illuminate\Support\Str::startsWith($pathLimpio, 'http') 
+                                    ? $pathLimpio 
+                                    : asset('storage/' . \Illuminate\Support\Str::after($pathLimpio, 'public/'));
                             @endphp
                             <a href="{{ $fileUrl }}" 
                                target="_blank" 
@@ -214,7 +285,7 @@
         @endif
     </div>
 
-    {{-- BLOQUE 4: Historial de Declaraciones de Residuos --}}
+    {{-- BLOQUE 4: Declaraciones de Residuos --}}
     <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
             <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400">Declaraciones de Residuos</h2>
@@ -257,12 +328,11 @@
         @endif
     </div>
 
-    {{-- BLOQUE 5: Emisión de Veredicto / Evaluación --}}
+    {{-- BLOQUE 5: Formulario de Evaluación Directoral --}}
     <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-4 border-b border-slate-800 pb-2">Emisión de Veredicto Directoral</h2>
         
         @if(in_array(strtoupper($empresa->estatus), ['APROBADO', 'RECHAZADO']))
-            {{-- Veredicto Cerrado (Lectura Única) --}}
             <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
                 <div class="flex items-center justify-between">
                     <span class="text-xs uppercase font-medium text-slate-400">Estado Final del Expediente:</span>
@@ -276,13 +346,8 @@
                         {{ $empresa->observaciones_fiscalia ?? 'Sin observaciones especificadas.' }}
                     </p>
                 </div>
-                <p class="text-xs text-amber-400/80 flex items-center gap-1 pt-1">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    Este expediente se encuentra procesado. No es posible modificar el veredicto.
-                </p>
             </div>
         @else
-            {{-- Formulario para emitir veredicto --}}
             <form action="{{ route('director.residuos.empresas.evaluar', $empresa->id) }}" method="POST" class="space-y-4">
                 @csrf
                 <div>
