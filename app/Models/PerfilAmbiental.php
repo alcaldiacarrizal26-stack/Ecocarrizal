@@ -2,16 +2,14 @@
 
 namespace App\Models;
 
-use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class PerfilAmbiental extends Model
 {
-    use HasUuids, Auditable;
-    protected string $moduloBitacora = 'perfiles_ambientales';
+    use HasFactory, HasUuids;
+
     protected $table = 'perfiles_ambientales';
 
     protected $fillable = [
@@ -24,18 +22,23 @@ class PerfilAmbiental extends Model
         'genera_peligrosos',
         'genera_ruidos',
         'usa_pozo_agua',
+        'modalidad_manejadora',
         'manejadora_contratada',
+        'manejadora_rif',
+        'manejadora_racda',
+        'modalidad_atencion_manejador',
+        'generador_exclusivo_nombre',
+        'generador_exclusivo_rif',
+        'generador_exclusivo_racda',
         'actividades_manejador',
         'sustancias_manejadas',
         'residuos_tipos',
         'residuos_comunes',
         'residuos_reciclables',
         'residuos_peligrosos',
-        'tipo_racda',
     ];
 
     protected $casts = [
-        'tiene_renma' => 'boolean',
         'genera_efluentes' => 'boolean',
         'genera_emisiones' => 'boolean',
         'genera_peligrosos' => 'boolean',
@@ -48,13 +51,19 @@ class PerfilAmbiental extends Model
         'residuos_peligrosos' => 'array',
     ];
 
-    public function empresa(): BelongsTo
+    public function empresa()
     {
-        return $this->belongsTo(Empresa::class);
+        return $this->belongsTo(Empresa::class, 'empresa_id');
     }
 
-    public function residuos(): BelongsToMany
+    // Accessors útiles
+    public function getEsManejadorAttribute(): bool
     {
-        return $this->belongsToMany(Residuo::class, 'perfil_ambiental_residuo', 'perfil_ambiental_id', 'residuo_id');
+        return $this->rol_ambiental === 'MANEJADOR';
+    }
+
+    public function getEsGeneradorAttribute(): bool
+    {
+        return $this->rol_ambiental === 'GENERADOR';
     }
 }

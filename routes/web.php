@@ -22,6 +22,7 @@ use App\Http\Controllers\Director\Ambiente\SolicitudController as AmbienteSolici
 use App\Http\Controllers\Director\Ambiente\CompensacionController as AmbienteCompensacionController;
 use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
 use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaController;
+use App\Http\Controllers\Director\Residuos\DeclaracionResiduoController as ResiduosDeclaracionResiduoController;
 
 // -------------------------------------------------------------
 // Rutas Públicas (Autenticación)
@@ -127,6 +128,13 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
     Route::prefix('residuos')->name('residuos.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'dashboardResiduos'])->name('dashboard');
         
+        // Módulo Autónomo de Declaraciones de Residuos
+        Route::prefix('declaraciones')->name('declaraciones.')->group(function () {
+            Route::get('/', [ResiduosDeclaracionResiduoController::class, 'index'])->name('index');
+            Route::get('/{declaracion}', [ResiduosDeclaracionResiduoController::class, 'show'])->name('show');
+            Route::patch('/{declaracion}/estatus', [ResiduosDeclaracionResiduoController::class, 'updateEstatus'])->name('updateEstatus');
+        });
+
         // Módulo de Gestión de Empresas
         Route::prefix('empresas')->name('empresas.')->group(function () {
             Route::get('/', [ResiduosEmpresaController::class, 'index'])->name('index');
@@ -138,7 +146,7 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
             Route::get('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'inspecciones'])->name('inspecciones.index');
             Route::post('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'asignarInspeccion'])->name('inspecciones.store');
 
-            // Monitoreo de Declaraciones y Desechos
+            // Monitoreo de Declaraciones por Empresa específica
             Route::get('/{empresa}/declaraciones', [ResiduosEmpresaController::class, 'declaraciones'])->name('declaraciones');
 
             // Citaciones y Sanciones Administrativas

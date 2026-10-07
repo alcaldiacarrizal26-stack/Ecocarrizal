@@ -725,6 +725,10 @@ function vincularEmpresaForm(territorios) {
             }
         },
 
+        init() {
+            this.formatRacda();
+        },
+
         onRolChange(nuevoRol) {
             this.form.perfil.rol_ambiental = nuevoRol;
             this.formatRacda();
@@ -736,9 +740,13 @@ function vincularEmpresaForm(territorios) {
                 return;
             }
             this.racdaInput.correlativo = this.racdaInput.correlativo.replace(/\D/g, '');
-            const numPadded = this.racdaInput.correlativo ? this.racdaInput.correlativo.padStart(6, '0') : '';
-            const prefix = this.form.perfil.rol_ambiental === 'GENERADOR' ? 'RACDA-G-' : 'RACDA-M-';
-            this.form.perfil.numero_racda = `${prefix}${numPadded}`;
+            if (this.racdaInput.correlativo) {
+                const numPadded = this.racdaInput.correlativo.padStart(6, '0');
+                const prefix = this.form.perfil.rol_ambiental === 'GENERADOR' ? 'RACDA-G-' : 'RACDA-M-';
+                this.form.perfil.numero_racda = `${prefix}${numPadded}`;
+            } else {
+                this.form.perfil.numero_racda = '';
+            }
         },
 
         formatManejadoraRif() {
@@ -781,7 +789,6 @@ function vincularEmpresaForm(territorios) {
             }
         },
 
-        // Métodos de formato del Paso 1...
         formatRif() {
             this.rifInput.numero = this.rifInput.numero.replace(/\D/g, '');
             this.rifInput.digito = this.rifInput.digito.replace(/\D/g, '');
@@ -798,16 +805,6 @@ function vincularEmpresaForm(territorios) {
             } else {
                 this.form.numero_cuenta_patente = this.patenteInput.correlativo;
             }
-        },
-
-        formatRacda() {
-            if (!this.racdaInput.aplica) {
-                this.form.perfil.numero_racda = 'RACDA No aplica';
-                return;
-            }
-            this.racdaInput.correlativo = this.racdaInput.correlativo.replace(/\D/g, '');
-            const numPadded = this.racdaInput.correlativo.padStart(6, '0');
-            this.form.perfil.numero_racda = `RACDA-${this.racdaInput.tipo}-${numPadded}`;
         },
 
         onComunaChange() {
@@ -859,6 +856,10 @@ function vincularEmpresaForm(territorios) {
             this.formatRif();
             this.formatPatente();
             this.formatRacda();
+            this.formatManejadoraRif();
+            this.formatManejadoraRacda();
+            this.formatGeneradorRif();
+            this.formatGeneradorRacda();
 
             const formData = new FormData();
             formData.append('rif', this.form.rif);
@@ -872,7 +873,7 @@ function vincularEmpresaForm(territorios) {
             formData.append('calle_avenida', this.form.calle_avenida);
             formData.append('edificio_galpon_local', this.form.edificio_galpon_local);
             
-            // Aplanado dinámico del objeto `perfil` para evitar problemas con la validación de Laravel
+            // Aplanado dinámico del objeto `perfil`
             Object.keys(this.form.perfil).forEach(key => {
                 const val = this.form.perfil[key];
                 if (Array.isArray(val)) {

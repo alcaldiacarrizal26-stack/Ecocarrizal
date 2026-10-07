@@ -20,16 +20,39 @@ class DocumentoExpediente extends Model
         'nombre_requisito',
         'numero_folio',
         'archivo_path',
-        'estado',
+        'fecha_emision',
+        'fecha_vencimiento',
+        'es_vitalicio',
+        'estado_revision',
         'observaciones',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
+        'fecha_emision' => 'datetime',
+        'fecha_vencimiento' => 'datetime',
+        'es_vitalicio' => 'boolean',
     ];
 
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function getEstatusVigenciaAttribute(): string
+    {
+        if ($this->es_vitalicio || !$this->fecha_vencimiento) {
+            return 'VITALICIO';
+        }
+
+        if ($this->fecha_vencimiento->isPast()) {
+            return 'VENCIDO';
+        }
+
+        if ($this->fecha_vencimiento->diffInDays(now()) <= 30) {
+            return 'POR_VENCER';
+        }
+
+        return 'VIGENTE';
     }
 }

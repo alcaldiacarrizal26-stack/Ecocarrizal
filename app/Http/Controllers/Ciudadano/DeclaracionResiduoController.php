@@ -8,6 +8,7 @@ use App\Models\Empresa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class DeclaracionResiduoController extends Controller
 {
@@ -45,117 +46,169 @@ class DeclaracionResiduoController extends Controller
     }
 
     /**
-     * Guarda la declaración mensual/trimestral con sus detalles en BD.
+     * Guarda la declaración mensual/trimestral/anual con sus detalles en BD.
      */
     public function store(Request $request)
     {
         $user = Auth::user();
         $empresa = Empresa::with('perfilAmbiental')->where('user_id', $user->id)->firstOrFail();
 
-        $validated = $request->validate([
-            'periodo'              => 'required|string|max:20',
-            'frecuencia'           => 'required|in:MENSUAL,TRIMESTRAL,SEMESTRAL,ANUAL',
-            'fecha_inicio_periodo' => 'required|date',
-            'fecha_fin_periodo'    => 'required|date|after_or_equal:fecha_inicio_periodo',
-            'manejadora_rif'       => 'nullable|string|max:15',
-            'manejadora_nombre'    => 'nullable|string|max:255',
-            'manifiestos.*'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        $rolDeclarante = $request->input('rol_declarante', 'GENERADOR');
+        $isNoAplica = $rolDeclarante === 'NO_APLICA';
+
+        // 1. Reglas de Validación Flexibles según el Rol
+        $rules = [
+            'rol_declarante'          => 'required|in:GENERADOR,MANEJADOR,NO_APLICA',
+            'periodo'                 => 'required|string|max:20',
+            'frecuencia'              => 'required|in:MENSUAL,TRIMESTRAL,SEMESTRAL,ANUAL',
+            'fecha_inicio_periodo'    => 'required|date',
+            'fecha_fin_periodo'       => $isNoAplica ? 'nullable|date' : 'required|date|after_or_equal:fecha_inicio_periodo',
             
-            // Ítems de la declaración
-            'detalles'                      => 'required|array|min:1',
-            'detalles.*.codigo_residuo'     => 'required|string',
-            'detalles.*.nombre_residuo'     => 'required|string',
-            'detalles.*.categoria'          => 'required|in:COMUN,RECICLABLE,PELIGROSO',
-            'detalles.*.cantidad'           => 'required|numeric|min:0.001',
-            'detalles.*.unidad_medida'      => 'required|in:TON,KG,M3,LITROS',
-            'detalles.*.manifiesto'         => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-        ]);
+            // Campos de Trazabilidad / Manejador o Generador
+            'manejadora_rif'          => 'nullable|string|max:15',
+            'manejadora_nombre'       => 'nullable|string|max:255',
+            'generador_origen_nombre' => 'nullable|string|max:255',
+            'generador_origen_rif'    => 'nullable|string|max:15',
+            'hoja_seguimiento_numero' => 'nullable|string|max:50',
+            'vehiculo_placa'          => 'nullable|string|max:20',
+            'destino_final_nombre'    => 'nullable|string|max:255',
+            'declaracion_jurada'      => $isNoAplica ? 'required|accepted' : 'nullable',
 
-        DB::transaction(function () use ($request, $validated, $empresa, $user) {
-            // 1. Guardar manifiestos generales
-            $archivosGuardados = [];
-            if ($request->hasFile('manifiestos')) {
-                foreach ($request->file('manifiestos') as $file) {
-                    $path = $file->store("declaraciones/{$empresa->id}/generales", 'private');
-                    $archivosGuardados[] = [
-                        'nombre_original' => $file->getClientOriginalName(),
-                        'path'            => $path,
-                        'mime_type'       => $file->getClientMimeType(),
-                    ];
-                }
-            }
+            // Anexos Generales
+            'manifiestos'             => 'nullable|array',
+            'manifiestos.*'           => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ];
 
-            // 2. Acumuladores para los totales de la cabecera
-            $tonComunes = 0.000;
-            $tonReciclables = 0.000;
-            $tonPeligrosas = 0.000;
+        // Validar renglones de detalles únicamente si NO es NO_APLICA
+        if (!$isNoAplica) {
+            $rules['detalles']                  = 'required|array|min:1';
+            $rules['detalles.*.codigo_residuo'] = 'required|string';
+            $rules['detalles.*.nombre_residuo'] = 'required|string';
+            $rules['detalles.*.categoria']      = 'required|in:COMUN,RECICLABLE,PELIGROSO';
+            $rules['detalles.*.tipo_operacion'] = 'nullable|string';
+            $rules['detalles.*.cantidad']       = 'required|numeric|min:0';
+            $rules['detalles.*.unidad_medida']  = 'required|in:TON,KG,M3,LITROS';
+            $rules['detalles.*.manifiesto']     = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+        }
 
-            // 3. Crear la declaración cabecera
-            $declaracion = DeclaracionResiduo::create([
-                'empresa_id'           => $empresa->id,
-                'user_id'              => $user->id,
-                'periodo'              => $validated['periodo'],
-                'frecuencia'           => $validated['frecuencia'],
-                'fecha_inicio_periodo' => $validated['fecha_inicio_periodo'],
-                'fecha_fin_periodo'    => $validated['fecha_fin_periodo'],
-                'toneladas_comunes'    => 0,
-                'toneladas_reciclables'=> 0,
-                'toneladas_peligrosas' => 0,
-                'manejadora_rif'       => $validated['manejadora_rif'] ?? null,
-                'manejadora_nombre'    => $validated['manejadora_nombre'] ?? null,
-                'manifiestos_archivos' => $archivosGuardados,
-                'estatus'              => 'PRESENTADA',
-            ]);
+        $validated = $request->validate($rules);
 
-            // 4. Recorrer y registrar cada renglón de detalle
-            foreach ($validated['detalles'] as $index => $item) {
-                // Factor de conversión a toneladas estándar
-                $factorTon = match ($item['unidad_medida']) {
-                    'TON'    => 1.0,
-                    'KG'     => 0.001,
-                    'LITROS' => 0.001, // Estimación estándar agua/densidad 1
-                    'M3'     => 1.0,   // Densidad promedio referencia
-                    default  => 0.001,
-                };
+        // Mantenemos un registro de archivos físicamente guardados para limpieza si falla la transacción
+        $archivosProcesados = [];
 
-                $cantidadTon = round((float)$item['cantidad'] * $factorTon, 3);
-
-                // Acumular segun categoría
-                if ($item['categoria'] === 'COMUN') {
-                    $tonComunes += $cantidadTon;
-                } elseif ($item['categoria'] === 'RECICLABLE') {
-                    $tonReciclables += $cantidadTon;
-                } elseif ($item['categoria'] === 'PELIGROSO') {
-                    $tonPeligrosas += $cantidadTon;
+        try {
+            DB::transaction(function () use ($request, $validated, $empresa, $user, $isNoAplica, $rolDeclarante, &$archivosProcesados) {
+                
+                // A. Procesar manifiestos generales
+                $archivosGuardados = [];
+                if ($request->hasFile('manifiestos')) {
+                    foreach ($request->file('manifiestos') as $file) {
+                        $path = $file->store("declaraciones/{$empresa->id}/generales", 'private');
+                        
+                        $archivosProcesados[] = $path;
+                        
+                        $archivosGuardados[] = [
+                            'nombre_original' => $file->getClientOriginalName(),
+                            'path'            => $path,
+                            'mime_type'       => $file->getClientMimeType(),
+                        ];
+                    }
                 }
 
-                // Subir manifiesto específico del detalle si existe
-                $manifiestoDetallePath = null;
-                if ($request->hasFile("detalles.{$index}.manifiesto")) {
-                    $fileDetalle = $request->file("detalles.{$index}.manifiesto");
-                    $manifiestoDetallePath = $fileDetalle->store("declaraciones/{$empresa->id}/detalles", 'private');
+                $tonComunes = 0.000;
+                $tonReciclables = 0.000;
+                $tonPeligrosas = 0.000;
+                $detallesAInsertar = [];
+
+                // B. Pre-calcular acumulados de toneladas y preparar los detalles (si aplica)
+                if (!$isNoAplica && isset($validated['detalles'])) {
+                    foreach ($validated['detalles'] as $index => $item) {
+                        // Factor de conversión estandarizado a toneladas
+                        $factorTon = match ($item['unidad_medida']) {
+                            'TON'    => 1.0,
+                            'KG'     => 0.001,
+                            'LITROS' => 0.001,
+                            'M3'     => 1.0,
+                            default  => 0.001,
+                        };
+
+                        $cantidadTon = round((float)$item['cantidad'] * $factorTon, 3);
+
+                        // Acumular según categoría
+                        match ($item['categoria']) {
+                            'COMUN'      => $tonComunes += $cantidadTon,
+                            'RECICLABLE' => $tonReciclables += $cantidadTon,
+                            'PELIGROSO'  => $tonPeligrosas += $cantidadTon,
+                        };
+
+                        // Subir manifiesto específico del renglón si fue cargado
+                        $manifiestoDetallePath = null;
+                        if ($request->hasFile("detalles.{$index}.manifiesto")) {
+                            $fileDetalle = $request->file("detalles.{$index}.manifiesto");
+                            $manifiestoDetallePath = $fileDetalle->store("declaraciones/{$empresa->id}/detalles", 'private');
+                            
+                            $archivosProcesados[] = $manifiestoDetallePath;
+                        }
+
+                        $detallesAInsertar[] = [
+                            'codigo_residuo'     => $item['codigo_residuo'],
+                            'nombre_residuo'     => $item['nombre_residuo'],
+                            'categoria'          => $item['categoria'],
+                            'tipo_operacion'     => $item['tipo_operacion'] ?? null,
+                            'cantidad'           => $item['cantidad'],
+                            'unidad_medida'      => $item['unidad_medida'],
+                            'cantidad_toneladas' => $cantidadTon,
+                            'manifiesto_path'    => $manifiestoDetallePath,
+                        ];
+                    }
                 }
 
-                $declaracion->detalles()->create([
-                    'codigo_residuo'     => $item['codigo_residuo'],
-                    'nombre_residuo'     => $item['nombre_residuo'],
-                    'categoria'          => $item['categoria'],
-                    'cantidad'           => $item['cantidad'],
-                    'unidad_medida'      => $item['unidad_medida'],
-                    'cantidad_toneladas' => $cantidadTon,
-                    'manifiesto_path'    => $manifiestoDetallePath,
+                // C. Crear la cabecera directamente con todos sus metadatos
+                $declaracion = DeclaracionResiduo::create([
+                    'empresa_id'              => $empresa->id,
+                    'user_id'                 => $user->id,
+                    'rol_declarante'          => $rolDeclarante,
+                    'periodo'                 => $validated['periodo'],
+                    'frecuencia'              => $validated['frecuencia'],
+                    'fecha_inicio_periodo'    => $validated['fecha_inicio_periodo'],
+                    'fecha_fin_periodo'       => $validated['fecha_fin_periodo'] ?? $validated['fecha_inicio_periodo'],
+                    'toneladas_comunes'       => $tonComunes,
+                    'toneladas_reciclables'   => $tonReciclables,
+                    'toneladas_peligrosas'    => $tonPeligrosas,
+                    
+                    // Campos opcionales / Trazabilidad
+                    'manejadora_rif'          => $validated['manejadora_rif'] ?? null,
+                    'manejadora_nombre'       => $validated['manejadora_nombre'] ?? null,
+                    'generador_origen_nombre' => $validated['generador_origen_nombre'] ?? null,
+                    'generador_origen_rif'    => $validated['generador_origen_rif'] ?? null,
+                    'hoja_seguimiento_numero' => $validated['hoja_seguimiento_numero'] ?? null,
+                    'vehiculo_placa'          => $validated['vehiculo_placa'] ?? null,
+                    'destino_final_nombre'    => $validated['destino_final_nombre'] ?? null,
+                    
+                    'manifiestos_archivos'    => $archivosGuardados,
+                    'estatus'                 => 'PRESENTADA',
                 ]);
+
+                // D. Registrar los renglones de detalle mediante relación
+                if (!empty($detallesAInsertar)) {
+                    $declaracion->detalles()->createMany($detallesAInsertar);
+                }
+            });
+
+        } catch (\Throwable $e) {
+            // Si la BD falla, revertir y limpiar los archivos físicos guardados en disco
+            foreach ($archivosProcesados as $path) {
+                Storage::disk('private')->delete($path);
             }
 
-            // 5. Actualizar la cabecera con las toneladas totales calculadas
-            $declaracion->update([
-                'toneladas_comunes'    => $tonComunes,
-                'toneladas_reciclables'=> $tonReciclables,
-                'toneladas_peligrosas' => $tonPeligrosas,
-            ]);
-        });
+            return back()->withInput()->with('error', 'Ocurrió un error al procesar la declaración: ' . $e->getMessage());
+        }
+
+        $mensajeExito = $isNoAplica 
+            ? 'Notificación simplificada registrada exitosamente.' 
+            : 'Declaración de residuos presentada exitosamente.';
 
         return redirect()->route('ciudadano.declaraciones.index')
-            ->with('success', 'Declaración de residuos presentada exitosamente.');
+            ->with('success', $mensajeExito);
     }
 }

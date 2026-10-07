@@ -73,16 +73,20 @@
         $numRacda = $perfil ? trim($perfil->numero_racda ?? '') : '';
         $tieneRacda = !empty($numRacda) && strtolower($numRacda) !== 'racda no aplica' && strtolower($numRacda) !== 'no aplica';
 
-        // Decodificación de Tipos de Residuos
-        $residuosTiposList = [];
-        if ($perfil && $perfil->residuos_tipos) {
-            if (is_array($perfil->residuos_tipos)) {
-                $residuosTiposList = $perfil->residuos_tipos;
-            } else {
-                $decoded = json_decode($perfil->residuos_tipos, true);
-                if (is_string($decoded)) $decoded = json_decode($decoded, true);
-                $residuosTiposList = is_array($decoded) ? $decoded : [];
-            }
+        // Unificación de Tipos de Residuos de todas las categorías
+        $residuosUnificados = [];
+        if ($perfil) {
+            $comunes     = is_array($perfil->residuos_comunes) ? $perfil->residuos_comunes : json_decode($perfil->residuos_comunes ?? '[]', true);
+            $reciclables = is_array($perfil->residuos_reciclables) ? $perfil->residuos_reciclables : json_decode($perfil->residuos_reciclables ?? '[]', true);
+            $peligrosos  = is_array($perfil->residuos_peligrosos) ? $perfil->residuos_peligrosos : json_decode($perfil->residuos_peligrosos ?? '[]', true);
+            $legacy      = is_array($perfil->residuos_tipos) ? $perfil->residuos_tipos : json_decode($perfil->residuos_tipos ?? '[]', true);
+
+            $residuosUnificados = array_unique(array_merge(
+                is_array($comunes) ? $comunes : [],
+                is_array($reciclables) ? $reciclables : [],
+                is_array($peligrosos) ? $peligrosos : [],
+                is_array($legacy) ? $legacy : []
+            ));
         }
 
         // Decodificación de Actividades de Manejador
@@ -115,10 +119,8 @@
                 <!-- Registro RACDA -->
                 <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
                     <span class="block text-xs font-medium text-slate-400 uppercase">Registro RACDA</span>
-                    @if($tieneRacda && $perfil->tipo_racda && $perfil->tipo_racda !== 'NO_APLICA')
-                        <span class="block text-sm font-semibold text-emerald-400 mt-1 font-mono">
-                            {{ str_replace('_', ' ', $perfil->tipo_racda) }}
-                        </span>
+                    @if($tieneRacda)
+                        <span class="block text-sm font-semibold text-emerald-400 mt-1 font-mono">INSCRITO</span>
                         <span class="block text-xs font-mono text-slate-300 mt-0.5">N°: {{ $numRacda }}</span>
                     @else
                         <span class="block text-sm font-semibold text-slate-400 mt-1">NO APLICA</span>
@@ -143,7 +145,7 @@
                 </div>
             </div>
 
-            {{-- DETALLE DE RECOLECCIÓN Y MANEJO DE RESIDUOS (PROPIA VS EXTERNA Y CLIENTES) --}}
+            {{-- DETALLE DE RECOLECCIÓN Y MANEJO DE RESIDUOS --}}
             <div class="mt-6 p-4 bg-slate-950/70 rounded-xl border border-slate-800 space-y-4">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
                     <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -151,9 +153,8 @@
                 </h3>
 
                 @if(($perfil->rol_ambiental ?? 'GENERADOR') === 'GENERADOR')
-                    {{-- Si es Generador: Verificar si maneja por sí mismo o externa --}}
                     @php
-                        $modalidad = $perfil->modalidad_manejadora ?? ($perfil->manejadora_contratada ? 'EXTERNA' : 'PROPIA');
+                        $modalidad = $perfil->modalidad_manejadora ?? 'PROPIA';
                     @endphp
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -173,7 +174,7 @@
                         @if($modalidad === 'EXTERNA')
                             <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800 space-y-1">
                                 <span class="text-slate-400 block">Datos de la Empresa Contratada:</span>
-                                <p class="text-slate-200 font-semibold">{{ $perfil->manejadora_nombre ?? $perfil->manejadora_contratada ?? 'No especificada' }}</p>
+                                <p class="text-slate-200 font-semibold">{{ $perfil->manejadora_contratada ?? 'No especificada' }}</p>
                                 @if($perfil->manejadora_rif) <p class="text-slate-400 font-mono">RIF: {{ $perfil->manejadora_rif }}</p> @endif
                                 @if($perfil->manejadora_racda) <p class="text-emerald-400 font-mono">RACDA: {{ $perfil->manejadora_racda }}</p> @endif
                             </div>
@@ -181,11 +182,10 @@
                     </div>
 
                 @elseif($perfil->rol_ambiental === 'MANEJADOR')
-                    {{-- Si es Manejador: Verificar si es exclusivo de un generador o transporte a varios --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                         <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800">
                             <span class="text-slate-400 block mb-1">Esquema de Cobertura / Clientes:</span>
-                            @if(($perfil->modalidad_atencion_manejador ?? 'MULTIPLE') === 'EXCLUSIVO')
+                            @if(($perfil->modalidad_atencion_manejador ?? 'MULTICLIENTE') === 'EXCLUSIVO')
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-950/60 text-purple-300 font-semibold rounded border border-purple-800/60">
                                     Atención Exclusiva (Un solo Generador)
                                 </span>
@@ -222,11 +222,11 @@
             </div>
 
             <!-- Tipos de Residuos Declarados -->
-            @if(count($residuosTiposList) > 0)
+            @if(count($residuosUnificados) > 0)
                 <div class="mt-4 pt-3 border-t border-slate-800/80">
                     <span class="block text-xs font-semibold text-slate-400 uppercase mb-2">Tipos de Residuos Declarados:</span>
                     <div class="flex flex-wrap gap-1.5">
-                        @foreach($residuosTiposList as $tipo)
+                        @foreach($residuosUnificados as $tipo)
                             <span class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-slate-800/90 text-slate-300 rounded-lg border border-slate-700">
                                 {{ str_replace(['_', '"', '[', ']'], [' ', '', '', ''], $tipo) }}
                             </span>

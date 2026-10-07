@@ -76,6 +76,11 @@ class EmpresaController extends Controller
             'edificio_galpon_local' => 'required|string',
             'documentos'            => 'nullable|array',
             'documentos.*'          => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'fechas_emision'        => 'nullable|array',
+            'fechas_emision.*'      => 'nullable|date',
+            'fechas_vencimiento'    => 'nullable|array',
+            'fechas_vencimiento.*'  => 'nullable|date',
+            'es_vitalicio'          => 'nullable|array',
         ]);
 
         return DB::transaction(function () use ($request) {
@@ -97,49 +102,72 @@ class EmpresaController extends Controller
             if ($request->has('perfil')) {
                 $perfilData = is_string($request->perfil) ? json_decode($request->perfil, true) : $request->perfil;
 
-                // Sanitización del RACDA para evitar "RACDA No aplica" como string
-                $tipoRacda = $perfilData['tipo_racda'] ?? 'NO_APLICA';
-                $numRacda  = $perfilData['numero_racda'] ?? null;
+                $rolAmbiental = $perfilData['rol_ambiental'] ?? 'GENERADOR';
 
-                if ($tipoRacda === 'NO_APLICA' || Str::contains(strtolower($numRacda ?? ''), 'no aplica')) {
+                // Normalización de RACDA
+                $numRacda = trim($perfilData['numero_racda'] ?? '');
+                if (empty($numRacda) || Str::contains(strtolower($numRacda), 'no aplica')) {
                     $numRacda = null;
                 }
 
-                // Asegurar arrays limpios para campos JSON en Eloquent (el Cast del Modelo se encarga de json_encode)
-                $actividades = isset($perfilData['actividades_manejador']) && is_array($perfilData['actividades_manejador'])
-                    ? $perfilData['actividades_manejador']
-                    : null;
+                // Helper para garantizar formateo de arrays JSON
+                $cleanArray = function ($key) use ($perfilData) {
+                    if (!isset($perfilData[$key])) return null;
+                    $val = $perfilData[$key];
+                    if (is_array($val)) return $val;
+                    if (is_string($val)) {
+                        $decoded = json_decode($val, true);
+                        return is_array($decoded) ? $decoded : [$val];
+                    }
+                    return null;
+                };
 
-                $residuosTipos = isset($perfilData['residuos_tipos']) && is_array($perfilData['residuos_tipos'])
-                    ? $perfilData['residuos_tipos']
-                    : null;
+                $esGenerador = ($rolAmbiental === 'GENERADOR');
+                $esManejador = ($rolAmbiental === 'MANEJADOR');
+
+                // Datos exclusivos de Generador
+                $modalidadManejadora  = $esGenerador ? ($perfilData['modalidad_manejadora'] ?? 'PROPIA') : null;
+                $manejadoraContratada = $esGenerador ? ($perfilData['manejadora_contratada'] ?? $perfilData['manejadora_nombre'] ?? null) : null;
+                $manejadoraRif        = $esGenerador ? ($perfilData['manejadora_rif'] ?? null) : null;
+                $manejadoraRacda      = $esGenerador ? ($perfilData['manejadora_racda'] ?? null) : null;
+
+                // Datos exclusivos de Manejador
+                $modalidadAtencion        = $esManejador ? ($perfilData['modalidad_atencion_manejador'] ?? 'MULTICLIENTE') : null;
+                $generadorExclusivoNombre = $esManejador ? ($perfilData['generador_exclusivo_nombre'] ?? null) : null;
+                $generadorExclusivoRif    = $esManejador ? ($perfilData['generador_exclusivo_rif'] ?? null) : null;
+                $generadorExclusivoRacda  = $esManejador ? ($perfilData['generador_exclusivo_racda'] ?? null) : null;
+                $actividadesManejador     = $esManejador ? $cleanArray('actividades_manejador') : null;
 
                 $empresa->perfilAmbiental()->create([
-                    'rol_ambiental'                => $perfilData['rol_ambiental'] ?? 'GENERADOR',
-                    'subtipo_generador'            => $perfilData['subtipo_generador'] ?? 'PEQUENO',
-                    'tipo_racda'                   => $tipoRacda,
+                    'rol_ambiental'                => $rolAmbiental,
+                    'subtipo_generador'            => $esGenerador ? ($perfilData['subtipo_generador'] ?? 'PEQUENO') : null,
                     'numero_racda'                 => $numRacda,
+
                     'genera_efluentes'             => filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN),
                     'genera_emisiones'             => filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN),
                     'genera_peligrosos'            => filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN),
                     'genera_ruidos'                => filter_var($perfilData['genera_ruidos'] ?? false, FILTER_VALIDATE_BOOLEAN),
                     'usa_pozo_agua'                => filter_var($perfilData['usa_pozo_agua'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    
-                    // Lógica de Manejadora o Generador Exclusivo
-                    'modalidad_manejadora'         => $perfilData['modalidad_manejadora'] ?? null,
-                    'manejadora_contratada'        => $perfilData['manejadora_contratada'] ?? null,
-                    'manejadora_nombre'            => $perfilData['manejadora_nombre'] ?? null,
-                    'manejadora_rif'               => $perfilData['manejadora_rif'] ?? null,
-                    'manejadora_racda'             => $perfilData['manejadora_racda'] ?? null,
 
-                    'modalidad_atencion_manejador' => $perfilData['modalidad_atencion_manejador'] ?? null,
-                    'generador_exclusivo_nombre'   => $perfilData['generador_exclusivo_nombre'] ?? null,
-                    'generador_exclusivo_rif'      => $perfilData['generador_exclusivo_rif'] ?? null,
-                    'generador_exclusivo_racda'    => $perfilData['generador_exclusivo_racda'] ?? null,
+                    // Manejadora externa (si es GENERADOR)
+                    'modalidad_manejadora'         => $modalidadManejadora,
+                    'manejadora_contratada'        => $manejadoraContratada,
+                    'manejadora_rif'               => $manejadoraRif,
+                    'manejadora_racda'             => $manejadoraRacda,
 
-                    'actividades_manejador'        => $actividades,
+                    // Cobertura / clientes (si es MANEJADOR)
+                    'modalidad_atencion_manejador' => $modalidadAtencion,
+                    'generador_exclusivo_nombre'   => $generadorExclusivoNombre,
+                    'generador_exclusivo_rif'      => $generadorExclusivoRif,
+                    'generador_exclusivo_racda'    => $generadorExclusivoRacda,
+
+                    // Actividades y Listados de Residuos
+                    'actividades_manejador'        => $actividadesManejador,
                     'sustancias_manejadas'         => $perfilData['sustancias_manejadas'] ?? null,
-                    'residuos_tipos'               => $residuosTipos,
+                    'residuos_tipos'               => $cleanArray('residuos_tipos'),
+                    'residuos_comunes'             => $cleanArray('residuos_comunes'),
+                    'residuos_reciclables'         => $cleanArray('residuos_reciclables'),
+                    'residuos_peligrosos'          => $cleanArray('residuos_peligrosos'),
                 ]);
             }
 
@@ -155,15 +183,24 @@ class EmpresaController extends Controller
                     'doc_plan_emergencia' => 'Plan de Emergencia y Contingencia Ambiental',
                 ];
 
+                $fechasEmision     = $request->input('fechas_emision', []);
+                $fechasVencimiento = $request->input('fechas_vencimiento', []);
+                $esVitalicio       = $request->input('es_vitalicio', []);
+
                 foreach ($request->file('documentos') as $codigoRequisito => $file) {
                     if ($file && $file->isValid()) {
                         $path = $file->store("expedientes/{$empresa->id}", 'public');
 
+                        $vitalicio = filter_var($esVitalicio[$codigoRequisito] ?? false, FILTER_VALIDATE_BOOLEAN);
+
                         $empresa->documentosExpediente()->create([
-                            'codigo_requisito' => strtoupper($codigoRequisito),
-                            'nombre_requisito' => $nombresRequisitos[$codigoRequisito] ?? 'Documento Adjunto',
-                            'archivo_path'     => $path,
-                            'estado'           => 'PENDIENTE',
+                            'codigo_requisito'  => strtoupper($codigoRequisito),
+                            'nombre_requisito'  => $nombresRequisitos[$codigoRequisito] ?? 'Documento Adjunto',
+                            'archivo_path'      => $path,
+                            'fecha_emision'     => $fechasEmision[$codigoRequisito] ?? null,
+                            'fecha_vencimiento' => $vitalicio ? null : ($fechasVencimiento[$codigoRequisito] ?? null),
+                            'es_vitalicio'      => $vitalicio,
+                            'estado_revision'   => 'VALIDO',
                         ]);
                     }
                 }
