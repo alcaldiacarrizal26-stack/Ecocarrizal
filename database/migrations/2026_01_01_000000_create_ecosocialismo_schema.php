@@ -363,6 +363,44 @@ return new class extends Migration
             });
         }
 
+        Schema::create('sanciones', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('codigo_expediente', 30)->unique(); // Ej: SAN-RES-2026-0012
+            
+            // Relaciones
+            $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
+            $table->foreignId('director_id')->constrained('users'); // Director que impone/resuelve
+            $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete(); // Opcional si proviene de una inspección
+
+            // Clasificación de la Infracción
+            $table->string('tipo_infraccion'); // FALTA_DECLARACION, VERTIDO_NO_AUTORIZADO, OBSTACULIZACION, etc.
+            $table->enum('gravedad', ['LEVE', 'GRAVE', 'MUY_GRAVE'])->default('LEVE');
+            $table->text('motivo_descripcion');
+            $table->text('base_legal')->nullable(); // Ej: Art. X Ordenanza de Residuos, Decreto 2.635
+
+            // Trazabilidad y Descargos
+            $table->date('fecha_incidencia');
+            $table->date('fecha_citacion')->nullable();
+            $table->date('fecha_limite_subsanacion')->nullable();
+
+            // Evidencias
+            $table->jsonb('evidencias_fiscalia')->nullable(); // Fotos o actas adjuntadas por la Alcaldía
+            $table->jsonb('evidencias_subsanacion')->nullable(); // Archivos/Fotos subidos por la Empresa para solicitar retiro
+            $table->text('observaciones_resolucion')->nullable(); // Justificación del Director al retirar/resolver
+
+            // Estado Administrativo
+            $table->enum('estatus', [
+                'PENDIENTE_NOTIFICACION',
+                'NOTIFICADA',
+                'EN_REVISION',
+                'SUBSANADA',
+                'DESESTIMADA'
+            ])->default('PENDIENTE_NOTIFICACION');
+
+            $table->timestampTz('fecha_resolucion')->nullable();
+            $table->timestampsTz();
+        });
+
         // 8. Inspecciones y Acta de Evaluación
         Schema::create('inspecciones', function (Blueprint $table) {
             $table->uuid('id')->primary();

@@ -36,6 +36,8 @@
     if (is_null($currentActive) || $currentActive === '') {
         if (request()->routeIs('*.dashboard') || request()->is('*/dashboard')) {
             $currentActive = 'inicio';
+        } elseif (request()->routeIs('director.residuos.empresas.sanciones*') || request()->is('director/residuos/empresas/*/sanciones*')) {
+            $currentActive = 'residuos_sanciones';
         } elseif (request()->routeIs('director.residuos.declaraciones*') || request()->is('director/residuos/declaraciones*')) {
             $currentActive = 'residuos_declaraciones';
         } elseif (request()->routeIs('director.residuos.empresas*') || request()->is('director/residuos/empresas*')) {
@@ -166,7 +168,7 @@
             {{-- ================================================= --}}
             @if($prefix === 'inspector')
                 <a href="{{ $dashboardRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 00-1 1m-6 0h6"/></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 00-1 1m-6 0h6"/></svg>
                     <span>Inicio</span>
                 </a>
 
@@ -185,7 +187,7 @@
             {{-- ================================================= --}}
             @if(in_array($prefix, ['director', 'admin']))
                 <a href="{{ $dashboardRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011 1v4a1 1 0 00-1 1m-6 0h6"/></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 00-1 1m-6 0h6"/></svg>
                     <span>Inicio</span>
                 </a>
 
@@ -224,6 +226,12 @@
                     <a href="{{ Route::has('director.residuos.declaraciones.index') ? route('director.residuos.declaraciones.index') : url('/director/residuos/declaraciones') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'residuos_declaraciones' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <span>Revisión Declaraciones</span>
+                    </a>
+                    
+                    {{-- Opción para Sanciones y Citaciones Administrativas --}}
+                    <a href="{{ route('director.residuos.empresas.index') }}?vista=sanciones" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'residuos_sanciones' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <span>Sanciones y Citaciones</span>
                     </a>
                 @endif
 

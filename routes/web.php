@@ -149,10 +149,11 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
             Route::get('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'inspecciones'])->name('inspecciones.index');
             Route::post('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'asignarInspeccion'])->name('inspecciones.store');
 
-            // Monitoreo de Declaraciones por Empresa específica
+            // Monitoreo de Declaraciones por Empresa
             Route::get('/{empresa}/declaraciones', [ResiduosEmpresaController::class, 'declaraciones'])->name('declaraciones');
 
             // Citaciones y Sanciones Administrativas
+            Route::get('/{empresa}/sanciones', [ResiduosEmpresaController::class, 'sanciones'])->name('sanciones.index'); // <-- RUTA FALTANTE AGREGADA
             Route::post('/{empresa}/sanciones', [ResiduosEmpresaController::class, 'asignarSancion'])->name('sanciones.store');
             Route::patch('/sanciones/{sancion}/resolver', [ResiduosEmpresaController::class, 'resolverSancion'])->name('sanciones.resolver');
         });
@@ -206,7 +207,7 @@ Route::middleware(['auth', 'role:director,inspector,admin'])->group(function () 
 Route::middleware(['auth', 'role:director,admin'])->group(function () {
     Route::get('/api/inspectores/disponibles', function (\Illuminate\Http\Request $request) {
         try {
-            // Se consultan los usuarios con rol de 'director' o 'inspector' que estén activos
+            // Traemos los funcionarios (Directores e Inspectores) activos con su relación
             $funcionarios = \App\Models\User::whereHas('role', function ($q) {
                     $q->whereIn('nombre', ['director', 'inspector']);
                 })
@@ -215,21 +216,16 @@ Route::middleware(['auth', 'role:director,admin'])->group(function () {
                 ->get();
 
             $resultado = $funcionarios->map(function ($user) {
-                $nombreCompleto = trim(($user->nombre ?? $user->name ?? '') . ' ' . ($user->apellido ?? ''));
+                $nombreCompleto = trim(($user->nombre ?? '') . ' ' . ($user->apellido ?? ''));
                 $rolNombre = ucfirst($user->role->nombre ?? 'Funcionario');
 
-                // Si el usuario no tiene perfil en la tabla 'inspectores',
-                // enviamos su user_id, pero si tiene perfil 'inspector', tomamos inspector->id
-                $inspectorId = $user->inspector ? $user->inspector->id : null;
-
                 return [
-                    // Es importante que el ID devuelto coincida con el valor que espera el formulario
-                    'id' => $user->id, // Se envía user_id tal como lo valida $request->validate(['user_id' => ...])
+                    'id' => $user->id,
                     'nombre' => $nombreCompleto ?: 'Usuario #' . $user->id,
+                    'cedula' => $user->cedula ?? 'S/C', // <-- Mapeo exacto de la columna 'cedula' de users
                     'credencial' => $user->inspector->codigo_credencial ?? $rolNombre,
-                    'especialidad' => $user->inspector->especialidad ?? ($user->direccion->nombre ?? $rolNombre),
+                    'especialidad' => $user->inspector->especialidad ?? ($user->direccion->nombre_direc ?? $rolNombre),
                     'rol' => $rolNombre,
-                    'tiene_perfil_inspector' => !is_null($inspectorId),
                 ];
             });
 
@@ -237,7 +233,7 @@ Route::middleware(['auth', 'role:director,admin'])->group(function () {
 
         } catch (\Throwable $th) {
             return response()->json([
-                'error' => 'Error interno al consultar personal disponible',
+                'error' => 'Error al obtener personal disponible',
                 'detalle' => $th->getMessage(),
                 'linea' => $th->getLine(),
                 'archivo' => $th->getFile()

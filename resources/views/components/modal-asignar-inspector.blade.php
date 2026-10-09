@@ -17,10 +17,10 @@
         <!-- Formulario -->
         <form id="form_asignar_inspector" method="POST" action="" class="p-5 space-y-4">
             @csrf
-            @method('PUT') <!-- Se sobrescribe dinámicamente según la ruta -->
+            @method('PUT')
 
-            <!-- Componente Select Normalizado -->
-            <x-select-inspector id="inspector_select_modal" name="inspector_id" required />
+            <!-- Componente Select Normalizado con Buscador -->
+            <x-select-inspector id="inspector_select_modal" name="user_id" required />
 
             <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Instrucciones u Observaciones</label>
@@ -47,9 +47,8 @@
     function abrirModalInspector(config) {
         const modal = document.getElementById('{{ $modalId }}');
         const form = document.getElementById('form_asignar_inspector');
-        const select = document.getElementById('inspector_select_modal');
         
-        if (!modal || !form || !select) {
+        if (!modal || !form) {
             console.error('No se encontraron los elementos necesarios del modal en el DOM.');
             return;
         }
@@ -65,10 +64,6 @@
         if (config.titulo) document.getElementById('modal_titulo').innerText = config.titulo;
         if (config.subtitulo) document.getElementById('modal_subtitulo').innerText = config.subtitulo;
 
-        // Limpiar y mostrar estado de carga en el select
-        select.innerHTML = '<option value="">Cargando inspectores disponibles...</option>';
-        select.disabled = true;
-
         // Abrir el modal inmediatamente para retroalimentación visual
         modal.classList.remove('hidden');
 
@@ -82,27 +77,17 @@
         .then(async res => {
             const data = await res.json();
             if (!res.ok || !Array.isArray(data)) {
-                throw new Error(data.detalle || data.message || data.error || 'Error desconocido al cargar inspectores');
+                throw new Error(data.detalle || data.message || data.error || 'Error al obtener funcionarios');
             }
             return data;
         })
         .then(data => {
-            select.disabled = false;
-            if (data.length === 0) {
-                select.innerHTML = '<option value="">No hay inspectores disponibles</option>';
-                return;
-            }
-
-            select.innerHTML = '<option value="">-- Seleccionar Fiscal / Inspector --</option>';
-            data.forEach(item => {
-                select.innerHTML += `<option value="${item.id}">${item.nombre} (${item.credencial || 'S/C'}) - [${item.especialidad || 'General'}]</option>`;
-            });
+            // Emitir evento a Alpine.js para popular el desplegable
+            window.dispatchEvent(new CustomEvent('cargar-inspectores-select', { detail: data }));
         })
         .catch(err => {
             console.error('Error al cargar inspectores:', err);
-            select.disabled = false;
-            select.innerHTML = '<option value="">Error al obtener inspectores</option>';
-            alert('No se pudieron cargar los inspectores: ' + err.message);
+            alert('No se pudieron cargar los funcionarios: ' + err.message);
         });
     }
 

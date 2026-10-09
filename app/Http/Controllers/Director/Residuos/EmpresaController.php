@@ -72,4 +72,90 @@ class EmpresaController extends Controller
             ->route('director.residuos.empresas.show', $empresa->id)
             ->with('success', 'El veredicto para la empresa ' . $empresa->razon_social . ' ha sido registrado exitosamente.');
     }
+
+    public function sanciones(Empresa $empresa)
+    {
+        $empresa->load(['perfilAmbiental']);
+        $sanciones = Sancion::where('empresa_id', $empresa->id)
+            ->with(['director', 'inspeccion'])
+            ->latest()
+            ->get();
+
+        return view('director.residuos.empresas.sanciones', compact('empresa', 'sanciones'));
+    }
+
+    /**
+     * Registra una nueva sanción / citación administrativa.
+     */
+    public function asignarSancion(Request $request, Empresa $empresa)
+    {
+        $validated = $request->validate([
+            'tipo_infraccion'          => 'required|string|max:255',
+            'gravedad'                  => 'required|in:LEVE,GRAVE,MUY_GRAVE',
+            'motivo_descripcion'        => 'required|string',
+            'base_legal'                => 'nullable|string',
+            'fecha_incidencia'          => 'required|date',
+            'fecha_citacion'            => 'nullable|date',
+            'fecha_limite_subsanacion'  => 'nullable|date|after_or_equal:fecha_incidencia',
+            'evidencia'                 => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        $rutasEvidencia = [];
+        if ($request->hasFile('evidencia')) {
+            $path = $request->file('evidencia')->store('sanciones/fiscalia', 'public');
+            $rutasEvidencia[] = $path;
+        }
+
+        $codigo = 'SAN-RES-' . date('Y') . '-' . strtoupper(Str::random(5));
+
+        Sancion::create([
+            'codigo_expediente'        => $codigo,
+            'empresa_id'               => $empresa->id,
+            'director_id'              => auth()->id(),
+            'tipo_infraccion'          => $validated['tipo_infraccion'],
+            'gravedad'                 => $validated['gravedad'],
+            'motivo_descripcion'       => $validated['motivo_descripcion'],
+            'base_legal'               => $validated['base_legal'] ?? 'Ordenanza Municipal de Manejo de Residuos y Desechos Sólidos',
+            'fecha_incidencia'         => $validated['fecha_incidencia'],
+            'fecha_citacion'           => $validated['fecha_citacion'] ?? null,
+            'fecha_limite_subsanacion' => $validated['fecha_limite_subsanacion'] ?? null,
+            'evidencias_fiscalia'      => $rutasEvidencia,
+            'estatus'                  => 'NOTIFICADA',
+        ]);
+
+        return redirect()->back()->with('success', "Procedimiento sancionatorio {$codigo} aperturado correctamente.");
+    }
+
+    /**
+     * Resuelve/Retira una sanción tras evaluar la subsanación.
+     */
+    public function resolverSancion(Request $request, $sancionId)
+    {
+        $sancion = Sancion::findOrFail($sancionId);
+
+        $validated = $request->validate([
+            'estatus'                  => 'required|in:SUBSANADA,DESESTIMADA',
+            'observaciones_resolucion' => 'required|string',
+            'evidencia_resolucion'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        $evidencias = $sancion->evidencias_subsanacion ?? [];
+        if ($request->hasFile('evidencia_resolucion')) {
+            $path = $request->file('evidencia_resolucion')->store('sanciones/resoluciones', 'public');
+            $evidencias[] = $path;
+        }
+
+        $sancion->update([
+            'estatus'                  => $validated['estatus'],
+            'observaciones_resolucion' => $validated['observaciones_resolucion'],
+            'evidencias_subsanacion'   => $evidencias,
+            'fecha_resolucion'         => now(),
+        ]);
+
+        $mensaje = $validated['estatus'] === 'SUBSANADA' 
+            ? 'La sanción ha sido marcada como SUBSANADA y retirada con éxito.' 
+            : 'La sanción ha sido DESESTIMADA.';
+
+        return redirect()->back()->with('success', $mensaje);
+    }
 }
