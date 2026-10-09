@@ -13,65 +13,78 @@
             <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm space-y-1">
                 <strong class="font-semibold block">Por favor revisa los siguientes errores antes de guardar:</strong>
                 <ul class="list-disc list-inside space-y-0.5">
-                    @foreach ($errors->all() as $error)
+                    @foreach ($errors->all() as$error)
                         <li>{{ $error }}</li>
                     @endforeach
                 </ul>
             </div>
         @endif
 
-        <form action="{{ route('inspecciones.store') }}" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        @php
+            // 1. Determinamos si el expediente actual es una Empresa (Residuos) o un trámite tradicional
+            $esEmpresa = isset($tipoOrigen) &&$tipoOrigen === 'empresa';
+            
+            if ($esEmpresa) {
+                $solicitante =$expediente->user ?? null;
+                $evaluador = auth()->user();$nombreEvaluador = $evaluador->nombre ?? $evaluador->name ?? 'Funcionario';
+                $apellidoEvaluador =$evaluador->apellido ?? '';
+                $cargoEvaluador =$evaluador->role->nombre ?? 'Inspector';
+                $sector =$expediente->sector ?? 'N/E';
+                $comuna =$expediente->comuna ?? 'N/E';
+                $esTala = false;
+            } else {
+                $solicitante =$expediente->solicitante ?? $expediente->user ?? $expediente->usuario ?? null;
+                $evaluador = auth()->user();$nombreEvaluador = $evaluador->nombre ?? $evaluador->name ?? 'Funcionario';
+                $apellidoEvaluador =$evaluador->apellido ?? '';
+                $cargoEvaluador =$evaluador->role->nombre ?? 'Inspector Ambiental';
+                $sector = $expediente->sector ?? $expediente->ubicacion_sector ?? 'N/E';
+                $comuna = $expediente->comuna ?? $expediente->ubicacion_comuna ?? 'N/E';
+                $esTala = ($tipoOrigen === 'solicitud' && ($expediente->tipo_tramite ?? '') === 'tala');
+            }
+        @endphp
+
+        <form action="{{ $esEmpresa ? route('inspecciones.update', $expediente->id) : route('inspecciones.store') }}" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
             @csrf
+            @if($esEmpresa)
+                @method('PUT')
+            @endif
 
             <!-- Campos ocultos requeridos para procesar el origen -->
             <input type="hidden" name="tipo_origen" value="{{ $tipoOrigen }}">
             <input type="hidden" name="origen_id" value="{{ $expediente->id }}">
-
-            @php
-                // 1. Obtención flexible del solicitante/denunciante
-                $solicitante =$expediente->solicitante ?? $expediente->user ?? $expediente->usuario ?? null;
-
-                // 2. Obtención del evaluador y su rol/cargo
-                $evaluador = auth()->user();$nombreEvaluador = $evaluador->nombre ?? $evaluador->name ?? 'Funcionario';
-                $apellidoEvaluador =$evaluador->apellido ?? '';
-                $cargoEvaluador =$evaluador->role->nombre 
-                    ?? $evaluador->cargo 
-                    ?? ($evaluador->inspector ? 'Inspector Ambiental' : 'Funcionario Ambiental');
-
-                // 3. Ubicación flexible
-                $sector = $expediente->sector ?? $expediente->ubicacion_sector ?? 'N/E';
-                $comuna = $expediente->comuna ?? $expediente->ubicacion_comuna ?? 'N/E';
-
-                // 4. Verificación de trámite de tala
-                $esTala = ($tipoOrigen === 'solicitud' && ($expediente->tipo_tramite ?? '') === 'tala');
-            @endphp
 
             <!-- Metadata del Expediente, Solicitante e Inspector -->
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                     <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Origen:</span>
                     <strong class="text-slate-800">
-                        {{ $tipoOrigen === 'solicitud' ? 'Trámite: ' . strtoupper($expediente->tipo_tramite ?? 'Solicitud') : 'Denuncia Ambiental' }}
+                        @if($esEmpresa)
+                            Fiscalización de Residuos ({{ $expediente->tipo_inspeccion ?? 'ORDINARIA' }})
+                        @else
+                            {{ $tipoOrigen === 'solicitud' ? 'Trámite: ' . strtoupper($expediente->tipo_tramite ?? 'Solicitud') : 'Denuncia Ambiental' }}
+                        @endif
                     </strong>
                 </div>
 
                 <div>
-                    <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Código Referencia:</span>
-                    <strong class="text-slate-800">{{ $expediente->codigo_expediente ?? $expediente->codigo }}</strong>
+                    <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Código Referencia / Acta:</span>
+                    <strong class="text-slate-800">{{ $expediente->codigo_acta ?? $expediente->codigo_expediente ?? $expediente->codigo }}</strong>
                 </div>
 
-                <!-- Datos del Solicitante / Denunciante -->
+                <!-- Datos del Solicitante / Representante de la Empresa -->
                 <div>
-                    <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Solicitante / Denunciante:</span>
+                    <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">{{ $esEmpresa ? 'Razón Social / Empresa:' : 'Solicitante / Denunciante:' }}</span>
                     <strong class="text-slate-800">
-                        @if($solicitante && !empty($solicitante->nombre ?? $solicitante->name))
+                        @if($esEmpresa)
+                            {{ $expediente->razon_social }}
+                        @elseif($solicitante && !empty($solicitante->nombre ?? $solicitante->name))
                             {{ trim(($solicitante->nombre ?? $solicitante->name) . ' ' . ($solicitante->apellido ?? '')) }}
                         @else
                             {{ $expediente->nombre_completo ?? 'No registrado' }}
                         @endif
                     </strong>
                     <span class="block text-xs text-slate-500">
-                        C.I. / RIF: {{ $solicitante->cedula ?? $expediente->cedula ?? 'N/A' }}
+                        {{ $esEmpresa ? 'RIF: ' . $expediente->rif : 'C.I. / RIF: ' . ($solicitante->cedula ?? $expediente->cedula ?? 'N/A') }}
                     </span>
                 </div>
 
@@ -88,12 +101,18 @@
 
                 <div>
                     <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Ubicación:</span>
-                    <strong class="text-slate-800">{{ $sector }}, {{$comuna }}</strong>
+                    <strong class="text-slate-800">
+                        @if($esEmpresa)
+                            {{ $expediente->calle_avenida ?? '' }}, {{ $sector }}, {{$comuna }}
+                        @else
+                            {{ $sector }}, {{$comuna }}
+                        @endif
+                    </strong>
                 </div>
 
                 <div>
                     <span class="text-slate-500 block text-xs uppercase tracking-wider font-semibold">Detalles / Motivo:</span>
-                    <strong class="text-slate-800">{{ Str::limit($expediente->motivo_descripcion ?? $expediente->descripcion, 60) }}</strong>
+                    <strong class="text-slate-800">{{ Str::limit($expediente->observaciones_campo ?? $expediente->motivo_descripcion ?? $expediente->descripcion, 60) }}</strong>
                 </div>
             </div>
 
@@ -179,7 +198,7 @@
                 <textarea name="observaciones_campo" id="observaciones_campo" rows="4" required 
                           oninput="updateCount('observaciones_campo', 'counter_observaciones', 10)"
                           placeholder="Escriba los hallazgos verificados durante la visita técnica (Mínimo 10 caracteres)..."
-                          class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('observaciones_campo') border-red-500 @enderror">{{ old('observaciones_campo') }}</textarea>
+                          class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('observaciones_campo') border-red-500 @enderror">{{ old('observaciones_campo', $esEmpresa ? $expediente->observaciones_campo : '') }}</textarea>
                 @error('observaciones_campo')
                     <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
                 @enderror
@@ -194,7 +213,7 @@
                 <textarea name="recomendaciones" id="recomendaciones" rows="3" 
                           oninput="updateCount('recomendaciones', 'counter_recomendaciones', 10)"
                           placeholder="Instrucciones o medidas que debe cumplir el solicitante/denunciado (Mínimo 10 caracteres)..."
-                          class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('recomendaciones') border-red-500 @enderror">{{ old('recomendaciones') }}</textarea>
+                          class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 text-sm @error('recomendaciones') border-red-500 @enderror">{{ old('recomendaciones', $esEmpresa ? $expediente->recomendaciones : '') }}</textarea>
                 @error('recomendaciones')
                     <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
                 @enderror

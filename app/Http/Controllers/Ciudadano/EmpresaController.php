@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Ciudadano;
 
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
+use App\Models\Sancion;
 use App\Models\PerfilAmbiental;
 use App\Models\DocumentoExpediente;
 use Illuminate\Http\Request;
@@ -20,10 +21,11 @@ class EmpresaController extends Controller
     {
         $user = auth()->user();
 
-        // Cargar la empresa vinculada al usuario
+        // Cargar la empresa vinculada al usuario junto con sus relaciones (incluyendo sanciones)
         $empresa = $user->empresa()->with([
             'perfilAmbiental',
             'documentosExpediente',
+            'sanciones'
         ])->first();
 
         // Si no tiene empresa registrada, lo enviamos al formulario de registro
@@ -48,6 +50,58 @@ class EmpresaController extends Controller
     public function create()
     {
         return view('ciudadano.empresa.crear');
+    }
+
+    /**
+     * Muestra el historial dedicado de sanciones y citaciones para la empresa del ciudadano.
+     */
+    public function sancionesIndex(Request $request)
+    {
+        $user = auth()->user();
+        $empresa = $user->empresa;
+
+        if (!$empresa) {
+            return redirect()->route('ciudadano.empresas.create');
+        }
+
+        $sanciones = Sancion::where('empresa_id', $empresa->id)
+            ->latest()
+            ->get();
+
+        // Apuntamos al directorio singular de vistas (ciudadano/empresa/sanciones.blade.php)
+        return view('ciudadano.empresa.sanciones', compact('empresa', 'sanciones'));
+    }
+
+    /**
+     * Permite a la empresa adjuntar evidencias para solicitar la subsanación / retiro de la sanción.
+     */
+    public function subsanarSancion(Request $request, Sancion $sancion)
+    {
+        $user = auth()->user();
+
+        // Validar que la sanción pertenezca a la empresa del ciudadano autenticado
+        if ($sancion->empresa->user_id !== $user->id) {
+            abort(403, 'No tienes autorización para realizar esta acción.');
+        }
+
+        $request->validate([
+            'observaciones_subsanacion' => 'required|string',
+            'evidencia_subsanacion'     => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        $evidencias = $sancion->evidencias_subsanacion ?? [];
+
+        if ($request->hasFile('evidencia_subsanacion')) {
+            $path = $request->file('evidencia_subsanacion')->store("sanciones/subsanaciones/{$sancion->id}", 'public');
+            $evidencias[] = $path;
+        }
+
+        $sancion->update([
+            'evidencias_subsanacion' => $evidencias,
+            'estatus'                 => 'EN_REVISION', // Pasa a estado de revisión para evaluación del Director
+        ]);
+
+        return redirect()->back()->with('success', 'Pruebas de subsanación enviadas correctamente. La Dirección de Residuos evaluará el expediente.');
     }
 
     /**

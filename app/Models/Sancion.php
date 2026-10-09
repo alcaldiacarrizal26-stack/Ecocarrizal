@@ -28,6 +28,7 @@ class Sancion extends Model
         'fecha_limite_subsanacion',
         'evidencias_fiscalia',
         'evidencias_subsanacion',
+        'observaciones_subsanacion',
         'observaciones_resolucion',
         'estatus',
         'fecha_resolucion',

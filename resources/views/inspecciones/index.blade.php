@@ -5,7 +5,7 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Inspecciones Ambientales</h1>
-                <p class="text-slate-500 text-sm">Gestión de visitas de campo, hallazgos y emisión de actas técnicas.</p>
+                <p class="text-slate-500 text-sm">Gestión de visitas de campo, hallazgos, fiscalización de residuos y emisión de actas técnicas.</p>
             </div>
         </div>
 
@@ -14,8 +14,6 @@
             <div x-data="{ show: true }" 
                  x-show="show" 
                  x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="opacity-100 scale-100"
-                 x-transition:leave-end="opacity-0 scale-95"
                  class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3 shadow-sm">
                 
                 <div class="flex items-center gap-2">
@@ -25,13 +23,8 @@
                     <span>{{ session('success') }}</span>
                 </div>
 
-                <button @click="show = false" 
-                        type="button" 
-                        class="text-emerald-500 hover:text-emerald-800 hover:bg-emerald-100/50 p-1 rounded-lg transition-colors focus:outline-none"
-                        aria-label="Cerrar">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+                <button @click="show = false" type="button" class="text-emerald-500 hover:text-emerald-800 p-1 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
         @endif
@@ -40,16 +33,16 @@
         <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                Expedientes Pendientes de Visita / Evaluación
+                Expedientes y Órdenes Pendientes de Visita / Evaluación
             </h2>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-slate-600">
                     <thead class="bg-slate-50 text-slate-700 uppercase text-xs font-semibold">
                         <tr>
-                            <th class="px-4 py-3">Código</th>
+                            <th class="px-4 py-3">Código / Acta</th>
                             <th class="px-4 py-3">Tipo / Origen</th>
-                            <th class="px-4 py-3">Ubicación</th>
+                            <th class="px-4 py-3">Entidad / Ubicación</th>
                             <th class="px-4 py-3">Estado</th>
                             <th class="px-4 py-3 text-right">Acciones</th>
                         </tr>
@@ -57,25 +50,40 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse($asignacionesPendientes as $item)
                             <tr class="hover:bg-slate-50">
-                                <td class="px-4 py-3 font-medium text-slate-900">
-                                    {{ $item->codigo_expediente ?? $item->codigo }}
+                                <td class="px-4 py-3 font-medium text-slate-900 font-mono">
+                                    {{ $item->codigo_acta ?? $item->codigo_expediente ?? $item->codigo }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <span class="px-2 py-1 rounded-md text-xs font-semibold {{ isset($item->tipo_tramite) ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700' }}">
-                                        {{ isset($item->tipo_tramite) ? 'Solicitud: '.str_replace('_', ' ', $item->tipo_tramite) : 'Denuncia: '.$item->tipo_contaminacion }}
-                                    </span>
+                                    @if(isset($item->empresa_id))
+                                        <span class="px-2 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                            Fiscalización Residuos: {{ $item->tipo_inspeccion ?? 'ORDINARIA' }}
+                                        </span>
+                                    @elseif(isset($item->tipo_tramite))
+                                        <span class="px-2 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">
+                                            Solicitud: {{ str_replace('_', ' ', $item->tipo_tramite) }}
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-1 rounded-md text-xs font-semibold bg-red-50 text-red-700">
+                                            Denuncia: {{ $item->tipo_contaminacion }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ $item->sector }}, {{ $item->comuna }}
+                                    @if(isset($item->empresa))
+                                        <div class="font-bold text-slate-800">{{ $item->empresa->razon_social }}</div>
+                                        <div class="text-xs text-slate-400">RIF: {{ $item->empresa->rif }}</div>
+                                    @else
+                                        {{ $item->sector ?? 'N/A' }}, {{ $item->comuna ?? '' }}
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3">
                                     @php
-                                        $estadoValor = $item->estado ?? $item->estatus;
+                                        $estadoValor = $item->estado ?? $item->estatus ?? 'pendiente';
                                         $statusClasses = match($estadoValor) {
                                             'en_inspeccion' => 'bg-indigo-100 text-indigo-800 border border-indigo-200',
-                                            'inspector_asignado'          => 'bg-sky-100 text-sky-800',
-                                            'pendiente'                   => 'bg-amber-100 text-amber-800',
-                                            default                       => 'bg-slate-100 text-slate-800'
+                                            'inspector_asignado', 'CON_OBSERVACIONES' => 'bg-sky-100 text-sky-800',
+                                            'pendiente' => 'bg-amber-100 text-amber-800',
+                                            default => 'bg-slate-100 text-slate-800'
                                         };
                                     @endphp
                                     <span class="px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusClasses }}">
@@ -83,30 +91,26 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right flex items-center justify-end gap-2">
-                                    @if($estadoValor === 'inspector_asignado')
-                                        <!-- Transición: Pasar a En Revisión / Iniciar Inspección -->
+                                    @if(isset($item->empresa_id) || $estadoValor === 'inspector_asignado')
                                         <form action="{{ route('inspecciones.iniciar-revision', $item->id) }}" method="POST">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                 Iniciar Revisión
                                             </button>
                                         </form>
-                                    @elseif(in_array($estadoValor, ['en_inspeccion']))
-                                        <!-- Paso Siguiente: Emitir Veredicto / Evaluar -->
-                                        <a href="{{ route('inspecciones.evaluar', $item->id) }}" 
-                                           class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                            Emitir Veredicto
-                                        </a>
                                     @endif
+
+                                    <a href="{{ route('inspecciones.evaluar', $item->id) }}" 
+                                       class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                                        Emitir Veredicto
+                                    </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
                                 <td colspan="5" class="px-4 py-6 text-center text-slate-400">
-                                    No tienes inspecciones o denuncias pendientes en este momento.
+                                    No tienes inspecciones, fiscalizaciones o denuncias pendientes en este momento.
                                 </td>
                             </tr>
                         @endforelse
@@ -125,6 +129,7 @@
                         <tr>
                             <th class="px-4 py-3">N° Acta</th>
                             <th class="px-4 py-3">Fecha Visita</th>
+                            <th class="px-4 py-3">Empresa / Origen</th>
                             <th class="px-4 py-3">Inspector</th>
                             <th class="px-4 py-3">Dictamen</th>
                             <th class="px-4 py-3 text-right">Acción</th>
@@ -137,19 +142,22 @@
                                     {{ $inspeccion->codigo_acta }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ $inspeccion->fecha_visita->format('d/m/Y H:i A') }}
+                                    {{ \Carbon\Carbon::parse($inspeccion->fecha_visita)->format('d/m/Y') }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ $inspeccion->inspector->user->nombre }} {{ $inspeccion->inspector->user->apellido }}
+                                    {{ $inspeccion->empresa->razon_social ?? 'Trámite / Denuncia General' }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    {{ $inspeccion->inspector->user->nombre ?? 'N/A' }} {{ $inspeccion->inspector->user->apellido ?? '' }}
                                 </td>
                                 <td class="px-4 py-3">
                                     @php
                                         $badgeClasses = match($inspeccion->dictamen) {
-                                            'APROBADO'                => 'bg-emerald-100 text-emerald-800',
-                                            'CON_OBSERVACIONES'       => 'bg-amber-100 text-amber-800',
-                                            'RECHAZADO'               => 'bg-rose-100 text-rose-800',
+                                            'APROBADO' => 'bg-emerald-100 text-emerald-800',
+                                            'CON_OBSERVACIONES' => 'bg-amber-100 text-amber-800',
+                                            'RECHAZADO' => 'bg-rose-100 text-rose-800',
                                             'REINSPECCION_REQUERIDA' => 'bg-purple-100 text-purple-800',
-                                            default                   => 'bg-slate-100 text-slate-800'
+                                            default => 'bg-slate-100 text-slate-800'
                                         };
                                     @endphp
                                     <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $badgeClasses }}">
@@ -165,7 +173,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-4 py-6 text-center text-slate-400">
+                                <td colspan="6" class="px-4 py-6 text-center text-slate-400">
                                     Aún no hay inspecciones procesadas en el historial.
                                 </td>
                             </tr>

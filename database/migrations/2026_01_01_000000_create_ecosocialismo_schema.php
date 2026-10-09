@@ -363,48 +363,13 @@ return new class extends Migration
             });
         }
 
-        Schema::create('sanciones', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('codigo_expediente', 30)->unique(); // Ej: SAN-RES-2026-0012
-            
-            // Relaciones
-            $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
-            $table->foreignId('director_id')->constrained('users'); // Director que impone/resuelve
-            $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete(); // Opcional si proviene de una inspección
-
-            // Clasificación de la Infracción
-            $table->string('tipo_infraccion'); // FALTA_DECLARACION, VERTIDO_NO_AUTORIZADO, OBSTACULIZACION, etc.
-            $table->enum('gravedad', ['LEVE', 'GRAVE', 'MUY_GRAVE'])->default('LEVE');
-            $table->text('motivo_descripcion');
-            $table->text('base_legal')->nullable(); // Ej: Art. X Ordenanza de Residuos, Decreto 2.635
-
-            // Trazabilidad y Descargos
-            $table->date('fecha_incidencia');
-            $table->date('fecha_citacion')->nullable();
-            $table->date('fecha_limite_subsanacion')->nullable();
-
-            // Evidencias
-            $table->jsonb('evidencias_fiscalia')->nullable(); // Fotos o actas adjuntadas por la Alcaldía
-            $table->jsonb('evidencias_subsanacion')->nullable(); // Archivos/Fotos subidos por la Empresa para solicitar retiro
-            $table->text('observaciones_resolucion')->nullable(); // Justificación del Director al retirar/resolver
-
-            // Estado Administrativo
-            $table->enum('estatus', [
-                'PENDIENTE_NOTIFICACION',
-                'NOTIFICADA',
-                'EN_REVISION',
-                'SUBSANADA',
-                'DESESTIMADA'
-            ])->default('PENDIENTE_NOTIFICACION');
-
-            $table->timestampTz('fecha_resolucion')->nullable();
-            $table->timestampsTz();
-        });
-
         // 8. Inspecciones y Acta de Evaluación
         Schema::create('inspecciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_acta', 30)->unique();
+            $table->string('tipo_inspeccion', 30)->default('ORDINARIA')->after('codigo_acta'); // ORDINARIA o DE_OFICIO
+            $table->text('base_legal_inspeccion')->nullable()->after('tipo_inspeccion');
+            $table->text('orden_adjunta_path')->nullable()->after('fotos_evidencia');
             
             $table->foreignUuid('solicitud_id')->nullable()->constrained('solicitudes')->nullOnDelete();
             $table->foreignUuid('denuncia_id')->nullable()->constrained('denuncias')->nullOnDelete();
@@ -431,7 +396,47 @@ return new class extends Migration
             });
         }
 
-        // 9. Módulo de Compensación Ambiental
+        // 9. Sanciones y Citaciones Administrativas (Ubicar DESPUÉS de inspecciones)
+        Schema::create('sanciones', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('codigo_expediente', 30)->unique(); // Ej: SAN-RES-2026-0012
+            
+            // Relaciones
+            $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
+            $table->foreignId('director_id')->constrained('users'); // Director que impone/resuelve
+            $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete(); // Opcional si proviene de una inspección
+
+            // Clasificación de la Infracción
+            $table->string('tipo_infraccion'); // FALTA_DECLARACION, VERTIDO_NO_AUTORIZADO, OBSTACULIZACION, etc.
+            $table->enum('gravedad', ['LEVE', 'GRAVE', 'MUY_GRAVE'])->default('LEVE');
+            $table->text('motivo_descripcion');
+            $table->text('base_legal')->nullable(); // Ej: Art. X Ordenanza de Residuos, Decreto 2.635
+
+            // Trazabilidad y Descargos
+            $table->date('fecha_incidencia');
+            $table->date('fecha_citacion')->nullable();
+            $table->date('fecha_limite_subsanacion')->nullable();
+
+            // Evidencias
+            $table->jsonb('evidencias_fiscalia')->nullable(); // Fotos o actas adjuntadas por la Alcaldía
+            $table->jsonb('evidencias_subsanacion')->nullable(); // Archivos/Fotos subidos por la Empresa para solicitar retiro
+            $table->text('observaciones_subsanacion')->nullable()->after('evidencias_subsanacion'); // Detalles escritos por la empresa para solicitar el retiro
+            $table->text('observaciones_resolucion')->nullable(); // Justificación del Director al retirar/resolver
+
+            // Estado Administrativo
+            $table->enum('estatus', [
+                'PENDIENTE_NOTIFICACION',
+                'NOTIFICADA',
+                'EN_REVISION',
+                'SUBSANADA',
+                'DESESTIMADA'
+            ])->default('PENDIENTE_NOTIFICACION');
+
+            $table->timestampTz('fecha_resolucion')->nullable();
+            $table->timestampsTz();
+        });
+
+        // 10. Módulo de Compensación Ambiental
         Schema::create('compensaciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_resolucion', 30)->unique();
@@ -487,7 +492,7 @@ return new class extends Migration
             });
         }
 
-        // 10. Tabla de Bitácora / Auditoría
+        // 11. Tabla de Bitácora / Auditoría
         Schema::create('bitacora_eventos', function (Blueprint $table) {
             $table->uuid('id')->primary();
             
@@ -530,6 +535,7 @@ return new class extends Migration
         Schema::dropIfExists('bitacora_eventos');
         Schema::dropIfExists('entregas_compensacion');
         Schema::dropIfExists('compensaciones');
+        Schema::dropIfExists('sanciones');
         Schema::dropIfExists('inspecciones');
         Schema::dropIfExists('declaracion_residuo_detalles');
         Schema::dropIfExists('declaraciones_residuos');

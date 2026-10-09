@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inspeccion;
 use App\Models\Solicitud;
 use App\Models\Denuncia;
+use App\Models\Empresa;
 use App\Models\Inspector;
 use App\Models\Compensacion;
 use App\Services\CompensacionService;
@@ -32,8 +33,14 @@ class InspeccionController extends Controller
                 ->whereIn('estatus', ['inspector_asignado', 'en_revision', 'en_inspeccion', 'requiere_reinspeccion'])
                 ->get();
 
+            // Inspecciones de empresas asignadas pendientes de veredicto
+            $inspeccionesEmpresas = Inspeccion::where('inspector_id', $inspector->id)
+                ->whereNotNull('empresa_id')
+                ->where('dictamen', 'PENDIENTE')
+                ->get();
+
             $inspeccionesRealizadas = Inspeccion::where('inspector_id', $inspector->id)
-                ->with(['solicitud', 'denuncia'])
+                ->with(['solicitud', 'denuncia', 'empresa'])
                 ->latest()
                 ->paginate(10);
         } else {
@@ -45,12 +52,18 @@ class InspeccionController extends Controller
                 ->with('inspector.user')
                 ->get();
 
-            $inspeccionesRealizadas = Inspeccion::with(['solicitud', 'denuncia', 'inspector.user'])
+            // Inspecciones de empresas pendientes globales
+            $inspeccionesEmpresas = Inspeccion::whereNotNull('empresa_id')
+                ->whereNull('dictamen')
+                ->with(['inspector.user', 'empresa'])
+                ->get();
+
+            $inspeccionesRealizadas = Inspeccion::with(['solicitud', 'denuncia', 'empresa', 'inspector.user'])
                 ->latest()
                 ->paginate(10);
         }
 
-        $asignacionesPendientes = $solicitudes->concat($denuncias);
+        $asignacionesPendientes = $solicitudes->concat($denuncias)->concat($inspeccionesEmpresas);
 
         return view('inspecciones.index', compact(
             'asignacionesPendientes',
@@ -66,6 +79,16 @@ class InspeccionController extends Controller
     {
         $user = auth()->user();
         $rol = strtolower($user->role->nombre ?? '');
+
+        // Verificamos si es una inspección directa de empresa
+        $inspeccion = Inspeccion::find($id);
+        if ($inspeccion && $inspeccion->empresa_id) {
+            if ($rol === 'inspector' && $inspeccion->inspector_id !== $user->inspector?->id) {
+                abort(403, 'No tienes permiso para actualizar esta fiscalización.');
+            }
+            return redirect()->route('inspecciones.evaluar', $inspeccion->id)
+                ->with('success', 'La orden de inspección está lista para emitir veredicto.');
+        }
 
         // Intentamos buscar primero en Solicitud; si no existe, buscamos en Denuncia
         $solicitud = Solicitud::find($id);
@@ -99,33 +122,35 @@ class InspeccionController extends Controller
         return redirect()->back()->with('success', 'El expediente ha pasado a estado "En Inspección".');
     }
 
-    public function evaluar($tipo, $id)
+    public function evaluar($id)
     {
-        if (!in_array($tipo, ['solicitud', 'denuncia'])) {
-            abort(404, 'Tipo de origen no válido.');
+        // 1. Intentar buscar si es una inspección de Empresa (Residuos)
+        $inspeccion = Inspeccion::with(['empresa', 'inspector.user'])->find($id);
+        if ($inspeccion) {
+            $tipoOrigen = 'empresa';
+            $expediente = $inspeccion;
+            return view('inspecciones.evaluar', compact('expediente', 'tipoOrigen'));
         }
 
-        if ($tipo === 'solicitud') {
-            $expediente = Solicitud::with(['solicitante', 'inspector.user'])->findOrFail($id);
-        } else {
-            $expediente = Denuncia::with(['user', 'inspector.user'])->findOrFail($id);
+        // 2. Buscar en Solicitud
+        $solicitud = Solicitud::with(['solicitante', 'inspector.user'])->find($id);
+        if ($solicitud) {
+            $tipoOrigen = 'solicitud';
+            $expediente = $solicitud;
+            return view('inspecciones.evaluar', compact('expediente', 'tipoOrigen'));
         }
 
-        $tipoOrigen = $tipo;
+        // 3. Buscar en Denuncia
+        $denuncia = Denuncia::with(['user', 'inspector.user'])->findOrFail($id);
+        $tipoOrigen = 'denuncia';
+        $expediente = $denuncia;
 
         return view('inspecciones.evaluar', compact('expediente', 'tipoOrigen'));
     }
 
     public function edit($id)
     {
-        $solicitud = Solicitud::with(['solicitante', 'inspector.user'])->find($id);
-
-        if ($solicitud) {
-            return $this->evaluar('solicitud', $solicitud->id);
-        }
-
-        $denuncia = Denuncia::with(['user', 'inspector.user'])->findOrFail($id);
-        return $this->evaluar('denuncia', $denuncia->id);
+        return $this->evaluar($id);
     }
     
     public function store(Request $request)
@@ -257,5 +282,51 @@ class InspeccionController extends Controller
 
         return redirect()->route('inspecciones.index')
             ->with('success', 'Informe y dictamen registrados exitosamente.');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'observaciones_campo' => 'required|string|min:10',
+            'dictamen' => ['required', Rule::in(['APROBADO', 'CON_OBSERVACIONES', 'RECHAZADO', 'REINSPECCION_REQUERIDA'])],
+            'recomendaciones' => 'nullable|string',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+        ]);
+
+        $inspeccion = Inspeccion::findOrFail($id);
+        $user = auth()->user();
+
+        if (strtolower($user->role->nombre ?? '') === 'inspector' && $inspeccion->inspector_id !== $user->inspector?->id) {
+            abort(403, 'No autorizado para modificar esta inspección.');
+        }
+
+        DB::transaction(function () use ($validated, $request, $inspeccion) {
+            $evidenciasPaths = $inspeccion->fotos_evidencia ?? [];
+
+            if ($request->hasFile('evidencias')) {
+                foreach ($request->file('evidencias') as $foto) {
+                    $evidenciasPaths[] = $foto->store('inspecciones/evidencias', 'public');
+                }
+            }
+
+            $inspeccion->update([
+                'fecha_visita'        => $request->fecha_visita ?? $inspeccion->fecha_visita,
+                'observaciones_campo' => $validated['observaciones_campo'],
+                'dictamen'            => $validated['dictamen'],
+                'recomendaciones'     => $validated['recomendaciones'] ?? $inspeccion->recomendaciones,
+                'fotos_evidencia'     => $evidenciasPaths,
+            ]);
+        });
+
+        return redirect()->route('inspecciones.index')
+            ->with('success', 'Fiscalización de empresa actualizada y dictamen registrado correctamente.');
+    }
+
+    public function show($id)
+    {
+        $inspeccion = Inspeccion::with(['solicitud', 'denuncia', 'empresa', 'inspector.user'])->findOrFail($id);
+
+        return view('inspecciones.show', compact('inspeccion'));
     }
 }

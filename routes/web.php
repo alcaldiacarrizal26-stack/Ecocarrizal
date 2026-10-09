@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-//Modelos Utilizados
+// Modelos Utilizados
 use App\Models\Inspector;
 
 // Controladores Generales
@@ -50,6 +50,11 @@ Route::middleware(['auth'])->group(function () {
     // Expedientes y Documentos compartidos
     Route::get('/empresas/{empresa}', [CiudadanoEmpresaController::class, 'show'])->name('empresas.show');
     Route::get('/expedientes/documentos/{documento}', [CiudadanoEmpresaController::class, 'verDocumento'])->name('expedientes.documento.ver');
+
+    // Visor Seguro de Evidencias de Sanciones (Previene error 403 Forbidden)
+    Route::get('/sanciones/evidencia/{path}', [ResiduosEmpresaController::class, 'verEvidencia'])
+        ->where('path', '.*')
+        ->name('sanciones.evidencia.ver');
 });
 
 // -------------------------------------------------------------
@@ -74,6 +79,9 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
         
         // POST de Declaraciones protegido
         Route::post('/declaraciones', [DeclaracionResiduoController::class, 'store'])->name('declaraciones.store');
+
+        // Subsanación de Sanciones por parte de la Empresa
+        Route::post('/empresas/sanciones/{sancion}/subsanar', [CiudadanoEmpresaController::class, 'subsanarSancion'])->name('empresas.sanciones.subsanar');
     });
 
     // Consultas de vista
@@ -81,6 +89,9 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     Route::get('/solicitudes', [SolicitudController::class, 'index'])->name('solicitudes');
     Route::get('/empresas', [CiudadanoEmpresaController::class, 'index'])->name('empresas');
     Route::get('/empresas/crear', [CiudadanoEmpresaController::class, 'create'])->name('empresas.create');
+    
+    // Vista Dedicada de Sanciones para el Ciudadano
+    Route::get('/empresas/sanciones', [CiudadanoEmpresaController::class, 'sancionesIndex'])->name('empresas.sanciones.index');
 
     // Vistas de Declaraciones de Residuos
     Route::get('/declaraciones', [DeclaracionResiduoController::class, 'index'])->name('declaraciones.index');
@@ -153,7 +164,7 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
             Route::get('/{empresa}/declaraciones', [ResiduosEmpresaController::class, 'declaraciones'])->name('declaraciones');
 
             // Citaciones y Sanciones Administrativas
-            Route::get('/{empresa}/sanciones', [ResiduosEmpresaController::class, 'sanciones'])->name('sanciones.index'); // <-- RUTA FALTANTE AGREGADA
+            Route::get('/{empresa}/sanciones', [ResiduosEmpresaController::class, 'sanciones'])->name('sanciones.index');
             Route::post('/{empresa}/sanciones', [ResiduosEmpresaController::class, 'asignarSancion'])->name('sanciones.store');
             Route::patch('/sanciones/{sancion}/resolver', [ResiduosEmpresaController::class, 'resolverSancion'])->name('sanciones.resolver');
         });
@@ -207,7 +218,6 @@ Route::middleware(['auth', 'role:director,inspector,admin'])->group(function () 
 Route::middleware(['auth', 'role:director,admin'])->group(function () {
     Route::get('/api/inspectores/disponibles', function (\Illuminate\Http\Request $request) {
         try {
-            // Traemos los funcionarios (Directores e Inspectores) activos con su relación
             $funcionarios = \App\Models\User::whereHas('role', function ($q) {
                     $q->whereIn('nombre', ['director', 'inspector']);
                 })
@@ -222,7 +232,7 @@ Route::middleware(['auth', 'role:director,admin'])->group(function () {
                 return [
                     'id' => $user->id,
                     'nombre' => $nombreCompleto ?: 'Usuario #' . $user->id,
-                    'cedula' => $user->cedula ?? 'S/C', // <-- Mapeo exacto de la columna 'cedula' de users
+                    'cedula' => $user->cedula ?? 'S/C',
                     'credencial' => $user->inspector->codigo_credencial ?? $rolNombre,
                     'especialidad' => $user->inspector->especialidad ?? ($user->direccion->nombre_direc ?? $rolNombre),
                     'rol' => $rolNombre,

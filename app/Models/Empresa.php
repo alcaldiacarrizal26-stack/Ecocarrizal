@@ -48,4 +48,14 @@ class Empresa extends Model
     {
         return $this->hasMany(DeclaracionResiduo::class, 'empresa_id', 'id');
     }
+
+    public function sanciones()
+    {
+        return $this->hasMany(Sancion::class, 'empresa_id');
+    }
+
+    public function inspecciones()
+    {
+        return $this->hasMany(Inspeccion::class, 'empresa_id', 'id');
+    }
 }

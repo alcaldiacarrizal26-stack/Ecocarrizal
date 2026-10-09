@@ -16,6 +16,9 @@ class Inspeccion extends Model
 
     protected $fillable = [
         'codigo_acta',
+        'tipo_inspeccion',
+        'base_legal_inspeccion',
+        'orden_adjunta_path',
         'solicitud_id',
         'denuncia_id',
         'inspector_id',
@@ -46,5 +49,15 @@ class Inspeccion extends Model
     public function denuncia(): BelongsTo
     {
         return $this->belongsTo(Denuncia::class);
+    }
+
+    public function sancion()
+    {
+        return $this->hasOne(Sancion::class, 'inspeccion_id', 'id');
+    }
+
+    public function empresa()
+    {
+        return $this->belongsTo(Empresa::class, 'empresa_id', 'id');
     }
 }
