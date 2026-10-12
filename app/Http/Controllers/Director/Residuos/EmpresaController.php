@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\Sancion;
 use App\Models\Inspeccion;
+use App\Models\OrdenInspeccion;
 use App\Models\Inspector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -18,7 +19,7 @@ class EmpresaController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Empresa::with(['user', 'perfilAmbiental']);
+        $query = Empresa::with(['user', 'perfilAmbiental', 'ordenesInspeccion', 'sanciones']);
 
         // Si viene desde la opción "Sanciones y Citaciones" del sidebar
         if ($request->get('vista') === 'sanciones') {
@@ -80,7 +81,7 @@ class EmpresaController extends Controller
             ->with('success', 'El veredicto para la empresa ' . $empresa->razon_social . ' ha sido registrado exitosamente.');
     }
 
-    public function sanciones(Empresa $empresa)
+    public function sanciones(Request $request, Empresa $empresa)
     {
         $empresa->load(['perfilAmbiental']);
         $sanciones = Sancion::where('empresa_id', $empresa->id)
@@ -88,7 +89,13 @@ class EmpresaController extends Controller
             ->latest()
             ->get();
 
-        return view('director.residuos.empresas.sanciones', compact('empresa', 'sanciones'));
+        // Si viene desde una inspección específica para sancionar directo
+        $inspeccionSugerida = null;
+        if ($request->has('inspeccion_id')) {
+            $inspeccionSugerida = Inspeccion::find($request->inspeccion_id);
+        }
+
+        return view('director.residuos.empresas.sanciones', compact('empresa', 'sanciones', 'inspeccionSugerida'));
     }
 
     /**
@@ -103,7 +110,8 @@ class EmpresaController extends Controller
             'base_legal'                => 'nullable|string',
             'fecha_incidencia'          => 'required|date',
             'fecha_citacion'            => 'nullable|date',
-            'fecha_limite_subsanacion'  => 'nullable|date|after_or_equal:fecha_incidencia',
+            'fecha_limite_subsanacion'  => 'nullable|date',
+            'inspeccion_id'             => 'nullable|uuid|exists:inspecciones,id',
             'evidencia'                 => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
@@ -111,6 +119,12 @@ class EmpresaController extends Controller
         if ($request->hasFile('evidencia')) {
             $path = $request->file('evidencia')->store('sanciones/fiscalia', 'public');
             $rutasEvidencia[] = $path;
+        } elseif ($request->filled('inspeccion_id')) {
+            // Si proviene de un acta de inspección, heredamos automáticamente las fotos de evidencia del acta
+            $inspeccionAsociada = Inspeccion::find($request->inspeccion_id);
+            if ($inspeccionAsociada && !empty($inspeccionAsociada->fotos_evidencia)) {
+                $rutasEvidencia = $inspeccionAsociada->fotos_evidencia;
+            }
         }
 
         $codigo = 'SAN-RES-' . date('Y') . '-' . strtoupper(Str::random(5));
@@ -119,6 +133,7 @@ class EmpresaController extends Controller
             'codigo_expediente'        => $codigo,
             'empresa_id'               => $empresa->id,
             'director_id'              => auth()->id(),
+            'inspeccion_id'            => $validated['inspeccion_id'] ?? null,
             'tipo_infraccion'          => $validated['tipo_infraccion'],
             'gravedad'                 => $validated['gravedad'],
             'motivo_descripcion'       => $validated['motivo_descripcion'],
@@ -130,7 +145,8 @@ class EmpresaController extends Controller
             'estatus'                  => 'NOTIFICADA',
         ]);
 
-        return redirect()->back()->with('success', "Procedimiento sancionatorio {$codigo} aperturado correctamente.");
+        return redirect()->route('director.residuos.empresas.sanciones.index', $empresa->id)
+            ->with('success', "Procedimiento sancionatorio {$codigo} aperturado y notificado correctamente.");
     }
 
     /**
@@ -151,9 +167,7 @@ class EmpresaController extends Controller
         ];
 
         if ($request->hasFile('evidencia_resolucion')) {
-            // Opcional: puedes guardar actas de cierre en un campo json o texto si lo prefieres
             $path = $request->file('evidencia_resolucion')->store("sanciones/resoluciones/{$sancion->id}", 'public');
-            // Si tienes campo para resolución, puedes agregarlo aquí
         }
 
         $sancion->update($data);
@@ -163,7 +177,6 @@ class EmpresaController extends Controller
 
     public function verEvidencia($path)
     {
-        // Limpiamos el path recibido para evitar desbordamiento de directorios
         $path = str_replace(['..', '//'], '', $path);
 
         if (!Storage::disk('public')->exists($path)) {
@@ -174,13 +187,12 @@ class EmpresaController extends Controller
     }
 
     /**
-     * Muestra el listado de inspecciones de la empresa y los inspectores disponibles.
+     * Muestra el listado de órdenes de inspección de la empresa y los inspectores disponibles.
      */
     public function inspecciones($empresaId)
     {
-        $empresa = Empresa::with(['inspecciones.inspector.user'])->findOrFail($empresaId);
+        $empresa = Empresa::with(['ordenesInspeccion.inspector.user', 'ordenesInspeccion.inspeccion'])->findOrFail($empresaId);
         
-        // Obtenemos los inspectores disponibles para el formulario
         $inspectoresDisponibles = Inspector::where('disponible', true)->with('user')->get()->map(function($insp) {
             return (object)[
                 'id' => $insp->id,
@@ -201,12 +213,11 @@ class EmpresaController extends Controller
             'tipo_inspeccion'       => 'required|in:ORDINARIA,DE_OFICIO',
             'base_legal_inspeccion' => 'required|string',
             'fecha_visita'          => 'required|date',
-            'inspector_id'          => 'required', // Recibe el valor enviado por el select (que corresponde al usuario o inspector)
+            'inspector_id'          => 'required', 
             'observaciones_campo'   => 'required|string',
             'orden_adjunta'         => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
-        // Buscamos si el ID enviado corresponde a la tabla 'inspectores' o a la tabla 'users'
         $inspector = Inspector::where('id', $request->inspector_id)
             ->orWhere('user_id', $request->inspector_id)
             ->first();
@@ -222,19 +233,41 @@ class EmpresaController extends Controller
             $path = $request->file('orden_adjunta')->store("inspecciones/ordenes/{$empresaId}", 'public');
         }
 
-        Inspeccion::create([
-            'id'                    => Str::uuid(),
-            'codigo_acta'           => 'INS-RES-' . date('Y') . '-' . strtoupper(Str::random(5)),
-            'empresa_id'            => $empresaId,
-            'inspector_id'          => $inspector->id,
-            'tipo_inspeccion'       => $request->tipo_inspeccion,
-            'base_legal_inspeccion' => $request->base_legal_inspeccion,
-            'fecha_visita'          => $request->fecha_visita,
-            'observaciones_campo'   => $request->observaciones_campo,
-            'orden_adjunta_path'    => $path,
-            'dictamen'              => null, // <-- Inicialmente sin dictamen para que aparezca como pendiente
+        OrdenInspeccion::create([
+            'id'                        => Str::uuid(),
+            'codigo_orden'              => 'ORD-RES-' . date('Y') . '-' . strtoupper(Str::random(5)),
+            'empresa_id'                => $empresaId,
+            'inspector_id'              => $inspector->id,
+            'director_id'               => auth()->id(),
+            'tipo_inspeccion'           => $request->tipo_inspeccion,
+            'base_legal_inspeccion'     => $request->base_legal_inspeccion,
+            'observaciones_campo'       => $request->observaciones_campo,
+            'orden_adjunta_path'        => $path,
+            'estatus'                   => 'inspector_asignado',
+            'fecha_visita_programada'   => $request->fecha_visita,
+            'fecha_asignacion_inspector'=> now(),
         ]);
 
         return redirect()->back()->with('success', 'Orden de inspección ambiental emitida y asignada exitosamente.');
+    }
+
+    /**
+     * Elimina una orden de inspección si aún no ha sido iniciada/atendida.
+     */
+    public function eliminarInspeccion($id)
+    {
+        $orden = OrdenInspeccion::findOrFail($id);
+
+        if (!in_array($orden->estatus, ['pendiente', 'inspector_asignado'])) {
+            return redirect()->back()->withErrors(['error' => 'No se puede eliminar una orden de inspección que ya se encuentra en curso o atendida.']);
+        }
+
+        if ($orden->orden_adjunta_path && Storage::disk('public')->exists($orden->orden_adjunta_path)) {
+            Storage::disk('public')->delete($orden->orden_adjunta_path);
+        }
+
+        $orden->delete();
+
+        return redirect()->back()->with('success', 'La orden de inspección ha sido eliminada exitosamente.');
     }
 }

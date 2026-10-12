@@ -18,6 +18,7 @@ return new class extends Migration
             "estatus_entrega_enum"         => "'PENDIENTE', 'APROBADO', 'RECHAZADO'",
             "tipo_tramite_enum"            => "'inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion', 'tala'",
             "estado_solicitud_enum"        => "'pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'aprobado', 'rechazado'",
+            "estado_orden_inspeccion_enum" => "'pendiente', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'atendido', 'desestimado'",
             "nivel_bitacora_enum"          => "'info', 'warning', 'danger', 'critical'",
             "estatus_declaracion_enum"     => "'BORRADOR', 'PRESENTADA', 'OBSERVADA', 'CONFORME'",
             "frecuencia_declaracion_enum" => "'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'",
@@ -214,14 +215,47 @@ return new class extends Migration
             $table->index('estatus');
         });
 
+        // 7. Órdenes de Inspección para Empresas (Ciclo de vida idéntico a denuncias/solicitudes)
+        Schema::create('ordenes_inspeccion', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('codigo_orden', 30)->unique(); // Ej: ORD-RES-2026-001
+            
+            $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
+            $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
+            $table->foreignId('director_id')->nullable()->constrained('users')->nullOnDelete();
+
+            $table->string('tipo_inspeccion', 30)->default('ORDINARIA'); // ORDINARIA o DE_OFICIO
+            $table->text('base_legal_inspeccion');
+            $table->text('observaciones_campo'); // Motivo o descripción de la orden
+            $table->text('orden_adjunta_path')->nullable();
+
+            $table->timestampTz('fecha_visita_programada');
+            $table->timestampTz('fecha_asignacion_inspector')->nullable();
+            $table->timestampTz('fecha_inicio_inspeccion')->nullable();
+            $table->timestampTz('fecha_cierre')->nullable();
+
+            $table->timestampsTz();
+        });
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE ordenes_inspeccion 
+                ADD COLUMN estatus estado_orden_inspeccion_enum NOT NULL DEFAULT 'inspector_asignado';
+            ");
+        } else {
+            Schema::table('ordenes_inspeccion', function (Blueprint $table) {
+                $table->enum('estatus', ['pendiente', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'atendido', 'desestimado'])->default('inspector_asignado');
+            });
+        }
+
         Schema::create('perfiles_ambientales', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
 
             // Clasificación Ambiental
-            $table->string('rol_ambiental')->default('GENERADOR'); // 'GENERADOR', 'MANEJADOR'
-            $table->string('subtipo_generador')->nullable(); // 'PEQUENO', 'MEDIANO', 'GRANDE'
-            $table->string('numero_racda')->nullable(); // Guardado directo del número RACDA si aplica
+            $table->string('rol_ambiental')->default('GENERADOR'); 
+            $table->string('subtipo_generador')->nullable(); 
+            $table->string('numero_racda')->nullable(); 
             
             // Módulos de Generación
             $table->boolean('genera_efluentes')->default(false);
@@ -230,19 +264,16 @@ return new class extends Migration
             $table->boolean('genera_ruidos')->default(false);
             $table->boolean('usa_pozo_agua')->default(false);
 
-            // Datos de Manejadora contratada (exclusivo cuando es GENERADOR)
-            $table->string('modalidad_manejadora')->nullable(); // 'PROPIA', 'EXTERNA'
+            $table->string('modalidad_manejadora')->nullable(); 
             $table->string('manejadora_contratada')->nullable();
             $table->string('manejadora_rif', 15)->nullable();
             $table->string('manejadora_racda')->nullable();
 
-            // Datos de Generador Exclusivo (exclusivo cuando es MANEJADOR)
-            $table->string('modalidad_atencion_manejador')->nullable(); // 'MULTICLIENTE', 'EXCLUSIVO'
+            $table->string('modalidad_atencion_manejador')->nullable(); 
             $table->string('generador_exclusivo_nombre')->nullable();
             $table->string('generador_exclusivo_rif', 15)->nullable();
             $table->string('generador_exclusivo_racda')->nullable();
 
-            // Residuos y Actividades
             $table->jsonb('actividades_manejador')->nullable();
             $table->text('sustancias_manejadas')->nullable();
             $table->jsonb('residuos_tipos')->nullable();
@@ -263,7 +294,6 @@ return new class extends Migration
             $table->string('numero_folio')->nullable();
             $table->text('archivo_path')->nullable();
             
-            // Vigencia y Vencimiento
             $table->date('fecha_emision')->nullable();
             $table->date('fecha_vencimiento')->nullable();
             $table->boolean('es_vitalicio')->default(false);
@@ -283,13 +313,13 @@ return new class extends Migration
             });
         }
 
-        // 7. Declaraciones de Residuos (Cabecera)
+        // 8. Declaraciones de Residuos (Cabecera)
         Schema::create('declaraciones_residuos', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users');
 
-            $table->string('rol_declarante', 20)->default('GENERADOR'); // GENERADOR o MANEJADOR
+            $table->string('rol_declarante', 20)->default('GENERADOR'); 
             $table->string('periodo', 20);
             $table->date('fecha_inicio_periodo');
             $table->date('fecha_fin_periodo');
@@ -298,14 +328,12 @@ return new class extends Migration
             $table->decimal('toneladas_reciclables', 12, 3)->default(0.000);
             $table->decimal('toneladas_peligrosas', 12, 3)->default(0.000);
 
-            // Campos para cuando declara el GENERADOR
             $table->string('manejadora_rif', 15)->nullable();
             $table->string('manejadora_nombre')->nullable();
 
-            // Campos para cuando declara el MANEJADOR
             $table->string('generador_origen_rif', 15)->nullable();
             $table->string('generador_origen_nombre')->nullable();
-            $table->string('hoja_seguimiento_numero', 50)->nullable(); // HDS / Manifiesto de carga
+            $table->string('hoja_seguimiento_numero', 50)->nullable(); 
             $table->string('vehiculo_placa', 20)->nullable();
             $table->string('destino_final_nombre')->nullable();
 
@@ -329,7 +357,6 @@ return new class extends Migration
             });
         }
 
-        // Detalles por Tipo de Residuo
         Schema::create('declaracion_residuo_detalles', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('declaracion_id')->constrained('declaraciones_residuos')->cascadeOnDelete();
@@ -363,16 +390,18 @@ return new class extends Migration
             });
         }
 
-        // 8. Inspecciones y Acta de Evaluación
+        // 9. Inspecciones y Acta de Evaluación (Unificada para Solicitudes, Denuncias y Órdenes de Empresa)
         Schema::create('inspecciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_acta', 30)->unique();
-            $table->string('tipo_inspeccion', 30)->default('ORDINARIA')->after('codigo_acta'); // ORDINARIA o DE_OFICIO
-            $table->text('base_legal_inspeccion')->nullable()->after('tipo_inspeccion');
-            $table->text('orden_adjunta_path')->nullable()->after('fotos_evidencia');
+            $table->string('tipo_inspeccion', 30)->default('ORDINARIA'); 
+            $table->text('base_legal_inspeccion')->nullable();
+            $table->text('orden_adjunta_path')->nullable();
             
             $table->foreignUuid('solicitud_id')->nullable()->constrained('solicitudes')->nullOnDelete();
             $table->foreignUuid('denuncia_id')->nullable()->constrained('denuncias')->nullOnDelete();
+            $table->foreignUuid('orden_inspeccion_id')->nullable()->constrained('ordenes_inspeccion')->nullOnDelete(); // Enlace formal a la orden de empresa
+            
             $table->foreignId('inspector_id')->constrained('inspectores')->cascadeOnDelete();
             $table->foreignUuid('empresa_id')->nullable()->constrained('empresas')->nullOnDelete();
 
@@ -396,34 +425,29 @@ return new class extends Migration
             });
         }
 
-        // 9. Sanciones y Citaciones Administrativas (Ubicar DESPUÉS de inspecciones)
+        // 10. Sanciones y Citaciones Administrativas
         Schema::create('sanciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('codigo_expediente', 30)->unique(); // Ej: SAN-RES-2026-0012
+            $table->string('codigo_expediente', 30)->unique(); 
             
-            // Relaciones
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
-            $table->foreignId('director_id')->constrained('users'); // Director que impone/resuelve
-            $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete(); // Opcional si proviene de una inspección
+            $table->foreignId('director_id')->constrained('users'); 
+            $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete(); 
 
-            // Clasificación de la Infracción
-            $table->string('tipo_infraccion'); // FALTA_DECLARACION, VERTIDO_NO_AUTORIZADO, OBSTACULIZACION, etc.
+            $table->string('tipo_infraccion'); 
             $table->enum('gravedad', ['LEVE', 'GRAVE', 'MUY_GRAVE'])->default('LEVE');
             $table->text('motivo_descripcion');
-            $table->text('base_legal')->nullable(); // Ej: Art. X Ordenanza de Residuos, Decreto 2.635
+            $table->text('base_legal')->nullable(); 
 
-            // Trazabilidad y Descargos
             $table->date('fecha_incidencia');
             $table->date('fecha_citacion')->nullable();
             $table->date('fecha_limite_subsanacion')->nullable();
 
-            // Evidencias
-            $table->jsonb('evidencias_fiscalia')->nullable(); // Fotos o actas adjuntadas por la Alcaldía
-            $table->jsonb('evidencias_subsanacion')->nullable(); // Archivos/Fotos subidos por la Empresa para solicitar retiro
-            $table->text('observaciones_subsanacion')->nullable()->after('evidencias_subsanacion'); // Detalles escritos por la empresa para solicitar el retiro
-            $table->text('observaciones_resolucion')->nullable(); // Justificación del Director al retirar/resolver
+            $table->jsonb('evidencias_fiscalia')->nullable(); 
+            $table->jsonb('evidencias_subsanacion')->nullable(); 
+            $table->text('observaciones_subsanacion')->nullable(); 
+            $table->text('observaciones_resolucion')->nullable(); 
 
-            // Estado Administrativo
             $table->enum('estatus', [
                 'PENDIENTE_NOTIFICACION',
                 'NOTIFICADA',
@@ -436,7 +460,7 @@ return new class extends Migration
             $table->timestampsTz();
         });
 
-        // 10. Módulo de Compensación Ambiental
+        // 11. Módulo de Compensación Ambiental
         Schema::create('compensaciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_resolucion', 30)->unique();
@@ -492,7 +516,7 @@ return new class extends Migration
             });
         }
 
-        // 11. Tabla de Bitácora / Auditoría
+        // 12. Tabla de Bitácora / Auditoría
         Schema::create('bitacora_eventos', function (Blueprint $table) {
             $table->uuid('id')->primary();
             
@@ -528,6 +552,20 @@ return new class extends Migration
                 $table->enum('nivel', ['info', 'warning', 'danger', 'critical'])->default('info');
             });
         }
+
+        Schema::create('tickets_soporte', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('asunto');
+            $table->text('mensaje');
+            $table->enum('prioridad', ['BAJA', 'MEDIA', 'ALTA'])->default('MEDIA');
+            $table->text('justificacion_alta')->nullable();
+            $table->string('evidencia_path')->nullable();
+            $table->enum('estatus', ['ABIERTO', 'EN_PROCESO', 'RESUELTO'])->default('ABIERTO');
+            $table->text('respuesta_admin')->nullable();
+            $table->timestamp('fecha_resolucion')->nullable();
+            $table->timestamps();
+        });
     }
 
     public function down(): void
@@ -537,6 +575,7 @@ return new class extends Migration
         Schema::dropIfExists('compensaciones');
         Schema::dropIfExists('sanciones');
         Schema::dropIfExists('inspecciones');
+        Schema::dropIfExists('ordenes_inspeccion');
         Schema::dropIfExists('declaracion_residuo_detalles');
         Schema::dropIfExists('declaraciones_residuos');
         Schema::dropIfExists('documentos_expediente');
@@ -550,11 +589,13 @@ return new class extends Migration
         Schema::dropIfExists('login_attempts');
         Schema::dropIfExists('direcciones');
         Schema::dropIfExists('roles');
+        Schema::dropIfExists('tickets_soporte');
 
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("DROP TYPE IF EXISTS nivel_bitacora_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS tipo_operacion_manejo_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS estado_solicitud_enum CASCADE");
+            DB::statement("DROP TYPE IF EXISTS estado_orden_inspeccion_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS tipo_tramite_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS estatus_entrega_enum CASCADE");
             DB::statement("DROP TYPE IF EXISTS estatus_compensacion_enum CASCADE");

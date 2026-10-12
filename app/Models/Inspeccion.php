@@ -21,7 +21,9 @@ class Inspeccion extends Model
         'orden_adjunta_path',
         'solicitud_id',
         'denuncia_id',
+        'orden_inspeccion_id',
         'inspector_id',
+        'empresa_id',
         'fecha_visita',
         'observaciones_campo',
         'hallazgos',
@@ -51,12 +53,17 @@ class Inspeccion extends Model
         return $this->belongsTo(Denuncia::class);
     }
 
+    public function ordenInspeccion(): BelongsTo
+    {
+        return $this->belongsTo(OrdenInspeccion::class, 'orden_inspeccion_id', 'id');
+    }
+
     public function sancion()
     {
         return $this->hasOne(Sancion::class, 'inspeccion_id', 'id');
     }
 
-    public function empresa()
+    public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class, 'empresa_id', 'id');
     }

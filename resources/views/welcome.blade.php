@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" x-data="{ mobileMenu: false, openAuth: false, authMode: 'login' }">
+<html lang="es" x-data="{ mobileMenu: false }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,7 +42,6 @@
         .bg-secondary { background-color: var(--color-secondary); }
         .text-secondary { color: var(--color-secondary); }
         .hover\:bg-secondary:hover { background-color: var(--color-secondary); }
-        /* Agrega más según necesites */
 
         /* Gradiente personalizado */
         .bg-gradient-soft {
@@ -64,7 +63,6 @@
             <!-- Logo -->
             <a href="#" class="flex items-center gap-3 group">
                 <div class="h-11 w-11 rounded-2xl bg-primary flex items-center justify-center font-black text-white text-2xl shadow-md shadow-primary/10 group-hover:scale-105 transition-transform">
-                    <!-- Aquí puedes poner el logo real -->
                     <img src="{{ asset('images/carrizal_logo.png') }}" alt="Logo Carrizal" class="h-10 w-10 object-contain">
                 </div>
                 <div class="flex flex-col">
@@ -81,14 +79,14 @@
                 <a href="#contacto" class="hover:text-primary transition-colors">Contacto</a>
             </nav>
 
-            <!-- Botones de acción -->
+            <!-- Botones de acción redirigidos -->
             <div class="hidden md:flex items-center gap-4">
-                <button @click="$dispatch('open-auth-modal', { mode: 'login' })" class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary transition-colors cursor-pointer">
+                <a href="{{ route('login') }}" class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary transition-colors cursor-pointer">
                     Iniciar Sesión
-                </button>
-                <button @click="$dispatch('open-auth-modal', { mode: 'register' })" class="px-5 py-2.5 text-sm font-semibold bg-primary hover:bg-secondary text-white rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-primary/30 transform active:scale-95 cursor-pointer">
+                </a>
+                <a href="{{ route('register') }}" class="px-5 py-2.5 text-sm font-semibold bg-primary hover:bg-secondary text-white rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-primary/30 transform active:scale-95 cursor-pointer">
                     Registrarse
-                </button>
+                </a>
             </div>
 
             <!-- Botón menú móvil -->
@@ -106,12 +104,12 @@
             <a href="#beneficios" @click="mobileMenu = false" class="block text-slate-700 hover:text-primary text-base font-medium">Beneficios</a>
             <a href="#contacto" @click="mobileMenu = false" class="block text-slate-700 hover:text-primary text-base font-medium">Contacto</a>
             <div class="pt-4 border-t border-slate-200 flex flex-col gap-3">
-                <button @click="openAuth = true; authMode = 'login'; mobileMenu = false" class="w-full text-center py-2.5 text-sm text-slate-600 border border-slate-300 rounded-xl font-medium hover:bg-slate-50 cursor-pointer">
+                <a href="{{ route('login') }}" class="w-full text-center py-2.5 text-sm text-slate-600 border border-slate-300 rounded-xl font-medium hover:bg-slate-50 cursor-pointer">
                     Iniciar Sesión
-                </button>
-                <button @click="openAuth = true; authMode = 'register'; mobileMenu = false" class="w-full text-center py-2.5 text-sm font-semibold bg-primary text-white rounded-xl hover:bg-secondary cursor-pointer">
+                </a>
+                <a href="{{ route('register') }}" class="w-full text-center py-2.5 text-sm font-semibold bg-primary text-white rounded-xl hover:bg-secondary cursor-pointer">
                     Registrarse
-                </button>
+                </a>
             </div>
         </div>
     </header>
@@ -120,7 +118,6 @@
     <main class="flex-1">
         <!-- HERO -->
         <section id="inicio" class="relative py-20 lg:py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
-            <!-- Elementos decorativos -->
             <div class="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
             <div class="absolute bottom-0 left-0 w-72 h-72 bg-secondary/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4 pointer-events-none"></div>
 
@@ -140,12 +137,12 @@
                 </p>
 
                 <div class="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
-                    <button @click="openAuth = true; authMode = 'register'" class="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-secondary text-white font-bold text-base rounded-xl shadow-xl shadow-primary/20 transition-all transform active:scale-95 cursor-pointer">
+                    <a href="{{ route('register') }}" class="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-secondary text-white font-bold text-base rounded-xl shadow-xl shadow-primary/20 transition-all transform active:scale-95 text-center cursor-pointer">
                         Realizar Declaración Comercial
-                    </button>
-                    <button @click="openAuth = true; authMode = 'login'" class="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-base rounded-xl border border-slate-300 transition-colors shadow-sm cursor-pointer">
+                    </a>
+                    <a href="{{ route('login') }}" class="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-base rounded-xl border border-slate-300 transition-colors shadow-sm text-center cursor-pointer">
                         Acceso Institucional
-                    </button>
+                    </a>
                 </div>
             </div>
         </section>
@@ -159,7 +156,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Tarjeta 1 -->
                     <div class="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
                         <div class="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mb-6">
                             <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -170,7 +166,6 @@
                         <p class="text-slate-600 text-sm leading-relaxed">Perfilamiento ambiental multi‑paso para establecimientos comerciales y actividades económicas locales.</p>
                     </div>
 
-                    <!-- Tarjeta 2 -->
                     <div class="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-secondary/30 transition-all duration-300 hover:-translate-y-1">
                         <div class="h-14 w-14 rounded-2xl bg-secondary/10 border border-secondary/20 text-secondary flex items-center justify-center mb-6">
                             <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -181,7 +176,6 @@
                         <p class="text-slate-600 text-sm leading-relaxed">Categorización de volumen de residuos sólidos, manejo de material orgánico y reciclaje.</p>
                     </div>
 
-                    <!-- Tarjeta 3 -->
                     <div class="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
                         <div class="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mb-6">
                             <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,9 +211,9 @@
                         </li>
                     </ul>
                     <div class="mt-8">
-                        <button @click="openAuth = true; authMode = 'register'" class="inline-block px-6 py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-xl shadow-md shadow-primary/20 transition-colors cursor-pointer">
+                        <a href="{{ route('register') }}" class="inline-block px-6 py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-xl shadow-md shadow-primary/20 transition-colors cursor-pointer">
                             Comenzar ahora
-                        </button>
+                        </a>
                     </div>
                 </div>
                 <div class="relative">
@@ -236,9 +230,9 @@
                 <h2 class="text-3xl font-extrabold text-slate-800">¿Listo para contribuir al desarrollo sustentable?</h2>
                 <p class="text-slate-600 mt-3">Regístrate y forma parte del censo ambiental de Carrizal.</p>
                 <div class="mt-6">
-                    <button @click="openAuth = true; authMode = 'register'" class="px-8 py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-xl shadow-md shadow-primary/20 transition-colors inline-block cursor-pointer">
+                    <a href="{{ route('register') }}" class="px-8 py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-xl shadow-md shadow-primary/20 transition-colors inline-block cursor-pointer">
                         Crear cuenta
-                    </button>
+                    </a>
                 </div>
             </div>
         </section>
@@ -254,9 +248,6 @@
             </div>
         </div>
     </footer>
-
-    <!-- ========== MODAL DE AUTENTICACIÓN ========== -->
-    @include('components.auth-modal')
 
 </body>
 </html>

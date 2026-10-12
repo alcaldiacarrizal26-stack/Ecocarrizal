@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+
 // Modelos Utilizados
 use App\Models\Inspector;
 
@@ -9,6 +12,7 @@ use App\Models\Inspector;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InspeccionController;
+use App\Http\Controllers\SoporteController;
 
 // Controladores Ciudadano
 use App\Http\Controllers\Ciudadano\PerfilController;
@@ -27,15 +31,29 @@ use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
 use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaController;
 use App\Http\Controllers\Director\Residuos\DeclaracionResiduoController as ResiduosDeclaracionResiduoController;
 
+// Conroladores Admin
+use App\Http\Controllers\Admin\BitacoraController;
+use App\Http\Controllers\Admin\RespaldoController;
+use App\Http\Controllers\Admin\UsuarioController;
+
 // -------------------------------------------------------------
-// Rutas Públicas (Autenticación)
+// Rutas Públicas (Autenticación por Vistas Dedicadas)
 // -------------------------------------------------------------
 Route::get('/', [AuthController::class, 'showHome'])->name('home');
 
-// Protección contra fuerza bruta en inicio de sesión y registro
-Route::middleware(['guest', 'throttle:6,1'])->group(function () {
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
-    Route::post('/register', [AuthController::class, 'register'])->name('register');
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
+
+    // Recuperación de Contraseña
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');
+    
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [ResetPasswordController::class, 'update'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -55,6 +73,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/sanciones/evidencia/{path}', [ResiduosEmpresaController::class, 'verEvidencia'])
         ->where('path', '.*')
         ->name('sanciones.evidencia.ver');
+
+    // Soporte Técnico General
+    Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
+    Route::post('/soporte', [SoporteController::class, 'store'])->name('soporte.store');
 });
 
 // -------------------------------------------------------------
@@ -99,7 +121,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
 
     // Compensación Ambiental y Soporte
     Route::get('/compensacion', [CompensacionController::class, 'index'])->name('compensacion');
-    Route::view('/soporte', 'soporte')->name('soporte');
+    Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
 });
 
 // -------------------------------------------------------------
@@ -159,6 +181,7 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
             // Fiscalización e Inspecciones
             Route::get('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'inspecciones'])->name('inspecciones.index');
             Route::post('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'asignarInspeccion'])->name('inspecciones.store');
+            Route::delete('/inspecciones/{orden}/eliminar', [ResiduosEmpresaController::class, 'eliminarInspeccion'])->name('inspecciones.destroy');
 
             // Monitoreo de Declaraciones por Empresa
             Route::get('/{empresa}/declaraciones', [ResiduosEmpresaController::class, 'declaraciones'])->name('declaraciones');
@@ -171,7 +194,7 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
     });
 
     // Soporte Director
-    Route::view('/soporte', 'soporte')->name('soporte');
+    Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
 });
 
 // -------------------------------------------------------------
@@ -182,7 +205,7 @@ Route::middleware(['auth', 'role:inspector'])->prefix('inspector')->name('inspec
         return view('inspector.dashboard', ['user' => auth()->user()]);
     })->name('dashboard');
 
-    Route::view('/soporte', 'soporte')->name('soporte');
+    Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
 });
 
 // -------------------------------------------------------------
@@ -190,10 +213,25 @@ Route::middleware(['auth', 'role:inspector'])->prefix('inspector')->name('inspec
 // -------------------------------------------------------------
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
-        return view('dashboard', ['user' => auth()->user()]);
+        return view('admin.dashboard', ['user' => auth()->user()]);
     })->name('dashboard');
     
-    Route::view('/soporte', 'soporte')->name('soporte');
+    // Soporte Admin (Buzón general y respuestas)
+    Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
+    Route::patch('/soporte/{id}/responder', [SoporteController::class, 'actualizarRespuesta'])->name('soporte.responder');
+
+    // Rutas de administración adicionales
+    Route::get('/bitacora', [BitacoraController::class, 'index'])->name('bitacora');
+
+    //Respaldos de Base de Datos
+    Route::get('/respaldos', [RespaldoController::class, 'index'])->name('respaldos');
+    Route::post('/respaldos', [RespaldoController::class, 'store'])->name('respaldos.store');
+    Route::get('/respaldos/download', [RespaldoController::class, 'download'])->name('respaldos.download');
+    Route::delete('/respaldos', [RespaldoController::class, 'destroy'])->name('respaldos.destroy');
+
+    // Gestión de Usuarios
+    Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
+    Route::patch('/usuarios/{usuario}/toggle', [UsuarioController::class, 'toggleStatus'])->name('usuarios.toggle');
 });
 
 // -------------------------------------------------------------

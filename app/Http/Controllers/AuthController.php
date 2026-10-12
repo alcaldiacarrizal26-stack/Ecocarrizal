@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Direccion;
+use App\Models\BitacoraEvento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -20,6 +21,22 @@ class AuthController extends Controller
     public function showHome()
     {
         return view('welcome');
+    }
+
+    /**
+     * Muestra la vista dedicada de inicio de sesión.
+     */
+    public function showLogin()
+    {
+        return view('auth.login');
+    }
+
+    /**
+     * Muestra la vista dedicada de registro.
+     */
+    public function showRegister()
+    {
+        return view('auth.register');
     }
 
     /**
@@ -40,9 +57,28 @@ class AuthController extends Controller
         if (Auth::attempt($attemptData, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
+            $user = Auth::user();
+
+            // Registro en la Bitácora de Auditoría para el Login exitoso
+            BitacoraEvento::registrar([
+                'modulo'      => 'auth',
+                'tipo_evento' => 'LOGIN',
+                'nivel'       => 'info',
+                'descripcion' => "El usuario {$user->nombre} {$user->apellido} ha iniciado sesión en el sistema.",
+                'model'       => $user,
+            ]);
+
             // Redirige al controlador central (DashboardController) que despacha la vista según rol
-            return redirect()->intended('/dashboard')->with('success', '¡Bienvenido de nuevo, ' . Auth::user()->nombre . '!');
+            return redirect()->intended('/dashboard')->with('success', '¡Bienvenido de nuevo, ' . $user->nombre . '!');
         }
+
+        // Registro de intento fallido en bitácora por seguridad
+        BitacoraEvento::registrar([
+            'modulo'      => 'auth',
+            'tipo_evento' => 'LOGIN_FALLIDO',
+            'nivel'       => 'warning',
+            'descripcion' => "Intento fallido de inicio de sesión para el correo: {$credentials['correo']}.",
+        ]);
 
         return back()->withErrors([
             'correo' => 'Las credenciales proporcionadas no coinciden con nuestros registros.',
@@ -95,6 +131,15 @@ class AuthController extends Controller
 
             Auth::login($user);
 
+            // Registro en la Bitácora de Auditoría para el Registro exitoso
+            BitacoraEvento::registrar([
+                'modulo'      => 'auth',
+                'tipo_evento' => 'REGISTER',
+                'nivel'       => 'info',
+                'descripcion' => "Nuevo usuario registrado y autenticado: {$user->nombre} {$user->apellido} ({$user->correo}).",
+                'model'       => $user,
+            ]);
+
             return redirect()->to('/dashboard')->with('success', '¡Usuario creado exitosamente!');
         }) ?: back()->withErrors(['correo' => 'Se está procesando una solicitud idéntica. Por favor espera un momento.'])->withInput();
     }
@@ -104,6 +149,19 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = Auth::user();
+
+        if ($user) {
+            // Registro en la Bitácora de Auditoría para el Cierre de Sesión
+            BitacoraEvento::registrar([
+                'modulo'      => 'auth',
+                'tipo_evento' => 'LOGOUT',
+                'nivel'       => 'info',
+                'descripcion' => "El usuario {$user->nombre} {$user->apellido} cerró sesión en el sistema.",
+                'model'       => $user,
+            ]);
+        }
+
         Auth::logout();
 
         $request->session()->invalidate();

@@ -119,4 +119,9 @@ class User extends Authenticatable
     {
         return $this->empresa && $this->empresa->estatus === 'APROBADO';
     }
+
+    public function getEmailForPasswordReset()
+    {
+        return $this->correo;
+    }
 }

@@ -16,16 +16,18 @@
         default => 'ciudadano',
     };
 
-    // Determinación de visibilidad de áreas
+    // Determinación estricta de visibilidad de áreas
     $esAdmin = in_array($rol, ['admin', 'administrador']);
-    $verAmbiente = $esAdmin || $direccionId === 1 || $rol === 'director_ambiente' || $rol === 'director';
-    $verResiduos = $esAdmin || $direccionId === 2 || $rol === 'director_residuos' || $rol === 'director';
+    
+    // El Administrador maestro NO es director operativo, por lo tanto no debe ver por defecto las secciones de directores a menos que sea un director real.
+    $verAmbiente = !$esAdmin && ($rol === 'director_ambiente' || ($rol === 'director' && $direccionId === 1));
+    $verResiduos = !$esAdmin && ($rol === 'director_residuos' || ($rol === 'director' && $direccionId === 2));
 
-    // Ruta del Dashboard dinámico según rol y permisos
+    // Ruta del Dashboard dinámico según el rol correspondiente
     $dashboardRoute = match(true) {
         $prefix === 'admin' => Route::has('admin.dashboard') ? route('admin.dashboard') : url('/admin/dashboard'),
         $prefix === 'inspector' => Route::has('inspector.dashboard') ? route('inspector.dashboard') : url('/inspector/dashboard'),
-        $prefix === 'director' && $verResiduos && !$verAmbiente => Route::has('director.residuos.dashboard') ? route('director.residuos.dashboard') : url('/director/residuos/dashboard'),
+        $prefix === 'director' && $verResiduos => Route::has('director.residuos.dashboard') ? route('director.residuos.dashboard') : url('/director/residuos/dashboard'),
         $prefix === 'director' => Route::has('director.ambiente.dashboard') ? route('director.ambiente.dashboard') : url('/director/ambiente/dashboard'),
         default => Route::has('ciudadano.dashboard') ? route('ciudadano.dashboard') : url('/ciudadano/dashboard'),
     };
@@ -36,6 +38,10 @@
     if (is_null($currentActive) || $currentActive === '') {
         if (request()->routeIs('*.dashboard') || request()->is('*/dashboard')) {
             $currentActive = 'inicio';
+        } elseif (request()->routeIs('admin.bitacora*') || request()->is('admin/bitacora*')) {
+            $currentActive = 'admin_bitacora';
+        } elseif (request()->routeIs('admin.respaldos*') || request()->is('admin/respaldos*')) {
+            $currentActive = 'admin_respaldos';
         } elseif (request()->routeIs('director.residuos.empresas.sanciones*') || request()->is('director/residuos/empresas/*/sanciones*')) {
             $currentActive = 'residuos_sanciones';
         } elseif (request()->routeIs('director.residuos.declaraciones*') || request()->is('director/residuos/declaraciones*')) {
@@ -67,8 +73,8 @@
         }
     }
 
-    // Ruta de soporte adaptada por rol
-    $soporteRoute = Route::has("{$prefix}.soporte") ? route("{$prefix}.soporte") : url("/{$prefix}/soporte");
+    // Ruta de soporte adaptada de forma segura
+    $soporteRoute = Route::has("{$prefix}.soporte") ? route("{$prefix}.soporte") : (Route::has('soporte') ? route('soporte') : url('/soporte'));
 @endphp
 
 <!-- Overlay para pantallas móviles -->
@@ -125,7 +131,7 @@
                 </a>
 
                 <a href="{{ Route::has('ciudadano.compensacion') ? route('ciudadano.compensacion') : url('/ciudadano/compensacion') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'compensacion' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span>Compensación Ambiental</span>
                 </a>
 
@@ -145,7 +151,6 @@
                         <span class="truncate">{{ $empresa->razon_social ?? 'Mi Empresa' }}</span>
                     </a>
 
-                    {{-- Acceso a Declaraciones para Empresa Aprobada --}}
                     <a href="{{ Route::has('ciudadano.declaraciones.index') ? route('ciudadano.declaraciones.index') : url('/ciudadano/declaraciones') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'declaraciones' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <span>Declaración Residuos</span>
@@ -183,12 +188,38 @@
             @endif
 
             {{-- ================================================= --}}
-            {{-- 3. MENÚ DIRECTOR / ADMINISTRADOR                  --}}
+            {{-- 3. MENÚ ADMINISTRADOR MASTER                        --}}
             {{-- ================================================= --}}
-            @if(in_array($prefix, ['director', 'admin']))
+            @if($prefix === 'admin')
                 <a href="{{ $dashboardRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 00-1 1m-6 0h6"/></svg>
-                    <span>Inicio</span>
+                    <span>Inicio Admin</span>
+                </a>
+
+                <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
+                    Administración Sistema
+                </div>
+                <a href="{{ Route::has('admin.bitacora') ? route('admin.bitacora') : url('/admin/bitacora') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'admin_bitacora' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                    <span>Bitácora Auditoría</span>
+                </a>
+                <a href="{{ Route::has('admin.respaldos') ? route('admin.respaldos') : url('/admin/respaldos') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'admin_respaldos' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                    <span>Respaldos Base de Datos</span>
+                </a>
+                <a href="{{ route('admin.usuarios.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'admin_usuarios' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    <span>Gestión de Usuarios</span>
+                </a>
+            @endif
+
+            {{-- ================================================= --}}
+            {{-- 4. MENÚ DIRECTOR OPERATIVO                        --}}
+            {{-- ================================================= --}}
+            @if($prefix === 'director')
+                <a href="{{ $dashboardRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 00-1 1m-6 0h6"/></svg>
+                    <span>Inicio Director</span>
                 </a>
 
                 {{-- Dirección de Ambiente --}}
@@ -230,7 +261,7 @@
                     </a>
                 @endif
 
-                {{-- Módulo Campo compartido para Directores y Admin --}}
+                {{-- Módulo Campo compartido para Directores --}}
                 <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
                     Módulo Campo
                 </div>

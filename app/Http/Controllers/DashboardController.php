@@ -46,21 +46,29 @@ class DashboardController extends Controller
     }
 
     /**
-     * Método final para renderizar el Dashboard de Residuos
+     * Método seguro para renderizar el Dashboard de Residuos
      */
     public function dashboardResiduos()
     {
         $user = Auth::user();
+        $rolNombre = strtolower($user->role->nombre ?? '');
+        $esAdmin = in_array($rolNombre, ['admin', 'administrador']);
+        $esDirectorResiduos = ($user->direccion_id === 2 || $rolNombre === 'director_residuos');
+
+        // Blindaje de seguridad: Solo el admin o el director de residuos pueden ver este panel
+        if (!$esAdmin && !$esDirectorResiduos) {
+            abort(403, 'No tienes autorización para acceder al panel de la Dirección de Manejo de Residuos.');
+        }
 
         $stats = [
-            'pendientes' => Empresa::where('estatus', 'PENDIENTE_APROBACION')->count(),
+            'pendientes' => Empresa::whereIn('estatus', ['PENDIENTE', 'PENDIENTE_APROBACION'])->count(),
             'aprobadas'  => Empresa::where('estatus', 'APROBADO')->count(),
             'rechazadas' => Empresa::where('estatus', 'RECHAZADO')->count(),
             'total'      => Empresa::count(),
         ];
 
         $empresasPendientes = Empresa::with(['user', 'perfilAmbiental'])
-            ->where('estatus', 'PENDIENTE_APROBACION')
+            ->whereIn('estatus', ['PENDIENTE', 'PENDIENTE_APROBACION'])
             ->latest()
             ->get();
 

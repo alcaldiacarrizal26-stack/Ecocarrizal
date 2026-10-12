@@ -40,7 +40,7 @@
                 <table class="w-full text-left text-sm text-slate-600">
                     <thead class="bg-slate-50 text-slate-700 uppercase text-xs font-semibold">
                         <tr>
-                            <th class="px-4 py-3">Código / Acta</th>
+                            <th class="px-4 py-3">Código / Orden</th>
                             <th class="px-4 py-3">Tipo / Origen</th>
                             <th class="px-4 py-3">Entidad / Ubicación</th>
                             <th class="px-4 py-3">Estado</th>
@@ -51,12 +51,12 @@
                         @forelse($asignacionesPendientes as $item)
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 font-medium text-slate-900 font-mono">
-                                    {{ $item->codigo_acta ?? $item->codigo_expediente ?? $item->codigo }}
+                                    {{ $item->codigo_orden ?? $item->codigo_expediente ?? $item->codigo ?? 'N/A' }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    @if(isset($item->empresa_id))
+                                    @if(isset($item->codigo_orden))
                                         <span class="px-2 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                            Fiscalización Residuos: {{ $item->tipo_inspeccion ?? 'ORDINARIA' }}
+                                            Fiscalización Residuos: {{ $item->tipo_inspeccion }}
                                         </span>
                                     @elseif(isset($item->tipo_tramite))
                                         <span class="px-2 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">
@@ -81,7 +81,7 @@
                                         $estadoValor = $item->estado ?? $item->estatus ?? 'pendiente';
                                         $statusClasses = match($estadoValor) {
                                             'en_inspeccion' => 'bg-indigo-100 text-indigo-800 border border-indigo-200',
-                                            'inspector_asignado', 'CON_OBSERVACIONES' => 'bg-sky-100 text-sky-800',
+                                            'inspector_asignado' => 'bg-sky-100 text-sky-800',
                                             'pendiente' => 'bg-amber-100 text-amber-800',
                                             default => 'bg-slate-100 text-slate-800'
                                         };
@@ -91,7 +91,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right flex items-center justify-end gap-2">
-                                    @if(isset($item->empresa_id) || $estadoValor === 'inspector_asignado')
+                                    @if($estadoValor === 'inspector_asignado')
                                         <form action="{{ route('inspecciones.iniciar-revision', $item->id) }}" method="POST">
                                             @csrf
                                             @method('PATCH')
@@ -129,7 +129,7 @@
                         <tr>
                             <th class="px-4 py-3">N° Acta</th>
                             <th class="px-4 py-3">Fecha Visita</th>
-                            <th class="px-4 py-3">Empresa / Origen</th>
+                            <th class="px-4 py-3">Entidad / Origen</th>
                             <th class="px-4 py-3">Inspector</th>
                             <th class="px-4 py-3">Dictamen</th>
                             <th class="px-4 py-3 text-right">Acción</th>
@@ -145,7 +145,7 @@
                                     {{ \Carbon\Carbon::parse($inspeccion->fecha_visita)->format('d/m/Y') }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ $inspeccion->empresa->razon_social ?? 'Trámite / Denuncia General' }}
+                                    {{ $inspeccion->ordenInspeccion->empresa->razon_social ?? $inspeccion->empresa->razon_social ?? 'Trámite / Denuncia General' }}
                                 </td>
                                 <td class="px-4 py-3">
                                     {{ $inspeccion->inspector->user->nombre ?? 'N/A' }} {{ $inspeccion->inspector->user->apellido ?? '' }}

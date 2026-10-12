@@ -146,10 +146,10 @@
                                 <td class="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
                                     <!-- Botón Inspecciones -->
                                     @php
-                                        $totalInspecciones = $empresa->inspecciones ? $empresa->inspecciones->count() : 0;
+                                        $totalInspecciones = $empresa->ordenesInspeccion ? $empresa->ordenesInspeccion->count() : 0;
                                     @endphp
                                     <a href="{{ route('director.residuos.empresas.inspecciones.index', $empresa) }}" 
-                                       class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold rounded-lg text-xs transition-colors inline-flex items-center gap-1">
+                                    class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold rounded-lg text-xs transition-colors inline-flex items-center gap-1">
                                         <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"/></svg>
                                         <span>Inspecciones</span>
                                         <span class="px-1.5 py-0.2 text-[10px] bg-blue-200/70 text-blue-800 rounded-full font-mono">{{ $totalInspecciones }}</span>

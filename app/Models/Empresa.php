@@ -58,4 +58,9 @@ class Empresa extends Model
     {
         return $this->hasMany(Inspeccion::class, 'empresa_id', 'id');
     }
+
+    public function ordenesInspeccion(): HasMany
+    {
+        return $this->hasMany(OrdenInspeccion::class, 'empresa_id', 'id');
+    }
 }
