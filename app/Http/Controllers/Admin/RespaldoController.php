@@ -28,7 +28,7 @@ class RespaldoController extends Controller
             ->sortByDesc('fecha')
             ->values();
 
-        return view('admin.respaldos.index', compact('archivos'));
+        return view('admin.respaldos', compact('archivos'));
     }
 
     public function store(Request $request)

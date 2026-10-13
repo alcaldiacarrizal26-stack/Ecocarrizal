@@ -16,7 +16,7 @@ class SoporteController extends Controller
         if (in_array($rol, ['admin', 'administrador'])) {
             // El admin ve todos los tickets del sistema
             $tickets = TicketSoporte::with('user.role')->latest()->paginate(10);
-            return view('admin.soporte.index', compact('tickets'));
+            return view('admin.soporte', compact('tickets'));
         }
 
         // Los demás usuarios solo ven sus propios tickets

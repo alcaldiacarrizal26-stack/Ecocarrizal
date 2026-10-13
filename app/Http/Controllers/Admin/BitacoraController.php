@@ -15,7 +15,7 @@ class BitacoraController extends Controller
         if (!$request->filled('fecha_desde') || !$request->filled('fecha_hasta')) {
             $bitacoras = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
             $modulos = BitacoraEvento::select('modulo')->distinct()->pluck('modulo');
-            return view('admin.bitacora.index', compact('bitacoras', 'modulos'));
+            return view('admin.bitacora', compact('bitacoras', 'modulos'));
         }
 
         $query = BitacoraEvento::with('user.role')->latest();
@@ -45,6 +45,6 @@ class BitacoraController extends Controller
         $bitacoras = $query->paginate(15)->withQueryString();
         $modulos = BitacoraEvento::select('modulo')->distinct()->pluck('modulo');
 
-        return view('admin.bitacora.index', compact('bitacoras', 'modulos'));
+        return view('admin.bitacora', compact('bitacoras', 'modulos'));
     }
 }

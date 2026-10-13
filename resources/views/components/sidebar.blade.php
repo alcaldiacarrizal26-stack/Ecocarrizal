@@ -11,6 +11,7 @@
     // Mapeo de prefijos según el rol
     $prefix = match(true) {
         in_array($rol, ['admin', 'administrador']) => 'admin',
+        in_array($rol, ['alcaldesa']) => 'alcaldesa', // <--- Añadido
         in_array($rol, ['director', 'director_ambiente', 'director_residuos']) => 'director',
         $rol === 'inspector' => 'inspector',
         default => 'ciudadano',
@@ -26,6 +27,7 @@
     // Ruta del Dashboard dinámico según el rol correspondiente
     $dashboardRoute = match(true) {
         $prefix === 'admin' => Route::has('admin.dashboard') ? route('admin.dashboard') : url('/admin/dashboard'),
+        $prefix === 'alcaldesa' => Route::has('alcaldesa.reportes') ? route('alcaldesa.reportes') : url('/alcaldesa/reportes'),
         $prefix === 'inspector' => Route::has('inspector.dashboard') ? route('inspector.dashboard') : url('/inspector/dashboard'),
         $prefix === 'director' && $verResiduos => Route::has('director.residuos.dashboard') ? route('director.residuos.dashboard') : url('/director/residuos/dashboard'),
         $prefix === 'director' => Route::has('director.ambiente.dashboard') ? route('director.ambiente.dashboard') : url('/director/ambiente/dashboard'),
@@ -268,6 +270,35 @@
                 <a href="{{ Route::has('inspecciones.index') ? route('inspecciones.index') : url('/inspecciones') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inspecciones' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                     <span>Inspecciones de Campo</span>
+                </a>
+            @endif
+
+            {{-- ================================================= --}}
+            {{-- 5. MENÚ ALCALDESA / DESPACHO EJECUTIVO            --}}
+            {{-- ================================================= --}}
+            @if($prefix === 'alcaldesa')
+                <div class="pt-2 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
+                    Despacho Ejecutivo
+                </div>
+
+                <a href="{{ route('alcaldesa.reportes') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'reportes' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span>Resumen Ejecutivo</span>
+                </a>
+
+                <a href="{{ route('alcaldesa.ambiente') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'alcaldesa_ambiente' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                    <span>Gestión Ambiental</span>
+                </a>
+
+                <a href="{{ route('alcaldesa.residuos') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'alcaldesa_residuos' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/></svg>
+                    <span>Manejo de Residuos</span>
+                </a>
+
+                <a href="{{ route('alcaldesa.poderPopular') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'alcaldesa_poder_popular' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    <span>Poder Popular / Comunas</span>
                 </a>
             @endif
 

@@ -31,6 +31,9 @@ use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
 use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaController;
 use App\Http\Controllers\Director\Residuos\DeclaracionResiduoController as ResiduosDeclaracionResiduoController;
 
+// Controladores Alcaldesa
+use App\Http\Controllers\Alcaldesa\ReporteController as AlcaldesaReporteController;
+
 // Conroladores Admin
 use App\Http\Controllers\Admin\BitacoraController;
 use App\Http\Controllers\Admin\RespaldoController;
@@ -234,6 +237,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::patch('/usuarios/{usuario}/toggle', [UsuarioController::class, 'toggleStatus'])->name('usuarios.toggle');
 });
 
+// -------------------------------------------------------------
+// Panel Alcaldesa (Acceso a Reportes y Métricas)
+// -------------------------------------------------------------
+
+Route::middleware(['auth', 'role:alcaldesa,admin'])->prefix('alcaldesa')->name('alcaldesa.')->group(function () {
+    Route::get('/reportes', [AlcaldesaReporteController::class, 'index'])->name('reportes');
+    Route::get('/ambiente', [AlcaldesaReporteController::class, 'ambiente'])->name('ambiente');
+    Route::get('/residuos', [AlcaldesaReporteController::class, 'residuos'])->name('residuos');
+    Route::get('/poder-popular', [AlcaldesaReporteController::class, 'poderPopular'])->name('poderPopular');
+});
 // -------------------------------------------------------------
 // Módulo Compartido de Inspecciones (Directores, Inspectores y Admins)
 // -------------------------------------------------------------

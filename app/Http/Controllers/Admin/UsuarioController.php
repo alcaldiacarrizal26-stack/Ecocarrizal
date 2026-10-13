@@ -38,7 +38,7 @@ class UsuarioController extends Controller
         $usuarios = $query->paginate(15)->withQueryString();
         $roles = Role::all();
 
-        return view('admin.usuarios.index', compact('usuarios', 'roles'));
+        return view('admin.usuarios', compact('usuarios', 'roles'));
     }
 
     public function toggleStatus(User $usuario)

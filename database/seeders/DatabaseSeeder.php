@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             ['id_roles' => 2, 'nombre' => 'director', 'descripcion' => 'Director de línea', 'created_at' => now()],
             ['id_roles' => 3, 'nombre' => 'inspector', 'descripcion' => 'Inspector ambiental', 'created_at' => now()],
             ['id_roles' => 4, 'nombre' => 'ciudadano', 'descripcion' => 'Ciudadano / Usuario externo', 'created_at' => now()],
+            ['id_roles' => 5, 'nombre' => 'alcaldesa', 'descripcion' => 'Despacho Ejecutivo / Alcaldesa', 'created_at' => now()],
         ]);
 
         // 2. Direcciones
@@ -24,7 +25,7 @@ class DatabaseSeeder extends Seeder
             ['id_direccion' => 2, 'nombre_direc' => 'Dirección de Residuos', 'descripcion_direc' => 'Control Residual de las empresas', 'created_at' => now()],
         ]);
 
-        // 3. Usuario Ciudadano (Rol 4)
+        // 3. Usuario Ciudadano (Rol 4 - Sin dirección)[cite: 7]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-30541863'],
             [
@@ -42,12 +43,12 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 4. Usuario Administrador (Rol 1)
+        // 4. Usuario Administrador (Rol 1 - Sin dirección)[cite: 7]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-12345678'],
             [
                 'role_id' => 1,
-                'direccion_id' => 1,
+                'direccion_id' => null,
                 'telefono' => '04121234567',
                 'nombre' => 'Admin',
                 'apellido' => 'Ecosocialismo',
@@ -60,7 +61,25 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 5. Usuario Director (Rol 2 - Dirección de Ambiente)
+        // 5. Usuario Alcaldesa (Rol 5 - Sin dirección)[cite: 7]
+        DB::table('users')->updateOrInsert(
+            ['cedula' => 'V-00000001'],
+            [
+                'role_id' => 5,
+                'direccion_id' => null,
+                'telefono' => '04120000000',
+                'nombre' => 'Alcaldesa',
+                'apellido' => 'Municipal',
+                'correo' => 'alcaldesa@carrizal.gob.ve',
+                'password' => Hash::make('password123'),
+                'accepted_terms' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // 6. Usuario Director (Rol 2 - Dirección de Ambiente - Sí lleva dirección)[cite: 7]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-87654321'],
             [
@@ -78,7 +97,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 6. Usuario Director (Rol 2 - Dirección de Residuos)
+        // 7. Usuario Director (Rol 2 - Dirección de Residuos - Sí lleva dirección)[cite: 7]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-98765432'],
             [
@@ -96,7 +115,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 7. Usuario Inspector (Rol 3 - Dirección de Ambiente)
+        // 8. Usuario Inspector (Rol 3 - Dirección de Ambiente - Sí lleva dirección)[cite: 7]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-11223344'],
             [
@@ -114,7 +133,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 8. Registro en la tabla de inspectores
+        // 9. Registro en la tabla de inspectores[cite: 7]
         $inspectorUser = DB::table('users')->where('cedula', 'V-11223344')->first();
 
         if ($inspectorUser) {
@@ -129,7 +148,7 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 9. Ajustar secuencias de ID en PostgreSQL
+        // 10. Ajustar secuencias de ID en PostgreSQL[cite: 7]
         DB::statement("SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1)) FROM users;");
         
         if (DB::getDriverName() === 'pgsql') {
