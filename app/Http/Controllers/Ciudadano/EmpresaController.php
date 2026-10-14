@@ -290,4 +290,42 @@ class EmpresaController extends Controller
 
         abort(404, 'El archivo solicitado no existe en el servidor.');
     }
+
+    public function renovarDocumento(Request $request, DocumentoExpediente $documento)
+    {
+        $user = auth()->user();
+
+        // Validar que el documento pertenezca a la empresa del ciudadano autenticado
+        if ($documento->empresa->user_id !== $user->id) {
+            abort(403, 'No tienes autorización para realizar esta acción.');
+        }
+
+        $request->validate([
+            'archivo'           => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'fecha_emision'     => 'required|date',
+            'fecha_vencimiento' => 'nullable|date',
+            'es_vitalicio'      => 'nullable|boolean',
+        ]);
+
+        $vitalicio = filter_var($request->input('es_vitalicio', false), FILTER_VALIDATE_BOOLEAN);
+
+        // Opcional: eliminar el archivo anterior si deseas liberar espacio
+        if ($documento->archivo_path && Storage::disk('public')->exists($documento->archivo_path)) {
+            Storage::disk('public')->delete($documento->archivo_path);
+        }
+
+        // Guardar nuevo archivo
+        $path = $request->file('archivo')->store("expedientes/{$documento->empresa_id}", 'public');
+
+        // Actualizar registro del documento
+        $documento->update([
+            'archivo_path'      => $path,
+            'fecha_emision'     => $request->fecha_emision,
+            'fecha_vencimiento' => $vitalicio ? null : $request->fecha_vencimiento,
+            'es_vitalicio'      => $vitalicio,
+            'estado_revision'   => 'PENDIENTE', // Pasa a revisión nuevamente por el analista/director
+        ]);
+
+        return redirect()->route('ciudadano.empresas')->with('success', 'Documento actualizado y enviado a revisión correctamente.');
+    }
 }

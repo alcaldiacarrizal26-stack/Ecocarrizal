@@ -93,6 +93,10 @@
             ));
         }
 
+        if (!is_array($residuosUnificados)) {
+            $residuosUnificados = [];
+        }
+
         $actividadesManejador = [];
         if ($perfil && $perfil->actividades_manejador) {
             if (is_array($perfil->actividades_manejador)) {
@@ -150,11 +154,11 @@
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Modalidad de Recolección y Logística</h3>
 
                 @if(($perfil->rol_ambiental ?? 'GENERADOR') === 'GENERADOR')
-                    @php $modalidad = $perfil->modalidad_manejadora ?? 'PROPIA'; @endphp
+                    @php $modalidad = strtoupper(trim($perfil->modalidad_manejadora ?? 'PROPIA')); @endphp
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                         <div class="p-3 bg-white rounded-xl border border-slate-200">
                             <span class="text-slate-400 block mb-1">Esquema Operativo:</span>
-                            @if($modalidad === 'PROPIA')
+                            @if($modalidad === 'PROPIA' || $modalidad === 'INTERNA')
                                 <span class="font-bold text-slate-700">Manejo Propio (Autogestión Interna)</span>
                             @else
                                 <span class="font-bold text-indigo-600">Contrata Empresa Manejadora Externa</span>
@@ -177,9 +181,11 @@
                     <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tipos de Residuos Declarados:</span>
                     <div class="flex flex-wrap gap-1.5">
                         @foreach($residuosUnificados as $tipo)
-                            <span class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 rounded-lg border border-slate-200">
-                                {{ str_replace(['_', '"', '[', ']'], [' ', '', '', ''], $tipo) }}
-                            </span>
+                            @if(is_string($tipo))
+                                <span class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 rounded-lg border border-slate-200">
+                                    {{ str_replace(['_', '"', '[', ']'], [' ', '', '', ''], $tipo) }}
+                                </span>
+                            @endif
                         @endforeach
                     </div>
                 </div>
@@ -203,8 +209,8 @@
                                     {{ $doc->nombre_requisito }}
                                 </p>
                                 <span class="px-2 py-0.5 text-[9px] font-bold uppercase rounded-md border 
-                                    {{ $doc->estado === 'APROBADO' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200' }}">
-                                    {{ $doc->estado ?? 'PENDIENTE' }}
+                                    {{ ($doc->estado_revision ?? $doc->estado) === 'VALIDO' || ($doc->estado_revision ?? $doc->estado) === 'APROBADO' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200' }}">
+                                    {{ $doc->estado_revision ?? $doc->estado ?? 'PENDIENTE' }}
                                 </span>
                             </div>
                             <p class="text-[11px] text-slate-400 mt-0.5 font-mono">Cod: {{ $doc->codigo_requisito }}</p>
@@ -277,28 +283,35 @@
     <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h2 class="text-xs font-bold uppercase tracking-wider text-rose-600">Control de Sanciones e Infracciones</h2>
-            <span class="text-xs font-bold text-slate-600">Total: {{ method_exists($empresa, 'sanciones') ? $empresa->sanciones->count() : 0 }}</span>
+            <span class="text-xs font-bold text-slate-600">Total: {{ $empresa->sanciones ? $empresa->sanciones->count() : 0 }}</span>
         </div>
 
-        @if(method_exists($empresa, 'sanciones') && $empresa->sanciones && $empresa->sanciones->count() > 0)
+        @if($empresa->sanciones && $empresa->sanciones->count() > 0)
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead>
                         <tr class="border-b border-slate-100 text-slate-400 uppercase text-[10px] font-bold">
                             <th class="py-2 px-3">Código</th>
-                            <th class="py-2 px-3">Motivo / Infracción</th>
-                            <th class="py-2 px-3">Monto</th>
-                            <th class="py-2 px-3">Fecha</th>
+                            <th class="py-2 px-3">Tipo / Motivo</th>
+                            <th class="py-2 px-3">Gravedad</th>
+                            <th class="py-2 px-3">Fecha Incidencia</th>
                             <th class="py-2 px-3">Estatus</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50 text-slate-700">
                         @foreach($empresa->sanciones as $sancion)
                             <tr class="hover:bg-slate-50/50 transition">
-                                <td class="py-3 px-3 font-bold font-mono text-rose-600">{{ $sancion->codigo ?? 'N/A' }}</td>
-                                <td class="py-3 px-3">{{ $sancion->motivo ?? $sancion->descripcion }}</td>
-                                <td class="py-3 px-3 font-mono font-bold">{{ $sancion->monto ? number_format($sancion->monto, 2) : 'N/A' }}</td>
-                                <td class="py-3 px-3 text-slate-400">{{ $sancion->created_at?->format('d/m/Y') }}</td>
+                                <td class="py-3 px-3 font-bold font-mono text-rose-600">{{ $sancion->codigo_expediente ?? 'N/A' }}</td>
+                                <td class="py-3 px-3">
+                                    <strong class="block text-slate-800">{{ $sancion->tipo_infraccion }}</strong>
+                                    <span class="text-[11px] text-slate-500">{{ $sancion->motivo_descripcion }}</span>
+                                </td>
+                                <td class="py-3 px-3">
+                                    <span class="px-2 py-0.5 text-[10px] font-bold rounded uppercase bg-rose-100 text-rose-800">
+                                        {{ $sancion->gravedad }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3 text-slate-500">{{ $sancion->fecha_incidencia ? \Carbon\Carbon::parse($sancion->fecha_incidencia)->format('d/m/Y') : 'N/A' }}</td>
                                 <td class="py-3 px-3">
                                     <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-rose-50 text-rose-700">
                                         {{ $sancion->estatus ?? 'ACTIVA' }}

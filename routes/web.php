@@ -115,8 +115,9 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     Route::get('/empresas', [CiudadanoEmpresaController::class, 'index'])->name('empresas');
     Route::get('/empresas/crear', [CiudadanoEmpresaController::class, 'create'])->name('empresas.create');
     
-    // Vista Dedicada de Sanciones para el Ciudadano
+    // Vista Dedicada de Sanciones para el Ciudadano y Renovación de Documentos
     Route::get('/empresas/sanciones', [CiudadanoEmpresaController::class, 'sancionesIndex'])->name('empresas.sanciones.index');
+    Route::post('/empresas/documentos/{documento}/renovar', [CiudadanoEmpresaController::class, 'renovarDocumento'])->name('empresas.documentos.renovar');
 
     // Vistas de Declaraciones de Residuos
     Route::get('/declaraciones', [DeclaracionResiduoController::class, 'index'])->name('declaraciones.index');

@@ -47,8 +47,14 @@ class EmpresaController extends Controller
      */
     public function show($id)
     {
-        // Cargamos las relaciones exactamente como están definidas en Empresa.php
-        $empresa = Empresa::with(['perfilAmbiental', 'documentosExpediente'])->findOrFail($id);
+        // Cargamos todas las relaciones necesarias para que la vista tenga la información completa
+        $empresa = Empresa::with([
+            'perfilAmbiental', 
+            'documentosExpediente', 
+            'sanciones', 
+            'declaracionesResiduos',
+            'user'
+        ])->findOrFail($id);
 
         return view('director.residuos.empresas.show', compact('empresa'));
     }

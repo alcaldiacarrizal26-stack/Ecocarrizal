@@ -288,7 +288,7 @@
                             </select>
                         </div>
 
-                        <!-- RACDA Fijo Fijo en G para Generador -->
+                        <!-- RACDA Fijo en G para Generador -->
                         <div>
                             <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">N° Registro RACDA *</label>
                             <div class="flex items-center gap-1.5">
@@ -407,7 +407,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- RACDA Fijo Fijo en M para Manejador -->
+                        <!-- RACDA Fijo en M para Manejador -->
                         <div>
                             <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">N° Registro RACDA *</label>
                             <div class="flex items-center gap-1.5">
@@ -515,109 +515,254 @@
                 </div>
             </div>
 
-            <!-- PASO 3: Consignación Dinámica de Recaudos -->
+            <!-- PASO 3: Consignación Dinámica de Recaudos y Fechas de Vigencia -->
             <div x-show="step === 3" x-transition.opacity class="space-y-5">
                 <div class="border-b border-gray-100 pb-3">
-                    <h4 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">3. Documentación y Requisitos Ambientales</h4>
-                    <p class="text-[11px] text-gray-500 mt-0.5">Adjunte en digital (PDF/Imagen) los recaudos obligatorios según su perfil.</p>
+                    <h4 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">3. Documentación, Fechas de Emisión y Vigencia</h4>
+                    <p class="text-[11px] text-gray-500 mt-0.5">Adjunte en digital (PDF/Imagen) los recaudos y especifique sus fechas para el control de renovación.</p>
                 </div>
 
-                <div class="grid grid-cols-1 gap-3.5">
+                <div class="grid grid-cols-1 gap-4">
                     
-                    <!-- RENMA -->
-                    <div class="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-gray-800 block">1. Registro RENMA</span>
-                            <span class="text-[10px] text-gray-500 block">Inscripción o actualización ecosocialista (MINEC)</span>
+                    <!-- Template macro reutilizable para cada bloque de documento -->
+                    <!-- Componente: RENMA -->
+                    <div class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-gray-800 block">1. Registro RENMA</span>
+                                <span class="text-[10px] text-gray-500 block">Inscripción o actualización ecosocialista (MINEC)</span>
+                            </div>
+                            <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
+                                <span x-text="files.doc_renma ? files.doc_renma.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <input type="file" @change="handleFileUpload($event, 'doc_renma')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </label>
                         </div>
-                        <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                            <span x-text="files.doc_renma ? files.doc_renma.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
-                            <input type="file" @change="handleFileUpload($event, 'doc_renma')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Emisión</label>
+                                <input type="date" x-model="fechasEmision.doc_renma" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Vencimiento</label>
+                                <input type="date" x-model="fechasVencimiento.doc_renma" :disabled="esVitalicio.doc_renma" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="flex items-center pt-5">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="esVitalicio.doc_renma" @change="if(esVitalicio.doc_renma) fechasVencimiento.doc_renma = ''" class="rounded text-[#0d5238]">
+                                    <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Constancia de No Objeción (Si ROL === NO_APLICA) -->
-                    <div x-show="form.perfil.rol_ambiental === 'NO_APLICA'" x-transition class="p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-amber-900 block">2. Constancia de No Objeción Ambiental</span>
-                            <span class="text-[10px] text-amber-700 block">Emitida por la Dirección Estadal del MINEC</span>
+                    <div x-show="form.perfil.rol_ambiental === 'NO_APLICA'" x-transition class="p-4 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-amber-900 block">2. Constancia de No Objeción Ambiental</span>
+                                <span class="text-[10px] text-amber-700 block">Emitida por la Dirección Estadal del MINEC</span>
+                            </div>
+                            <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-amber-300 rounded-xl cursor-pointer hover:border-amber-600 transition-all shrink-0">
+                                <span x-text="files.doc_no_objecion ? files.doc_no_objecion.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-amber-800 truncate max-w-[180px]"></span>
+                                <input type="file" @change="handleFileUpload($event, 'doc_no_objecion')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </label>
                         </div>
-                        <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-amber-300 rounded-xl cursor-pointer hover:border-amber-600 transition-all shrink-0">
-                            <span x-text="files.doc_no_objecion ? files.doc_no_objecion.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-amber-800 truncate max-w-[180px]"></span>
-                            <input type="file" @change="handleFileUpload($event, 'doc_no_objecion')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-amber-200/60 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-amber-800 uppercase mb-1">Fecha Emisión</label>
+                                <input type="date" x-model="fechasEmision.doc_no_objecion" class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-amber-800 uppercase mb-1">Fecha Vencimiento</label>
+                                <input type="date" x-model="fechasVencimiento.doc_no_objecion" :disabled="esVitalicio.doc_no_objecion" class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="flex items-center pt-5">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="esVitalicio.doc_no_objecion" @change="if(esVitalicio.doc_no_objecion) fechasVencimiento.doc_no_objecion = ''" class="rounded text-amber-700">
+                                    <span class="font-semibold text-amber-900 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- RACDA (Si ROL GENERADOR o MANEJADOR) -->
-                    <div x-show="form.perfil.rol_ambiental !== 'NO_APLICA'" x-transition class="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-gray-800 block">3. Registro RACDA</span>
-                            <span class="text-[10px] text-gray-500 block">Constancia oficial de registro (Minea/MINEC)</span>
+                    <div x-show="form.perfil.rol_ambiental !== 'NO_APLICA'" x-transition class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-gray-800 block">3. Registro RACDA (Vence)</span>
+                                <span class="text-[10px] text-gray-500 block">Constancia oficial de registro (Minea/MINEC)</span>
+                            </div>
+                            <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
+                                <span x-text="files.doc_racda ? files.doc_racda.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <input type="file" @change="handleFileUpload($event, 'doc_racda')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </label>
                         </div>
-                        <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                            <span x-text="files.doc_racda ? files.doc_racda.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
-                            <input type="file" @change="handleFileUpload($event, 'doc_racda')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Emisión</label>
+                                <input type="date" x-model="fechasEmision.doc_racda" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Vencimiento *</label>
+                                <input type="date" x-model="fechasVencimiento.doc_racda" :disabled="esVitalicio.doc_racda" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="flex items-center pt-5">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="esVitalicio.doc_racda" @change="if(esVitalicio.doc_racda) fechasVencimiento.doc_racda = ''" class="rounded text-[#0d5238]">
+                                    <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Póliza Ambiental (Obligatoria para MANEJADOR) -->
-                    <div x-show="form.perfil.rol_ambiental === 'MANEJADOR'" x-transition class="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-gray-800 block">4. Póliza de Seguro de Responsabilidad Ambiental</span>
-                            <span class="text-[10px] text-gray-500 block">Aprobada por Sudeaseg y vigente</span>
+                    <div x-show="form.perfil.rol_ambiental === 'MANEJADOR'" x-transition class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-gray-800 block">4. Póliza de Seguro de Responsabilidad Ambiental (Vence)</span>
+                                <span class="text-[10px] text-gray-500 block">Aprobada por Sudeaseg y vigente</span>
+                            </div>
+                            <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
+                                <span x-text="files.doc_poliza ? files.doc_poliza.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <input type="file" @change="handleFileUpload($event, 'doc_poliza')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </label>
                         </div>
-                        <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                            <span x-text="files.doc_poliza ? files.doc_poliza.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
-                            <input type="file" @change="handleFileUpload($event, 'doc_poliza')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Emisión</label>
+                                <input type="date" x-model="fechasEmision.doc_poliza" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Vencimiento *</label>
+                                <input type="date" x-model="fechasVencimiento.doc_poliza" :disabled="esVitalicio.doc_poliza" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="flex items-center pt-5">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="esVitalicio.doc_poliza" @change="if(esVitalicio.doc_poliza) fechasVencimiento.doc_poliza = ''" class="rounded text-[#0d5238]">
+                                    <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Caracterización de Efluentes -->
-                    <div x-show="form.perfil.genera_efluentes" x-transition class="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-gray-800 block">5. Caracterización de Efluentes Líquidos</span>
-                            <span class="text-[10px] text-gray-500 block">Análisis por laboratorio acreditado</span>
+                    <div x-show="form.perfil.genera_efluentes" x-transition class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-gray-800 block">5. Caracterización de Efluentes Líquidos</span>
+                                <span class="text-[10px] text-gray-500 block">Análisis por laboratorio acreditado</span>
+                            </div>
+                            <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
+                                <span x-text="files.doc_efluentes ? files.doc_efluentes.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <input type="file" @change="handleFileUpload($event, 'doc_efluentes')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </label>
                         </div>
-                        <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                            <span x-text="files.doc_efluentes ? files.doc_efluentes.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
-                            <input type="file" @change="handleFileUpload($event, 'doc_efluentes')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Emisión</label>
+                                <input type="date" x-model="fechasEmision.doc_efluentes" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Vencimiento</label>
+                                <input type="date" x-model="fechasVencimiento.doc_efluentes" :disabled="esVitalicio.doc_efluentes" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="flex items-center pt-5">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="esVitalicio.doc_efluentes" @change="if(esVitalicio.doc_efluentes) fechasVencimiento.doc_efluentes = ''" class="rounded text-[#0d5238]">
+                                    <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Emisiones Atmosféricas -->
-                    <div x-show="form.perfil.genera_emisiones" x-transition class="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-gray-800 block">6. Caracterización de Emisiones Atmosféricas</span>
-                            <span class="text-[10px] text-gray-500 block">Medición de chimeneas / fuentes fijas</span>
+                    <div x-show="form.perfil.genera_emisiones" x-transition class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-gray-800 block">6. Caracterización de Emisiones Atmosféricas</span>
+                                <span class="text-[10px] text-gray-500 block">Medición de chimeneas / fuentes fijas</span>
+                            </div>
+                            <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
+                                <span x-text="files.doc_emisiones ? files.doc_emisiones.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <input type="file" @change="handleFileUpload($event, 'doc_emisiones')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </label>
                         </div>
-                        <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                            <span x-text="files.doc_emisiones ? files.doc_emisiones.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
-                            <input type="file" @change="handleFileUpload($event, 'doc_emisiones')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Emisión</label>
+                                <input type="date" x-model="fechasEmision.doc_emisiones" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Vencimiento</label>
+                                <input type="date" x-model="fechasVencimiento.doc_emisiones" :disabled="esVitalicio.doc_emisiones" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="flex items-center pt-5">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="esVitalicio.doc_emisiones" @change="if(esVitalicio.doc_emisiones) fechasVencimiento.doc_emisiones = ''" class="rounded text-[#0d5238]">
+                                    <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Plan de Manejo de Desechos Sólidos -->
-                    <div class="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-gray-800 block">7. Plan de Manejo de Desechos y Residuos Sólidos</span>
-                            <span class="text-[10px] text-gray-500 block">Rutas internas, segregación y disposición final</span>
+                    <div class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-gray-800 block">7. Plan de Manejo de Desechos y Residuos Sólidos</span>
+                                <span class="text-[10px] text-gray-500 block">Rutas internas, segregación y disposición final</span>
+                            </div>
+                            <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
+                                <span x-text="files.doc_plan_desechos ? files.doc_plan_desechos.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <input type="file" @change="handleFileUpload($event, 'doc_plan_desechos')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </label>
                         </div>
-                        <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                            <span x-text="files.doc_plan_desechos ? files.doc_plan_desechos.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
-                            <input type="file" @change="handleFileUpload($event, 'doc_plan_desechos')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Emisión</label>
+                                <input type="date" x-model="fechasEmision.doc_plan_desechos" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Vencimiento</label>
+                                <input type="date" x-model="fechasVencimiento.doc_plan_desechos" :disabled="esVitalicio.doc_plan_desechos" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="flex items-center pt-5">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="esVitalicio.doc_plan_desechos" @change="if(esVitalicio.doc_plan_desechos) fechasVencimiento.doc_plan_desechos = ''" class="rounded text-[#0d5238]">
+                                    <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Plan de Emergencia y Contingencia -->
-                    <div class="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-gray-800 block">8. Plan de Emergencia y Contingencia Ambiental</span>
-                            <span class="text-[10px] text-gray-500 block">Protocolos de actuación ante derrames/incendios</span>
+                    <div class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-gray-800 block">8. Plan de Emergencia y Contingencia Ambiental</span>
+                                <span class="text-[10px] text-gray-500 block">Protocolos de actuación ante derrames/incendios</span>
+                            </div>
+                            <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
+                                <span x-text="files.doc_plan_emergencia ? files.doc_plan_emergencia.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <input type="file" @change="handleFileUpload($event, 'doc_plan_emergencia')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </label>
                         </div>
-                        <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                            <span x-text="files.doc_plan_emergencia ? files.doc_plan_emergencia.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
-                            <input type="file" @change="handleFileUpload($event, 'doc_plan_emergencia')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Emisión</label>
+                                <input type="date" x-model="fechasEmision.doc_plan_emergencia" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Vencimiento</label>
+                                <input type="date" x-model="fechasVencimiento.doc_plan_emergencia" :disabled="esVitalicio.doc_plan_emergencia" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="flex items-center pt-5">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="esVitalicio.doc_plan_emergencia" @change="if(esVitalicio.doc_plan_emergencia) fechasVencimiento.doc_plan_emergencia = ''" class="rounded text-[#0d5238]">
+                                    <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
@@ -675,20 +820,29 @@ function vincularEmpresaForm(territorios) {
         territoriosData: territorios || {},
         sectoresDisponibles: [],
         files: {},
+        fechasEmision: {},
+        fechasVencimiento: {},
+        esVitalicio: {
+            doc_renma: false,
+            doc_no_objecion: false,
+            doc_racda: false,
+            doc_poliza: false,
+            doc_efluentes: false,
+            doc_emisiones: false,
+            doc_plan_desechos: true,
+            doc_plan_emergencia: true
+        },
         
         rifInput: { tipo: 'J', numero: '', digito: '' },
         patenteInput: { tipo_formato: 'SIGAT_OFICIAL', prefix: 'CZ-AE-', correlativo: '' },
 
-        // Input RACDA de la Empresa Principal
         racdaInput: {
             correlativo: ''
         },
 
-        // Inputs normalizados para Manejadora Externa (Sujeto a Generador)
         manejadoraRifInput: { tipo: 'J', numero: '', digito: '' },
         manejadoraRacdaInput: { correlativo: '' },
 
-        // Inputs normalizados para Generador Exclusivo (Sujeto a Manejador)
         generadorRifInput: { tipo: 'J', numero: '', digito: '' },
         generadorRacdaInput: { correlativo: '' },
 
@@ -892,6 +1046,23 @@ function vincularEmpresaForm(territorios) {
                 if (this.files[key]) {
                     formData.append(`documentos[${key}]`, this.files[key]);
                 }
+            });
+
+            // Fechas de emisión, vencimiento e indicador de vitalicio
+            Object.keys(this.fechasEmision).forEach(key => {
+                if (this.fechasEmision[key]) {
+                    formData.append(`fechas_emision[${key}]`, this.fechasEmision[key]);
+                }
+            });
+
+            Object.keys(this.fechasVencimiento).forEach(key => {
+                if (this.fechasVencimiento[key]) {
+                    formData.append(`fechas_vencimiento[${key}]`, this.fechasVencimiento[key]);
+                }
+            });
+
+            Object.keys(this.esVitalicio).forEach(key => {
+                formData.append(`es_vitalicio[${key}]`, this.esVitalicio[key] ? '1' : '0');
             });
 
             try {

@@ -21,7 +21,7 @@
 
         @if(!$empresa)
             <a 
-                href="{{ route('ciudadano.empresas.crear') }}"
+                href="{{ route('ciudadano.empresas.create') }}"
                 class="px-4 py-2.5 bg-[#0d5238] hover:bg-[#073825] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Vincular Empresa
@@ -43,7 +43,7 @@
                 </p>
             </div>
             <a 
-                href="{{ route('ciudadano.empresas.crear') }}"
+                href="{{ route('ciudadano.empresas.create') }}"
                 class="px-5 py-2.5 bg-[#0d5238] hover:bg-[#073825] text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Vincular Empresa
@@ -127,6 +127,111 @@
                 <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100 space-y-1">
                     <span class="text-gray-400 font-semibold block text-[10px] uppercase">Teléfono</span>
                     <span class="font-bold text-gray-800">{{ $empresa->telefono_comercial }}</span>
+                </div>
+            </div>
+
+            <!-- NUEVA SECCIÓN: Expediente de Documentos y Vigencia -->
+            <div class="pt-4 border-t border-gray-100 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-gray-800 uppercase tracking-wide">Recaudos y Vigencia de Documentos</h3>
+                    <span class="text-[11px] text-gray-500">Control de vencimientos (RACDA, Póliza, etc.)</span>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3">
+                    @forelse($empresa->documentosExpediente as $doc)
+                        @php
+                            $vencido = $doc->fecha_vencimiento && \Carbon\Carbon::parse($doc->fecha_vencimiento)->isPast();
+                            $porVencer = $doc->fecha_vencimiento && !is_null($doc->fecha_vencimiento) && \Carbon\Carbon::parse($doc->fecha_vencimiento)->diffInDays(now()) <= 30 && !$vencido;
+                        @endphp
+                        
+                        <div x-data="{ openRenovar: false, esVitalicioRenovacion: false }" class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200/80 space-y-3 text-xs">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="space-y-0.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-gray-900 text-sm">{{ $doc->nombre_requisito }}</span>
+                                        <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded uppercase {{ $doc->estado_revision === 'VALIDO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-850' }}">
+                                            {{ $doc->estado_revision }}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-gray-500 flex items-center gap-3 pt-1">
+                                        <span>Emisión: <strong>{{ $doc->fecha_emision ? \Carbon\Carbon::parse($doc->fecha_emision)->format('d/m/Y') : 'No registrada' }}</strong></span>
+                                        <span>•</span>
+                                        @if($doc->es_vitalicio)
+                                            <span class="text-emerald-700 font-semibold">Vigencia: Vitalicio / Indefinido</span>
+                                        @else
+                                            <span>Vencimiento: <strong>{{ $doc->fecha_vencimiento ? \Carbon\Carbon::parse($doc->fecha_vencimiento)->format('d/m/Y') : 'No especificada' }}</strong></span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2.5 self-end sm:self-center">
+                                    @if($vencido)
+                                        <span class="px-2.5 py-1 bg-rose-100 text-rose-800 text-[10px] font-bold rounded-lg border border-rose-200">
+                                            ¡Documento Vencido!
+                                        </span>
+                                    @elseif($porVencer)
+                                        <span class="px-2.5 py-1 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-lg border border-amber-200">
+                                            Próximo a Vencer
+                                        </span>
+                                    @endif
+
+                                    @if($doc->archivo_path)
+                                        <a href="{{ route('expedientes.documento.ver', $doc->id) }}" target="_blank" class="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-xl font-semibold transition shadow-xs flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            <span>Ver Archivo</span>
+                                        </a>
+                                    @endif
+
+                                    @if($vencido || $porVencer)
+                                        <button @click="openRenovar = !openRenovar" class="px-3 py-1.5 bg-[#0d5238] hover:bg-[#073825] text-white rounded-xl font-bold transition shadow-xs flex items-center gap-1 cursor-pointer">
+                                            <span x-text="openRenovar ? 'Cancelar' : '🔄 Actualizar Papel'"></span>
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Formulario Desplegable de Renovación Integrado junto a las fechas -->
+                            <div x-show="openRenovar" x-cloak x-transition class="pt-3 border-t border-gray-200/60 mt-2">
+                                <form method="POST" action="{{ route('ciudadano.empresas.documentos.renovar', $doc->id) }}" enctype="multipart/form-data" class="p-4 bg-white rounded-2xl border border-emerald-200/80 shadow-xs space-y-3">
+                                    @csrf
+                                    <div class="flex items-center justify-between pb-1 border-b border-gray-100">
+                                        <span class="text-xs font-bold text-[#0d5238] uppercase tracking-wide">Renovación de Recaudo Digital</span>
+                                        <span class="text-[10px] text-gray-400">Adjunte el soporte actualizado y sus nuevas fechas</span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Nuevo Archivo (PDF/IMG) *</label>
+                                            <input type="file" name="archivo" required class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-[#0d5238] hover:file:bg-emerald-100 cursor-pointer">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Nueva Fecha Emisión *</label>
+                                            <input type="date" name="fecha_emision" required class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white text-gray-800">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Nueva Fecha Vencimiento</label>
+                                            <input type="date" name="fecha_vencimiento" :disabled="esVitalicioRenovacion" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white text-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed">
+                                        </div>
+
+                                        <div class="flex items-center justify-between lg:justify-start gap-3">
+                                            <label class="flex items-center gap-2 cursor-pointer pt-2">
+                                                <input type="checkbox" name="es_vitalicio" value="1" x-model="esVitalicioRenovacion" class="rounded text-[#0d5238]">
+                                                <span class="font-semibold text-gray-700 text-[11px]">Vitalicio</span>
+                                            </label>
+
+                                            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition cursor-pointer">
+                                                Guardar Cambios
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-gray-400 italic py-2">No hay documentos cargados en el expediente de la empresa.</p>
+                    @endforelse
                 </div>
             </div>
 
