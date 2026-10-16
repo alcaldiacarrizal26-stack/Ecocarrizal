@@ -39,7 +39,7 @@
             </div>
         @endif
 
-        <!-- Tarjetas de Resumen Acumulado (De los registros visibles en página actual o colección) -->
+        <!-- Tarjetas de Resumen Acumulado -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center gap-4">
                 <div class="p-3 bg-slate-100 text-slate-600 rounded-xl">

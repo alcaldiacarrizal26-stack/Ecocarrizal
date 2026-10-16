@@ -63,7 +63,6 @@
                 @include('ciudadano.empresa.partials.form_no_aplica')
             @endif
 
-
             <!-- Muestra Secciones 2 y 3 ÚNICAMENTE si no es NO_APLICA -->
             @if ($rolAmbiental !== 'NO_APLICA')
                 
