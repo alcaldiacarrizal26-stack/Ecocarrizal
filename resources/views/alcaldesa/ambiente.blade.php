@@ -144,7 +144,7 @@
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-4 text-right">
-                                    <button @click="currentRecord = {{ json_encode($solicitud->load(['user', 'inspector.user', 'recaudos'])) }}; modalOpen = true;" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                                    <button @click="currentRecord = {{ json_encode($solicitud->load(['usuario', 'inspector.user', 'recaudos'])) }}; modalOpen = true;" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 text-xs font-bold rounded-xl transition cursor-pointer">
                                         Ver Detalles
                                     </button>
                                 </td>

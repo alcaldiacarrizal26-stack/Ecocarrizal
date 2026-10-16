@@ -4,21 +4,42 @@
         currentRecord: {} 
     }">
         
-        <!-- Cabecera -->
-        <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-                <span class="px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Poder Popular y Comunas</span>
-                <h1 class="text-2xl font-bold text-slate-800 mt-1">Control de Reportes y Solicitudes Comunitarias</h1>
-                <p class="text-xs text-slate-500 mt-0.5">Seguimiento institucional de incidencias y trámites en el Municipio Carrizal.</p>
+        <!-- Cabecera Institucional (Alcaldía del Municipio Carrizal) -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row items-start justify-between gap-4 border-l-4 border-l-emerald-600">
+            <!-- Contenedor de Texto -->
+            <div class="space-y-1 max-w-xl">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-emerald-200">
+                        Poder Popular y Comunas
+                    </span>
+                    <span class="text-xs text-slate-400 font-medium">• Alcaldía del Municipio Carrizal</span>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900 leading-tight">Control de Reportes y Solicitudes Comunitarias</h1>
+                <p class="text-xs text-slate-500">Seguimiento institucional y gestión territorial de incidencias por comunas.</p>
+            </div>
+            
+            <!-- Botón de Impresión Formal en la Misma Vista -->
+            <div class="shrink-0 self-start no-print">
+                <button type="button" 
+                        onclick="imprimirInformeEnMismaVista('{{ route('alcaldesa.poderPopular.pdf', ['tipo' => $tipoRegistro, 'comuna' => request('comuna')]) }}')" 
+                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer whitespace-nowrap">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    <span>Imprimir Informe Formal</span>
+                </button>
             </div>
         </div>
 
-        <!-- Sección de Filtros Fluidos (Ocupa el 100% del ancho horizontal) -->
+        <!-- Frame Oculto para Impresión en Segundo Plano -->
+        <iframe id="pdfPrintFrame" class="hidden w-0 h-0 border-0"></iframe>
+
+        <!-- Sección de Filtros (Estructura Grid Fluida) -->
         <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
-            <form method="GET" action="{{ route('alcaldesa.poderPopular') }}" class="flex flex-wrap lg:flex-nowrap items-end gap-3 w-full">
+            <form method="GET" action="{{ route('alcaldesa.poderPopular') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end w-full">
                 
                 <!-- Tipo de Registro -->
-                <div class="w-full sm:w-auto flex-1 min-w-[130px]">
+                <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Tipo de Registro</label>
                     <select name="tipo" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition cursor-pointer">
                         <option value="denuncia" {{ $tipoRegistro === 'denuncia' ? 'selected' : '' }}>Denuncias</option>
@@ -27,13 +48,13 @@
                 </div>
 
                 <!-- Código -->
-                <div class="w-full sm:w-auto flex-1 min-w-[120px]">
+                <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Código</label>
                     <input type="text" name="codigo" value="{{ request('codigo') }}" placeholder="Ej. 2026-..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
                 </div>
 
-                <!-- Comuna (Mayor proporción en la barra) -->
-                <div class="w-full sm:w-auto flex-[1.5] min-w-[180px]">
+                <!-- Comuna -->
+                <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Comuna</label>
                     <select name="comuna" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition cursor-pointer">
                         <option value="">Todas las Comunas</option>
@@ -44,21 +65,22 @@
                 </div>
 
                 <!-- Fecha Inicio -->
-                <div class="w-full sm:w-auto flex-1 min-w-[135px]">
+                <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Desde</label>
                     <input type="date" name="fecha_inicio" value="{{ request('fecha_inicio') }}" class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
                 </div>
 
                 <!-- Fecha Fin -->
-                <div class="w-full sm:w-auto flex-1 min-w-[135px]">
+                <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Hasta</label>
                     <input type="date" name="fecha_fin" value="{{ request('fecha_fin') }}" class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
                 </div>
 
                 <!-- Botones de Acción -->
-                <div class="flex items-center gap-1.5 shrink-0">
-                    <button type="submit" title="Aplicar Filtros" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <div class="w-full flex items-center gap-1.5 pt-1 sm:pt-0">
+                    <button type="submit" title="Aplicar Filtros" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-1 sm:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <span class="inline sm:hidden">Filtrar</span>
                     </button>
                     <a href="{{ route('alcaldesa.poderPopular') }}" title="Limpiar Búsqueda" class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition flex items-center justify-center">
                         ✕
@@ -163,11 +185,10 @@
                     <p class="text-xs text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100" x-text="currentRecord.descripcion || currentRecord.motivo_descripcion"></p>
                 </div>
 
-                <!-- Sección de Evidencias Fotográficas o Adjuntos -->
+                <!-- Sección de Evidencias Fotográficas -->
                 <div class="space-y-2">
                     <p class="text-xs font-bold text-slate-700 uppercase tracking-wider">Evidencias Fotográficas / Archivos</p>
                     
-                    <!-- Si es Solicitud con Recaudos -->
                     <template x-if="currentRecord.recaudos && currentRecord.recaudos.length > 0">
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             <template x-for="recaudo in currentRecord.recaudos">
@@ -179,7 +200,6 @@
                         </div>
                     </template>
 
-                    <!-- Si es Denuncia con Evidencias JSON -->
                     <template x-if="currentRecord.evidencias && Array.isArray(currentRecord.evidencias) && currentRecord.evidencias.length > 0">
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             <template x-for="evidencia in currentRecord.evidencias">
@@ -205,4 +225,16 @@
         </div>
 
     </div>
+
+    <!-- Script para Impresión del Reporte Formal en Segundo Plano -->
+    <script>
+        function imprimirInformeEnMismaVista(url) {
+            const frame = document.getElementById('pdfPrintFrame');
+            frame.src = url;
+            frame.onload = function() {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+            };
+        }
+    </script>
 </x-layouts.app>

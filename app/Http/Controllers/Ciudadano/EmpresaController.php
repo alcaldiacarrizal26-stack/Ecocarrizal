@@ -73,38 +73,6 @@ class EmpresaController extends Controller
     }
 
     /**
-     * Permite a la empresa adjuntar evidencias para solicitar la subsanación / retiro de la sanción.
-     */
-    public function subsanarSancion(Request $request, Sancion $sancion)
-    {
-        $user = auth()->user();
-
-        // Validar que la sanción pertenezca a la empresa del ciudadano autenticado
-        if ($sancion->empresa->user_id !== $user->id) {
-            abort(403, 'No tienes autorización para realizar esta acción.');
-        }
-
-        $request->validate([
-            'observaciones_subsanacion' => 'required|string',
-            'evidencia_subsanacion'     => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-        ]);
-
-        $evidencias = $sancion->evidencias_subsanacion ?? [];
-
-        if ($request->hasFile('evidencia_subsanacion')) {
-            $path = $request->file('evidencia_subsanacion')->store("sanciones/subsanaciones/{$sancion->id}", 'public');
-            $evidencias[] = $path;
-        }
-
-        $sancion->update([
-            'evidencias_subsanacion' => $evidencias,
-            'estatus'                 => 'EN_REVISION', // Pasa a estado de revisión para evaluación del Director
-        ]);
-
-        return redirect()->back()->with('success', 'Pruebas de subsanación enviadas correctamente. La Dirección de Residuos evaluará el expediente.');
-    }
-
-    /**
      * Almacena una nueva empresa vinculada al ciudadano autenticado.
      */
     public function store(Request $request)

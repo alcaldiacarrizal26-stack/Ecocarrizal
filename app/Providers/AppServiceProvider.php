@@ -3,10 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Models\Denuncia;
-use App\Models\Solicitud;
-use App\Observers\DenunciaObserver;
-use App\Observers\SolicitudObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,7 +19,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Denuncia::observe(DenunciaObserver::class);
-        Solicitud::observe(SolicitudObserver::class);
+
     }
 }

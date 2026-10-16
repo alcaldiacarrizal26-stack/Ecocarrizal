@@ -67,4 +67,32 @@ class CompensacionController extends Controller
 
         return redirect()->back()->with('success', 'Abono de compensación registrado exitosamente. En espera de verificación por la Dirección de Ambiente.');
     }
+
+    public function donar(Request $request)
+    {
+        $request->validate([
+            'tipo_especie'    => 'required|string|max:255',
+            'cantidad'        => 'required|integer|min:1',
+            'observaciones'   => 'nullable|string|max:500',
+            'comprobante'     => 'required|file|mimes:pdf,jpg,jpeg,png|max:4096',
+        ]);
+
+        // Guardar archivo de comprobante
+        $path = $request->file('comprobante')->store('compensaciones/donaciones', 'public');
+
+        // Registrar la compensación como donación voluntaria en estado PENDIENTE de revisión
+        Compensacion::create([
+            'user_id'              => Auth::id(),
+            'codigo_resolucion'    => 'DONACION-' . date('Y') . '-' . strtoupper(uniqid()),
+            'tipo_tramite'         => 'DONACION',
+            'especie_requerida'    => $request->tipo_especie,
+            'cantidad_asignada'    => $request->cantidad,
+            'cantidad_entregada'   => $request->cantidad,
+            'comprobante_path'     => $path,
+            'observacion'          => $request->observaciones,
+            'estatus'              => 'PENDIENTE', // <--- Requiere aprobación del director
+        ]);
+
+        return redirect()->back()->with('success', 'Donación voluntaria registrada exitosamente. Queda pendiente de verificación y aprobación por la Dirección de Ambiente.');
+    }
 }

@@ -1,5 +1,5 @@
 <x-layouts.app title="Fiscalización y Citaciones - {{ $empresa->razon_social }}" active="empresas">
-<div class="p-4 sm:p-6 max-w-6xl mx-auto space-y-6" x-data="{ modalSubsanar: false, sancionSeleccionada: null, fileName: '' }">
+<div class="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
 
     <!-- CABECERA DE NAVEGACIÓN -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
@@ -98,19 +98,17 @@
                     </div>
                 </div>
 
-                <!-- Botón de Acción para Subsanar -->
-                <div class="pt-3 border-t border-gray-100 flex justify-end">
+                <!-- Aviso Institucional de Retiro Presencial -->
+                <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
                     @if(in_array($s->estatus, ['NOTIFICADA', 'PENDIENTE_NOTIFICACION']))
-                        <button type="button" 
-                                @click="sancionSeleccionada = {{ json_encode($s) }}; modalSubsanar = true" 
-                                class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-2 cursor-pointer">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                            Consignar Pruebas de Subsanación
-                        </button>
+                        <div class="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl w-full flex items-center gap-2">
+                            <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Para consignar recaudos y solicitar el retiro o levantamiento de esta sanción, el representante legal debe asistir de forma presencial a las instalaciones de la <strong>Dirección de Manejo de Residuos</strong>.</span>
+                        </div>
                     @elseif($s->estatus === 'EN_REVISION')
-                        <div class="p-2.5 bg-purple-50 border border-purple-200 text-purple-900 rounded-xl text-xs font-bold flex items-center gap-2">
+                        <div class="p-3 bg-purple-50 border border-purple-200 text-purple-900 rounded-xl w-full flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full bg-purple-600 animate-ping"></span>
-                            Evidencias enviadas. En espera de evaluación por la Dirección de Residuos.
+                            <span>Expediente bajo revisión directa en las oficinas de la Dirección de Residuos tras inspección presencial.</span>
                         </div>
                     @else
                         <span class="text-xs text-emerald-700 font-bold flex items-center gap-1">
@@ -126,39 +124,6 @@
                 <p class="text-xs text-gray-500">Tu expediente comercial se encuentra totalmente al día ante la fiscalía municipal.</p>
             </div>
         @endforelse
-    </div>
-
-    <!-- MODAL PARA ADJUNTAR SUBSANACIÓN -->
-    <div x-show="modalSubsanar" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div x-show="modalSubsanar" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs" @click="modalSubsanar = false"></div>
-
-        <div x-show="modalSubsanar" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 z-10 p-6 space-y-4">
-            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                <div>
-                    <h3 class="font-extrabold text-gray-900 text-base">Solicitud de Retiro / Subsanación</h3>
-                    <p class="text-xs text-gray-500 font-mono" x-text="sancionSeleccionada?.codigo_expediente"></p>
-                </div>
-                <button type="button" @click="modalSubsanar = false" class="text-gray-400 hover:text-gray-600 font-bold text-lg">&times;</button>
-            </div>
-
-            <form :action="'/ciudadano/empresas/sanciones/' + sancionSeleccionada?.id + '/subsanar'" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
-                @csrf
-                <div>
-                    <label class="block font-bold text-gray-700 uppercase mb-1">Descripción de las Acciones Correctoras *</label>
-                    <textarea name="observaciones_subsanacion" rows="3" required placeholder="Describe las medidas tomadas para solucionar la falta (ej. Saneamiento de área, nuevo contrato manejador...)" class="w-full bg-gray-50 border border-gray-300 rounded-xl p-2.5 text-gray-800 focus:ring-2 focus:ring-emerald-500"></textarea>
-                </div>
-
-                <div>
-                    <label class="block font-bold text-gray-700 uppercase mb-1">Comprobante / Foto de Evidencia *</label>
-                    <input type="file" name="evidencia_subsanacion" required accept=".pdf,.jpg,.png,.jpeg" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-[#0d5238] hover:file:bg-emerald-100">
-                </div>
-
-                <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                    <button type="button" @click="modalSubsanar = false" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200">Cancelar</button>
-                    <button type="submit" class="px-5 py-2 bg-[#0d5238] text-white font-bold rounded-xl hover:bg-[#073825] shadow-xs">Enviar Pruebas</button>
-                </div>
-            </form>
-        </div>
     </div>
 
 </div>

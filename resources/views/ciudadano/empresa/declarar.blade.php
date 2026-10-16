@@ -2,16 +2,23 @@
 
     @php
         $perfil = $empresa->perfilAmbiental ?? $perfilAmbiental ?? null;
-        $rolAmbiental =$perfil?->rol_ambiental ?? 'GENERADOR';
+        $rolAmbiental = $perfil?->rol_ambiental ?? 'GENERADOR';
+        $modalidadManejadora = strtoupper(trim($perfil?->modalidad_manejadora ?? 'PROPIA'));
+        
+        // Verificamos si es manejo propio o si está vacío
+        $esManejoPropio = ($modalidadManejadora === 'PROPIA' || $modalidadManejadora === 'INTERNA' || empty($perfil?->manejadora_contratada));
+
+        $razonSocialEmpresa = $empresa->razon_social ?? $empresa->nombre_comercial ?? '';
+        $rifEmpresa = $empresa->rif ?? '';
 
         $datosIniciales = [
             'rol_ambiental' => $rolAmbiental,
-            'manejadora_nombre' => $perfil?->manejadora_contratada ?? '',
-            'manejadora_rif'    => $perfil?->manejadora_rif ?? '',
-            'manejadora_racda'  => $perfil?->manejadora_racda ?? '',
-            'generador_nombre'  => $perfil?->generador_exclusivo_nombre ?? '',
-            'generador_rif'     => $perfil?->generador_exclusivo_rif ?? '',
-            'generador_racda'   => $perfil?->generador_exclusivo_racda ?? '',
+            'es_manejo_propio' => $esManejoPropio,
+            // Si es manejo propio, asignamos los datos de la misma empresa de inmediato
+            'manejadora_nombre' => $esManejoPropio ? $razonSocialEmpresa : ($perfil?->manejadora_contratada ?? ''),
+            'manejadora_rif'    => $esManejoPropio ? $rifEmpresa : ($perfil?->manejadora_rif ?? ''),
+            'razon_social_empresa' => $razonSocialEmpresa,
+            'rif_empresa' => $rifEmpresa,
         ];
     @endphp
 
@@ -53,6 +60,8 @@
             @csrf
 
             <input type="hidden" name="rol_declarante" value="{{ $rolAmbiental }}">
+            <!-- Frecuencia fija obligatoria SEMANAL -->
+            <input type="hidden" name="frecuencia" value="SEMANAL">
 
             <!-- Sección 1: Carga Dinámica del Formulario según Rol -->
             @if ($rolAmbiental === 'MANEJADOR')
@@ -71,7 +80,7 @@
                     <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                         <div>
                             <h2 class="text-base font-semibold text-slate-800">2. Desglose por Tipo de Residuo</h2>
-                            <p class="text-xs text-slate-500">Selecciona el residuo e indica las cantidades operadas.</p>
+                            <p class="text-xs text-slate-500">Selecciona el residuo e indica las cantidades operadas semanalmente.</p>
                         </div>
                         <button type="button" @click="agregarRenglon()" 
                                 class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-sm">
@@ -250,10 +259,23 @@
     function declaracionResiduos(datosIniciales = {}) {
         return {
             rol_ambiental: datosIniciales.rol_ambiental || 'GENERADOR',
-            frecuencia: 'MENSUAL',
+            frecuencia: 'SEMANAL',
+            es_manejo_propio: datosIniciales.es_manejo_propio || false,
             
             manejadora_nombre: datosIniciales.manejadora_nombre || '',
             manejadora_rif: datosIniciales.manejadora_rif || '',
+            razon_social_empresa: datosIniciales.razon_social_empresa || '',
+            rif_empresa: datosIniciales.rif_empresa || '',
+            function declaracionResiduos(datosIniciales = {}) {
+        return {
+            rol_ambiental: datosIniciales.rol_ambiental || 'GENERADOR',
+            frecuencia: 'SEMANAL',
+            es_manejo_propio: datosIniciales.es_manejo_propio || false,
+            
+            manejadora_nombre: datosIniciales.manejadora_nombre || '',
+            manejadora_rif: datosIniciales.manejadora_rif || '',
+            razon_social_empresa: datosIniciales.razon_social_empresa || '',
+            rif_empresa: datosIniciales.rif_empresa || '',
             
             generador_origen_nombre: datosIniciales.generador_nombre || '',
             generador_origen_rif: datosIniciales.generador_rif || '',
@@ -265,6 +287,7 @@
 
             catalogoResiduos: [
                 { id: 'DESECHOS_COMUNES', nombre: 'Desechos Comunes / Orgánicos', categoria: 'COMUN' },
+                { id: 'DESECHOS_VEGETALES', nombre: 'Desechos vegetales', categoria: 'COMUN' },
                 { id: 'CARTON_PAPEL', nombre: 'Cartón y Papel Reciclable', categoria: 'RECICLABLE' },
                 { id: 'PLASTICOS', nombre: 'Plásticos y Envases PET', categoria: 'RECICLABLE' },
                 { id: 'ACEITES_USADOS', nombre: 'Aceites Usados y Grasas Hidrocarburos', categoria: 'PELIGROSO' },
@@ -286,17 +309,11 @@
                 }
             ],
 
-            seleccionarManejadoraPredefinida() {
-                if (datosIniciales.manejadora_nombre) {
-                    this.manejadora_nombre = datosIniciales.manejadora_nombre;
-                    this.manejadora_rif = datosIniciales.manejadora_rif;
-                }
-            },
-
-            seleccionarGeneradorPredefinido() {
-                if (datosIniciales.generador_nombre) {
-                    this.generador_origen_nombre = datosIniciales.generador_nombre;
-                    this.generador_origen_rif = datosIniciales.generador_rif;
+            init() {
+                // Si la empresa tiene manejo propio/interno, aseguramos bloquear y rellenar automáticamente los inputs correspondientes de manejadora si están presentes en la vista parcial
+                if (this.es_manejo_propio) {
+                    this.manejadora_nombre = 'Alcaldía del Municipio Carrizal (Autogestión / Manejo Propio)';
+                    this.manejadora_rif = 'G-20002130-1';
                 }
             },
 

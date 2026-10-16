@@ -101,12 +101,10 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
         Route::put('/solicitudes/{tramite}/pendientes', [SolicitudController::class, 'subirPendientes'])->name('solicitudes.pendientes');
         Route::post('/empresas', [CiudadanoEmpresaController::class, 'store'])->name('empresas.store');
         Route::put('/compensacion/{compensacion}', [CompensacionController::class, 'store'])->name('compensacion.store');
+        Route::post('/compensacion/donar', [CompensacionController::class, 'donar'])->name('compensacion.donar');
         
         // POST de Declaraciones protegido
         Route::post('/declaraciones', [DeclaracionResiduoController::class, 'store'])->name('declaraciones.store');
-
-        // Subsanación de Sanciones por parte de la Empresa
-        Route::post('/empresas/sanciones/{sancion}/subsanar', [CiudadanoEmpresaController::class, 'subsanarSancion'])->name('empresas.sanciones.subsanar');
     });
 
     // Consultas de vista
@@ -247,6 +245,7 @@ Route::middleware(['auth', 'role:alcaldesa,admin'])->prefix('alcaldesa')->name('
     Route::get('/ambiente', [AlcaldesaReporteController::class, 'ambiente'])->name('ambiente');
     Route::get('/residuos', [AlcaldesaReporteController::class, 'residuos'])->name('residuos');
     Route::get('/poder-popular', [AlcaldesaReporteController::class, 'poderPopular'])->name('poderPopular');
+    Route::get('/poder-popular/pdf', [AlcaldesaReporteController::class, 'exportarPoderPopularPdf'])->name('poderPopular.pdf');
 });
 // -------------------------------------------------------------
 // Módulo Compartido de Inspecciones (Directores, Inspectores y Admins)

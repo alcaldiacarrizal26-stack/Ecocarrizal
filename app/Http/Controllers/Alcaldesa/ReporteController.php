@@ -54,7 +54,7 @@ class ReporteController extends Controller
      */
     public function ambiente(Request $request)
     {
-        $query = Solicitud::with(['user', 'inspector.user', 'recaudos']);
+        $query = Solicitud::with(['usuario', 'inspector.user', 'recaudos']);
 
         // Filtros de búsqueda para Gestión Ambiental
         if ($request->filled('tipo_tramite')) {
@@ -142,7 +142,7 @@ class ReporteController extends Controller
         $tipoRegistro = $request->input('tipo', 'denuncia'); // 'denuncia' o 'solicitud'
         
         if ($tipoRegistro === 'solicitud') {
-            $query = Solicitud::with(['user', 'inspector.user', 'recaudos']);
+            $query = Solicitud::with(['usuario', 'inspector.user', 'recaudos']);
             
             if ($request->filled('codigo')) {
                 $query->where('codigo_expediente', 'ilike', '%' . $request->codigo . '%');
@@ -186,6 +186,41 @@ class ReporteController extends Controller
         return view('alcaldesa.poder-popular', compact(
             'registros',
             'comunasList',
+            'tipoRegistro'
+        ));
+    }
+
+    public function exportarPoderPopularPdf(Request $request)
+    {
+        $tipoRegistro = $request->input('tipo', 'denuncia');
+        
+        // Obtener datos agrupados por Comuna y Sector (Priorizando los más activos)
+        $rankingComunas = ($tipoRegistro === 'solicitud' ? Solicitud::query() : Denuncia::query())
+            ->select('comuna', 'sector', \DB::raw('count(*) as total'))
+            ->groupBy('comuna', 'sector')
+            ->orderByDesc('total')
+            ->get();
+
+        // Agrupar por motivos principales
+        $motivosPrincipales = ($tipoRegistro === 'solicitud' ? Solicitud::query() : Denuncia::query())
+            ->select(
+                $tipoRegistro === 'solicitud' ? 'tipo_tramite as motivo' : 'tipo_contaminacion as motivo', 
+                \DB::raw('count(*) as total')
+            )
+            ->groupBy('motivo')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        // Listado general de todos los registros para el resumen final
+        $registrosGenerales = ($tipoRegistro === 'solicitud' ? Solicitud::query() : Denuncia::query())
+            ->latest()
+            ->get();
+
+        return view('alcaldesa.pdf.poder-popular', compact(
+            'rankingComunas',
+            'motivosPrincipales',
+            'registrosGenerales',
             'tipoRegistro'
         ));
     }

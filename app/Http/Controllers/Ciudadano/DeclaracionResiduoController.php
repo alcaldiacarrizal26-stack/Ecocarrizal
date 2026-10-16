@@ -60,7 +60,7 @@ class DeclaracionResiduoController extends Controller
         $rules = [
             'rol_declarante'          => 'required|in:GENERADOR,MANEJADOR,NO_APLICA',
             'periodo'                 => 'required|string|max:20',
-            'frecuencia'              => 'required|in:MENSUAL,TRIMESTRAL,SEMESTRAL,ANUAL',
+            'frecuencia'              => 'required|in:SEMANAL',
             'fecha_inicio_periodo'    => 'required|date',
             'fecha_fin_periodo'       => $isNoAplica ? 'nullable|date' : 'required|date|after_or_equal:fecha_inicio_periodo',
             

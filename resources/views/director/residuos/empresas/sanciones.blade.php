@@ -172,33 +172,24 @@
         </div>
     </div>
 
-    <!-- MODAL 1: APERTURAR SANCIÓN / CITACIÓN (REDISEÑADO EN 2 COLUMNAS CON SCROLL) -->
+    <!-- MODAL 1: APERTURAR SANCIÓN / CITACIÓN -->
     <div x-show="modalNuevaSancion" 
          x-cloak 
          class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
         
-        <!-- Backdrop Suave -->
         <div x-show="modalNuevaSancion"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
              @click="modalNuevaSancion = false"
              class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
 
-        <!-- Panel del Modal Ancho (max-w-4xl) -->
         <div x-show="modalNuevaSancion"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 scale-95 translate-y-2"
              x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-             x-transition:leave-end="opacity-0 scale-95 translate-y-2"
              class="relative bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-100 z-10 my-auto flex flex-col max-h-[90vh]">
             
-            <!-- Header Fijo -->
             <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center shrink-0">
                 <div>
                     <h3 class="font-bold text-slate-800 text-base">Aperturar Citación / Sanción Administrativa</h3>
@@ -207,23 +198,19 @@
                 <button type="button" @click="modalNuevaSancion = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">&times;</button>
             </div>
 
-            <!-- Formulario con Scroll Interno -->
             <form action="{{ route('director.residuos.empresas.sanciones.store', $empresa->id) }}" 
                   method="POST" 
                   enctype="multipart/form-data" 
                   class="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
                 @csrf
 
-                <!-- Rejilla en 2 Columnas -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     
-                    <!-- BLOQUE IZQUIERDO: Clasificación de la Infracción -->
                     <div class="space-y-4">
                         <div class="border-b border-slate-100 pb-2">
                             <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">1. Tipificación y Fundamento Legal</h4>
                         </div>
 
-                        <!-- Concepto / Tipo de Infracción -->
                         <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Concepto de Infracción *</label>
                             <select name="tipo_infraccion_select" 
@@ -240,7 +227,6 @@
                             </select>
                         </div>
 
-                        <!-- Campo Texto Si selecciona "OTRO" -->
                         <div x-show="tipoInfraccion === 'OTRO'" x-cloak>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Nombre / Título de Infracción Personalizada *</label>
                             <input type="text" 
@@ -252,11 +238,10 @@
 
                         <input type="hidden" name="tipo_infraccion" :value="tipoInfraccion === 'OTRO' ? tipoInfraccionManual : tipoInfraccion">
 
-                        <!-- Base Legal (Solo editable si tipoInfraccion es 'OTRO') -->
                         <div>
                             <div class="flex justify-between items-center mb-1">
                                 <label class="block font-bold text-slate-700 uppercase">Base Legal Aplicable *</label>
-                                <span class="text-[10px] text-slate-400 font-semibold" x-text="tipoInfraccion === 'OTRO' ? 'Edición manual habilitada' : 'Sugerida automáticamente (Bloqueada)'"></span>
+                                <span class="text-[10px] text-slate-400 font-semibold" x-text="tipoInfraccion === 'OTRO' ? 'Edición manual habilitada' : 'Sugerida automáticamente'"></span>
                             </div>
                             <input type="text" 
                                 name="base_legal" 
@@ -290,13 +275,11 @@
                         </div>
                     </div>
 
-                    <!-- BLOQUE DERECHO: Lapsos Legales y Evidencias -->
                     <div class="space-y-4">
                         <div class="border-b border-slate-100 pb-2">
                             <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">2. Lapsos Administrativos y Evidencias</h4>
                         </div>
 
-                        <!-- Límite de Subsanación según LOPA / LOA -->
                         <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                             <div class="flex justify-between items-center">
                                 <label class="block font-bold text-slate-700 uppercase">Plazo Legal para Subsanar</label>
@@ -327,7 +310,6 @@
                             </div>
                         </div>
 
-                        <!-- Dropzone Estilo Drag & Drop para Evidencias -->
                         <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Adjuntar Acta / Fotos Evidencia</label>
                             <div class="relative border-2 border-dashed border-slate-300 hover:border-rose-500 rounded-2xl p-5 text-center bg-slate-50/50 hover:bg-rose-50/30 transition-all cursor-pointer"
@@ -360,7 +342,6 @@
 
                 </div>
 
-                <!-- Footer Fijo con Botones de Acción -->
                 <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 shrink-0">
                     <button type="button" @click="modalNuevaSancion = false" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition cursor-pointer">
                         Cancelar
@@ -374,101 +355,59 @@
         </div>
     </div>
 
-    <!-- MODAL 2: RESOLVER / RETIRAR SANCIÓN (CON DROPZONE ESTILIZADO) -->
+    <!-- MODAL 2: RESOLVER / RETIRAR SANCIÓN (EVALUACIÓN PRESENCIAL / CONSIGNACIÓN EN OFICINA) -->
     <div x-show="modalResolver" 
          x-cloak 
          class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
         
-        <!-- Backdrop Suave -->
         <div x-show="modalResolver"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
              @click="modalResolver = false"
              class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
 
-        <!-- Panel del Modal Ancho (max-w-3xl) -->
         <div x-show="modalResolver"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 scale-95 translate-y-2"
              x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-             x-transition:leave-end="opacity-0 scale-95 translate-y-2"
              class="relative bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-100 z-10 my-auto flex flex-col max-h-[90vh]">
             
-            <!-- Header Fijo -->
             <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center shrink-0">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-base">Evaluar y Resolver Sanción</h3>
+                    <h3 class="font-bold text-slate-800 text-base">Evaluación y Resolución de Sanción (Presencial)</h3>
                     <p class="text-xs text-slate-500 font-mono" x-text="sancionSeleccionada?.codigo_expediente"></p>
                 </div>
                 <button type="button" @click="modalResolver = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">&times;</button>
             </div>
 
-            <!-- Cuerpo con Scroll -->
             <form :action="'/director/residuos/empresas/sanciones/' + sancionSeleccionada?.id + '/resolver'" method="POST" enctype="multipart/form-data" class="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
                 @csrf
                 @method('PATCH')
 
-                <!-- BLOQUE INFORMATIVO: Descargos y Pruebas enviadas por el Ciudadano -->
-                <div class="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 space-y-3">
-                    <div class="flex items-center justify-between border-b border-purple-200 pb-2">
-                        <span class="font-bold text-purple-900 uppercase tracking-wide flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                            Descargos y Pruebas del Ciudadano
-                        </span>
-                        <span class="px-2 py-0.5 bg-purple-200 text-purple-800 rounded font-mono text-[10px]" x-text="sancionSeleccionada?.estatus"></span>
-                    </div>
-
-                    <!-- Texto Descriptivo de Subsanación -->
-                    <div>
-                        <span class="text-purple-700 font-semibold uppercase block text-[10px]">Descripción de Acciones Correctoras:</span>
-                        <p class="text-slate-700 mt-1 bg-white p-3 rounded-xl border border-purple-100 leading-relaxed" 
-                           x-text="sancionSeleccionada?.observaciones_subsanacion || 'El ciudadano no ha ingresado una descripción detallada de subsanación.'">
-                        </p>
-                    </div>
-
-                    <!-- Evidencias / Archivos Subidos por el Ciudadano -->
-                    <div>
-                        <span class="text-purple-700 font-semibold uppercase block text-[10px] mb-1">Archivos Adjuntos de Subsanación:</span>
-                        <template x-if="sancionSeleccionada?.evidencias_subsanacion && sancionSeleccionada.evidencias_subsanacion.length > 0">
-                            <div class="flex flex-wrap gap-2">
-                                <template x-for="file in sancionSeleccionada.evidencias_subsanacion" :key="file">
-                                    <a :href="'/sanciones/evidencia/' + file" target="_blank" class="px-3 py-1.5 bg-white border border-purple-200 hover:border-purple-500 text-purple-800 rounded-xl font-bold transition flex items-center gap-1.5 shadow-2xs">
-                                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                        <span>Ver Comprobante / Evidencia</span>
-                                    </a>
-                                </template>
-                            </div>
-                        </template>
-                        <template x-if="!sancionSeleccionada?.evidencias_subsanacion || sancionSeleccionada.evidencias_subsanacion.length === 0">
-                            <p class="text-slate-400 italic">No se han adjuntado archivos por parte del ciudadano.</p>
-                        </template>
-                    </div>
+                <!-- AVISO DE CONSIGNACIÓN PRESENCIAL -->
+                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 flex items-start gap-2.5">
+                    <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>El representante legal ha acudido de forma presencial a las instalaciones de la Dirección para la consignación de recaudos y la subsanación de la infracción. Registre el dictamen y las observaciones de cierre.</span>
                 </div>
 
                 <!-- SECCIÓN DE DICTAMEN DEL DIRECTOR -->
-                <div class="space-y-4 pt-2 border-t border-slate-100">
-                    <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">Decisión Administrativa</h4>
+                <div class="space-y-4 pt-2">
+                    <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">Decisión Administrativa y Levantamiento</h4>
 
                     <div>
                         <label class="block font-bold text-slate-700 uppercase mb-1">Dictamen Final del Director *</label>
                         <select name="estatus" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                            <option value="SUBSANADA">SUBSANADA (Aprobada subsanación y retirada la sanción)</option>
+                            <option value="SUBSANADA">SUBSANADA (Aprobada subsanación presencial y retirada la sanción)</option>
                             <option value="DESESTIMADA">DESESTIMADA (Anulada por improcedencia)</option>
                         </select>
                     </div>
 
                     <div>
                         <label class="block font-bold text-slate-700 uppercase mb-1">Observaciones / Justificación de Cierre *</label>
-                        <textarea name="observaciones_resolucion" rows="3" required placeholder="Ingresa los motivos o acuerdos alcanzados para el retiro del expediente..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800"></textarea>
+                        <textarea name="observaciones_resolucion" rows="3" required placeholder="Ingresa los motivos, acuerdos alcanzados o descripción de la revisión presencial para el retiro del expediente..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800"></textarea>
                     </div>
 
-                    <!-- Dropzone Drag & Drop para Acta / Resolución de Cierre -->
                     <div>
                         <label class="block font-bold text-slate-700 uppercase mb-1">Adjuntar Acta Oficial de Cierre / Resolución (Opcional)</label>
                         <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-4 text-center bg-slate-50/50 hover:bg-emerald-50/30 transition-all cursor-pointer"
@@ -499,7 +438,6 @@
                     </div>
                 </div>
 
-                <!-- Footer Fijo -->
                 <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 shrink-0">
                     <button type="button" @click="modalResolver = false" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition cursor-pointer">
                         Cancelar
@@ -529,7 +467,7 @@ function sancionManager() {
         fileResolucionName: '',
 
         init() {
-            this.setPlazoDays(10); // LOPA por defecto (10 días hábiles)
+            this.setPlazoDays(10);
         },
 
         actualizarBaseLegal() {

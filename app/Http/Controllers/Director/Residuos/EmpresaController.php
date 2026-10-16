@@ -14,21 +14,16 @@ use Illuminate\Support\Str;
 
 class EmpresaController extends Controller
 {
-    /**
-     * Muestra el listado general de empresas registradas para la Dirección de Residuos.
-     */
     public function index(Request $request)
     {
         $query = Empresa::with(['user', 'perfilAmbiental', 'ordenesInspeccion', 'sanciones']);
 
-        // Si viene desde la opción "Sanciones y Citaciones" del sidebar
         if ($request->get('vista') === 'sanciones') {
             $query->whereHas('sanciones', function ($q) {
                 $q->whereIn('estatus', ['NOTIFICADA', 'EN_REVISION', 'PENDIENTE_NOTIFICACION']);
             });
         }
 
-        // Filtros adicionales si los usas
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
@@ -42,12 +37,8 @@ class EmpresaController extends Controller
         return view('director.residuos.empresas.index', compact('empresas'));
     }
 
-    /**
-     * Muestra la vista detallada del expediente para revisión del Director.
-     */
     public function show($id)
     {
-        // Cargamos todas las relaciones necesarias para que la vista tenga la información completa
         $empresa = Empresa::with([
             'perfilAmbiental', 
             'documentosExpediente', 
@@ -63,7 +54,6 @@ class EmpresaController extends Controller
     {
         $empresa = Empresa::findOrFail($id);
 
-        // Prevenir modificación si ya tiene veredicto final
         if (in_array(strtoupper($empresa->estatus), ['APROBADO', 'RECHAZADO'])) {
             return redirect()
                 ->back()
@@ -95,7 +85,6 @@ class EmpresaController extends Controller
             ->latest()
             ->get();
 
-        // Si viene desde una inspección específica para sancionar directo
         $inspeccionSugerida = null;
         if ($request->has('inspeccion_id')) {
             $inspeccionSugerida = Inspeccion::find($request->inspeccion_id);
@@ -104,9 +93,6 @@ class EmpresaController extends Controller
         return view('director.residuos.empresas.sanciones', compact('empresa', 'sanciones', 'inspeccionSugerida'));
     }
 
-    /**
-     * Registra una nueva sanción / citación administrativa.
-     */
     public function asignarSancion(Request $request, Empresa $empresa)
     {
         $validated = $request->validate([
@@ -126,7 +112,6 @@ class EmpresaController extends Controller
             $path = $request->file('evidencia')->store('sanciones/fiscalia', 'public');
             $rutasEvidencia[] = $path;
         } elseif ($request->filled('inspeccion_id')) {
-            // Si proviene de un acta de inspección, heredamos automáticamente las fotos de evidencia del acta
             $inspeccionAsociada = Inspeccion::find($request->inspeccion_id);
             if ($inspeccionAsociada && !empty($inspeccionAsociada->fotos_evidencia)) {
                 $rutasEvidencia = $inspeccionAsociada->fotos_evidencia;
@@ -156,7 +141,7 @@ class EmpresaController extends Controller
     }
 
     /**
-     * Resuelve/Retira una sanción tras evaluar la subsanación.
+     * Resuelve/Retira una sanción tras la evaluación presencial del director.
      */
     public function resolverSancion(Request $request, Sancion $sancion)
     {
@@ -173,7 +158,8 @@ class EmpresaController extends Controller
         ];
 
         if ($request->hasFile('evidencia_resolucion')) {
-            $path = $request->file('evidencia_resolucion')->store("sanciones/resoluciones/{$sancion->id}", 'public');
+            // Opcional si deseas almacenar la ruta de resolución en bitácora o campo adicional
+            $request->file('evidencia_resolucion')->store("sanciones/resoluciones/{$sancion->id}", 'public');
         }
 
         $sancion->update($data);
@@ -192,9 +178,6 @@ class EmpresaController extends Controller
         return response()->file(storage_path('app/public/' . $path));
     }
 
-    /**
-     * Muestra el listado de órdenes de inspección de la empresa y los inspectores disponibles.
-     */
     public function inspecciones($empresaId)
     {
         $empresa = Empresa::with(['ordenesInspeccion.inspector.user', 'ordenesInspeccion.inspeccion'])->findOrFail($empresaId);
@@ -210,9 +193,6 @@ class EmpresaController extends Controller
         return view('director.residuos.empresas.inspecciones', compact('empresa', 'inspectoresDisponibles'));
     }
 
-    /**
-     * Almacena una nueva orden de inspección (Ordinaria o De Oficio/Sorpresa).
-     */
     public function asignarInspeccion(Request $request, $empresaId)
     {
         $request->validate([
@@ -257,9 +237,6 @@ class EmpresaController extends Controller
         return redirect()->back()->with('success', 'Orden de inspección ambiental emitida y asignada exitosamente.');
     }
 
-    /**
-     * Elimina una orden de inspección si aún no ha sido iniciada/atendida.
-     */
     public function eliminarInspeccion($id)
     {
         $orden = OrdenInspeccion::findOrFail($id);
