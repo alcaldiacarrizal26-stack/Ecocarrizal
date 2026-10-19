@@ -43,12 +43,21 @@
                             <th class="px-4 py-3">Código / Orden</th>
                             <th class="px-4 py-3">Tipo / Origen</th>
                             <th class="px-4 py-3">Entidad / Ubicación</th>
+                            <th class="px-4 py-3">Inspector Asignado</th>
                             <th class="px-4 py-3">Estado</th>
                             <th class="px-4 py-3 text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($asignacionesPendientes as $item)
+                            @php
+                                $isDirectorOrAdmin = in_array($rol, ['director', 'admin']);
+                                // Verificamos si el usuario actual es el inspector asignado a esta orden/expediente
+                                $assignedInspectorId = $item->inspector_id ?? null;
+                                $esAsignadoAlUsuario = ($assignedInspectorId === $currentInspectorId);
+                                // Si es director/admin y no tiene inspector asignado o se permite, o si es su propio caso
+                                $puedeEjecutar = !$isDirectorOrAdmin || $esAsignadoAlUsuario;
+                            @endphp
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 font-medium text-slate-900 font-mono">
                                     {{ $item->codigo_orden ?? $item->codigo_expediente ?? $item->codigo ?? 'N/A' }}
@@ -76,6 +85,13 @@
                                         {{ $item->sector ?? 'N/A' }}, {{ $item->comuna ?? '' }}
                                     @endif
                                 </td>
+                                <td class="px-4 py-3 text-xs">
+                                    @if($item->inspector && $item->inspector->user)
+                                        <span class="font-medium text-slate-700">{{ $item->inspector->user->nombre }} {{ $item->inspector->user->apellido }}</span>
+                                    @else
+                                        <span class="text-amber-600 font-semibold">Sin asignar</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3">
                                     @php
                                         $estadoValor = $item->estado ?? $item->estatus ?? 'pendiente';
@@ -90,27 +106,35 @@
                                         {{ ucfirst(str_replace('_', ' ', $estadoValor)) }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-right flex items-center justify-end gap-2">
-                                    @if($estadoValor === 'inspector_asignado')
-                                        <form action="{{ route('inspecciones.iniciar-revision', $item->id) }}" method="POST">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
-                                                Iniciar Revisión
-                                            </button>
-                                        </form>
-                                    @endif
+                                <td class="px-4 py-3 text-right">
+                                    @if($puedeEjecutar)
+                                        <div class="flex items-center justify-end gap-2">
+                                            @if($estadoValor === 'inspector_asignado')
+                                                <form action="{{ route('inspecciones.iniciar-revision', $item->id) }}" method="POST">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                                                        Iniciar Revisión
+                                                    </button>
+                                                </form>
+                                            @endif
 
-                                    <a href="{{ route('inspecciones.evaluar', $item->id) }}" 
-                                       class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
-                                        Emitir Veredicto
-                                    </a>
+                                            <a href="{{ route('inspecciones.evaluar', $item->id) }}" 
+                                            class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                                                Emitir Veredicto
+                                            </a>
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-slate-400 italic bg-slate-100 px-2.5 py-1 rounded-md inline-block">
+                                            Solo supervisión (Asignado a otro funcionario)
+                                        </span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-4 py-6 text-center text-slate-400">
-                                    No tienes inspecciones, fiscalizaciones o denuncias pendientes en este momento.
+                                <td colspan="6" class="px-4 py-6 text-center text-slate-400">
+                                    No hay expedientes pendientes de visita o evaluación en este momento.
                                 </td>
                             </tr>
                         @endforelse

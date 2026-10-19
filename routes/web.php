@@ -12,10 +12,10 @@ use App\Models\Inspector;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InspeccionController;
+use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\SoporteController;
 
 // Controladores Ciudadano
-use App\Http\Controllers\Ciudadano\PerfilController;
 use App\Http\Controllers\Ciudadano\SolicitudController;
 use App\Http\Controllers\Ciudadano\ReporteController;
 use App\Http\Controllers\Ciudadano\EmpresaController as CiudadanoEmpresaController;
@@ -80,6 +80,7 @@ Route::middleware(['auth'])->group(function () {
     // Soporte Técnico General
     Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
     Route::post('/soporte', [SoporteController::class, 'store'])->name('soporte.store');
+    Route::get('/perfil', [PerfilController::class, 'show'])->name('perfil.show');
 });
 
 // -------------------------------------------------------------
@@ -89,10 +90,6 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     Route::get('/dashboard', function () {
         return view('ciudadano.dashboard', ['user' => auth()->user()]);
     })->name('dashboard');
-    
-    // Perfil
-    Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil');
-    Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
     // Módulos con protección contra doble envío / spam
     Route::middleware(['throttle:10,1'])->group(function () {
@@ -239,14 +236,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 // -------------------------------------------------------------
 // Panel Alcaldesa (Acceso a Reportes y Métricas)
 // -------------------------------------------------------------
-
 Route::middleware(['auth', 'role:alcaldesa,admin'])->prefix('alcaldesa')->name('alcaldesa.')->group(function () {
     Route::get('/reportes', [AlcaldesaReporteController::class, 'index'])->name('reportes');
     Route::get('/ambiente', [AlcaldesaReporteController::class, 'ambiente'])->name('ambiente');
     Route::get('/residuos', [AlcaldesaReporteController::class, 'residuos'])->name('residuos');
+    Route::get('/residuos/pdf', [AlcaldesaReporteController::class, 'exportarResiduosPdf'])->name('residuos.pdf'); // <-- Ruta añadida para el PDF
     Route::get('/poder-popular', [AlcaldesaReporteController::class, 'poderPopular'])->name('poderPopular');
     Route::get('/poder-popular/pdf', [AlcaldesaReporteController::class, 'exportarPoderPopularPdf'])->name('poderPopular.pdf');
 });
+
 // -------------------------------------------------------------
 // Módulo Compartido de Inspecciones (Directores, Inspectores y Admins)
 // -------------------------------------------------------------

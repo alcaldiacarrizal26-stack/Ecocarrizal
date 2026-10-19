@@ -21,7 +21,7 @@ return new class extends Migration
             "estado_orden_inspeccion_enum" => "'pendiente', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'atendido', 'desestimado'",
             "nivel_bitacora_enum"          => "'info', 'warning', 'danger', 'critical'",
             "estatus_declaracion_enum"     => "'BORRADOR', 'PRESENTADA', 'OBSERVADA', 'CONFORME'",
-            "frecuencia_declaracion_enum" => "'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'",
+            "frecuencia_declaracion_enum" => "'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL', 'SEMANAL'",
             "categoria_residuo_enum"       => "'COMUN', 'RECICLABLE', 'PELIGROSO'",
             "tipo_operacion_manejo_enum"   => "'RECOLECCION_TRANSPORTE', 'ALMACENAMIENTO_TEMPORAL', 'TRATAMIENTO', 'RECICLAJE_VALORIZACION', 'DISPOSICION_FINAL'",
         ];
@@ -347,12 +347,12 @@ return new class extends Migration
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("
                 ALTER TABLE declaraciones_residuos 
-                ADD COLUMN frecuencia frecuencia_declaracion_enum NOT NULL DEFAULT 'MENSUAL',
+                ADD COLUMN frecuencia frecuencia_declaracion_enum NOT NULL DEFAULT 'SEMANAL',
                 ADD COLUMN estatus estatus_declaracion_enum NOT NULL DEFAULT 'PRESENTADA';
             ");
         } else {
             Schema::table('declaraciones_residuos', function (Blueprint $table) {
-                $table->enum('frecuencia', ['MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'])->default('MENSUAL');
+                $table->enum('frecuencia', ['MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL', 'SEMANAL'])->default('SEMANAL');
                 $table->enum('estatus', ['BORRADOR', 'PRESENTADA', 'OBSERVADA', 'CONFORME'])->default('PRESENTADA');
             });
         }

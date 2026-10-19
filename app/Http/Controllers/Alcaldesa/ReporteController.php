@@ -93,40 +93,58 @@ class ReporteController extends Controller
      */
     public function residuos(Request $request)
     {
-        $query = Empresa::with(['user', 'perfilAmbiental']);
+        // Por defecto, si no se selecciona nada, establecemos la semana actual (Lunes a Domingo)
+        // Usando el año actual 2026 y la fecha actual de referencia
+        $fechaInicio = $request->input('fecha_inicio', now()->startOfWeek()->toDateString());
+        $fechaFin = $request->input('fecha_fin', now()->endOfWeek()->toDateString());
 
+        $query = \App\Models\Empresa::with(['user', 'perfilAmbiental', 'documentosExpediente']);
+
+        // Filtros previos...
         if ($request->filled('buscar')) {
-            $busqueda = $request->buscar;
+            $busqueda = $request->input('buscar');
             $query->where(function($q) use ($busqueda) {
                 $q->where('razon_social', 'ilike', "%{$busqueda}%")
-                  ->orWhere('rif', 'ilike', "%{$busqueda}%");
+                ->orWhere('nombre_comercial', 'ilike', "%{$busqueda}%")
+                ->orWhere('rif', 'ilike', "%{$busqueda}%");
             });
         }
+
         if ($request->filled('estatus')) {
-            $query->where('estatus', $request->estatus);
+            $query->where('estatus', $request->input('estatus'));
         }
 
-        $empresas = $query->latest()->paginate(15)->withQueryString();
-        
-        $totalEmpresas = Empresa::count();
-        $empresasAprobadas = Empresa::where('estatus', 'APROBADO')->count();
-        $empresasPendientes = Empresa::whereIn('estatus', ['PENDIENTE', 'PENDIENTE_APROBACION'])->count();
-        
-        $declaraciones = DeclaracionResiduo::with('empresa')->latest()->take(10)->get();
+        if ($request->filled('comuna')) {
+            $query->where('comuna', $request->input('comuna'));
+        }
 
+        if ($request->filled('rol')) {
+            $rol = $request->input('rol');
+            $query->whereHas('perfilAmbiental', function($q) use ($rol) {
+                $q->where('rol_ambiental', $rol);
+            });
+        }
+
+        $empresas = $query->latest()->paginate(10)->withQueryString();
+
+        $totalEmpresas = \App\Models\Empresa::count();
+
+        // 1. Totales de toneladas filtrados estrictamente por el rango semanal de declaraciones
         $totalesPorCategoria = [
-            'comunes' => DeclaracionResiduo::sum('toneladas_comunes'),
-            'reciclables' => DeclaracionResiduo::sum('toneladas_reciclables'),
-            'peligrosas' => DeclaracionResiduo::sum('toneladas_peligrosas'),
+            'comunes' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_comunes'),
+            'reciclables' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_reciclables'),
+            'peligrosas' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_peligrosas'),
         ];
 
+        $comunasDisponibles = \App\Models\Empresa::whereNotNull('comuna')->distinct()->pluck('comuna');
+
         return view('alcaldesa.residuos', compact(
-            'empresas',
-            'totalEmpresas',
-            'empresasAprobadas',
-            'empresasPendientes',
-            'declaraciones',
-            'totalesPorCategoria'
+            'empresas', 
+            'totalEmpresas', 
+            'totalesPorCategoria', 
+            'comunasDisponibles',
+            'fechaInicio',
+            'fechaFin'
         ));
     }
 
@@ -339,5 +357,75 @@ class ReporteController extends Controller
                 'tituloInforme'
             ));
         }
+    }
+
+    public function exportarResiduosPdf(Request $request)
+    {
+        $fechaInicio = $request->input('fecha_inicio', now()->startOfWeek()->toDateString());
+        $fechaFin = $request->input('fecha_fin', now()->endOfWeek()->toDateString());
+
+        $totalEmpresas = \App\Models\Empresa::count();
+        $totalGeneradoras = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'GENERADOR'))->count();
+        $totalManejadoras = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'MANEJADOR'))->count();
+        $totalNoAplica = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'NO_APLICA'))->count();
+
+        // Filtrar estrictamente las declaraciones en el rango de fechas recibido
+        $totalesPorCategoria = [
+            'comunes' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_comunes'),
+            'reciclables' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_reciclables'),
+            'peligrosas' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_peligrosas'),
+        ];
+
+        $empresas = \App\Models\Empresa::with(['declaracionesResiduos' => function($q) use ($fechaInicio, $fechaFin) {
+            $q->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+        }, 'perfilAmbiental'])->get();
+        
+        $resumenPorComuna = [];
+        $lideresPorComuna = [];
+        $agrupadasPorComuna = $empresas->groupBy('comuna');
+
+        foreach ($agrupadasPorComuna as $comuna => $listaEmpresas) {
+            if (empty($comuna)) continue;
+
+            $comunesComuna = 0;
+            $reciclablesComuna = 0;
+            $peligrosasComuna = 0;
+
+            foreach ($listaEmpresas as $emp) {
+                $comunesComuna += $emp->declaracionesResiduos->sum('toneladas_comunes');
+                $reciclablesComuna += $emp->declaracionesResiduos->sum('toneladas_reciclables');
+                $peligrosasComuna += $emp->declaracionesResiduos->sum('toneladas_peligrosas');
+            }
+
+            $resumenPorComuna[$comuna] = [
+                'total_empresas' => $listaEmpresas->count(),
+                'comunes' => $comunesComuna,
+                'reciclables' => $reciclablesComuna,
+                'peligrosas' => $peligrosasComuna,
+                'total_toneladas' => $comunesComuna + $reciclablesComuna + $peligrosasComuna,
+            ];
+
+            $liderComun = $listaEmpresas->sortByDesc(fn($e) => $e->declaracionesResiduos->sum('toneladas_comunes'))->first();
+            $liderReciclable = $listaEmpresas->sortByDesc(fn($e) => $e->declaracionesResiduos->sum('toneladas_reciclables'))->first();
+            $liderPeligroso = $listaEmpresas->sortByDesc(fn($e) => $e->declaracionesResiduos->sum('toneladas_peligrosas'))->first();
+
+            $lideresPorComuna[$comuna] = [
+                'comun' => ($liderComun && $liderComun->declaracionesResiduos->sum('toneladas_comunes') > 0) ? (object)['razon_social' => $liderComun->razon_social, 'total' => $liderComun->declaracionesResiduos->sum('toneladas_comunes')] : null,
+                'reciclable' => ($liderReciclable && $liderReciclable->declaracionesResiduos->sum('toneladas_reciclables') > 0) ? (object)['razon_social' => $liderReciclable->razon_social, 'total' => $liderReciclable->declaracionesResiduos->sum('toneladas_reciclables')] : null,
+                'peligroso' => ($liderPeligroso && $liderPeligroso->declaracionesResiduos->sum('toneladas_peligrosas') > 0) ? (object)['razon_social' => $liderPeligroso->razon_social, 'total' => $liderPeligroso->declaracionesResiduos->sum('toneladas_peligrosas')] : null,
+            ];
+        }
+
+        return view('alcaldesa.pdf.residuos', compact(
+            'totalEmpresas', 
+            'totalGeneradoras', 
+            'totalManejadoras', 
+            'totalNoAplica', 
+            'totalesPorCategoria', 
+            'resumenPorComuna', 
+            'lideresPorComuna',
+            'fechaInicio',
+            'fechaFin'
+        ));
     }
 }

@@ -25,6 +25,13 @@
     <div class="p-6 max-w-5xl mx-auto space-y-6 bg-slate-50 min-h-screen" 
          x-data="declaracionResiduos({{ json_encode($datosIniciales) }})">
         
+        <!-- Alerta de Errores o Excepciones Flash -->
+        @if(session('error'))
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm shadow-sm">
+                <strong>⚠️ Atención:</strong> {{ session('error') }}
+            </div>
+        @endif
+
         <!-- Header con Insignia Dinámica -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div>
@@ -260,17 +267,8 @@
         return {
             rol_ambiental: datosIniciales.rol_ambiental || 'GENERADOR',
             frecuencia: 'SEMANAL',
-            es_manejo_propio: datosIniciales.es_manejo_propio || false,
-            
-            manejadora_nombre: datosIniciales.manejadora_nombre || '',
-            manejadora_rif: datosIniciales.manejadora_rif || '',
-            razon_social_empresa: datosIniciales.razon_social_empresa || '',
-            rif_empresa: datosIniciales.rif_empresa || '',
-            function declaracionResiduos(datosIniciales = {}) {
-        return {
-            rol_ambiental: datosIniciales.rol_ambiental || 'GENERADOR',
-            frecuencia: 'SEMANAL',
-            es_manejo_propio: datosIniciales.es_manejo_propio || false,
+            // Evaluamos de forma estricta si arranca como propio o externo
+            es_manejo_propio: (datosIniciales.es_manejo_propio === true || datosIniciales.es_manejo_propio === 'propio') ? 'propio' : 'externo',
             
             manejadora_nombre: datosIniciales.manejadora_nombre || '',
             manejadora_rif: datosIniciales.manejadora_rif || '',
@@ -310,11 +308,25 @@
             ],
 
             init() {
-                // Si la empresa tiene manejo propio/interno, aseguramos bloquear y rellenar automáticamente los inputs correspondientes de manejadora si están presentes en la vista parcial
-                if (this.es_manejo_propio) {
-                    this.manejadora_nombre = 'Alcaldía del Municipio Carrizal (Autogestión / Manejo Propio)';
-                    this.manejadora_rif = 'G-20002130-1';
+                if (this.es_manejo_propio === 'propio') {
+                    this.sincronizarAutogestion();
                 }
+            },
+
+            toggleManejoPropio() {
+                if (this.es_manejo_propio === 'propio') {
+                    this.sincronizarAutogestion();
+                } else {
+                    this.manejadora_nombre = '';
+                    this.manejadora_rif = '';
+                }
+            },
+
+            sincronizarAutogestion() {
+                this.manejadora_nombre = this.razon_social_empresa 
+                    ? this.razon_social_empresa + ' (Manejo Propio)' 
+                    : 'Alcaldía del Municipio Carrizal (Autogestión)';
+                this.manejadora_rif = this.rif_empresa || 'G-20002130-1';
             },
 
             onResiduoSelect(index) {

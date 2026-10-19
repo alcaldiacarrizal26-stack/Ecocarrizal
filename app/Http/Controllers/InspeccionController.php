@@ -44,6 +44,7 @@ class InspeccionController extends Controller
                 ->latest()
                 ->paginate(10);
         } else {
+            // Directores y Admins ven todas las asignaciones pendientes a nivel general
             $solicitudes = Solicitud::whereIn('estado', ['inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion'])
                 ->with('inspector.user')
                 ->get();
@@ -62,11 +63,15 @@ class InspeccionController extends Controller
         }
 
         $asignacionesPendientes = $solicitudes->concat($denuncias)->concat($ordenesEmpresas);
+        
+        // Obtenemos el ID del inspector asociado al usuario actual (si aplica) para validar propiedad en la vista
+        $currentInspectorId = $inspector?->id ?? null;
 
         return view('inspecciones.index', compact(
             'asignacionesPendientes',
             'inspeccionesRealizadas',
-            'rol'
+            'rol',
+            'currentInspectorId'
         ));
     }
 

@@ -1,5 +1,6 @@
 <x-layouts.app title="Vincular / Actualizar Empresa" active="empresas">
-<div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-6">
+<div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-6"
+     x-data="vincularEmpresaForm({{ json_encode(\App\Services\TerritorioService::getTerritorios()) }}, {{ isset($empresa) ? json_encode($empresa) : 'null' }})">
 
     <!-- ALERTA DE OBSERVACIONES EN CASO DE RECHAZO U OBSERVACIÓN -->
     @if(isset($empresa) && in_array($empresa->estatus, ['OBSERVADO', 'RECHAZADO']))
@@ -32,10 +33,7 @@
     </div>
 
     <!-- Tarjeta Principal / Formulario Completo -->
-    <div 
-        x-data="vincularEmpresaForm({{ json_encode(\App\Services\TerritorioService::getTerritorios()) }}, {{ isset($empresa) ? json_encode($empresa) : 'null' }})"
-        class="overflow-hidden rounded-3xl bg-white shadow-xl border border-gray-100"
-    >
+    <div class="overflow-hidden rounded-3xl bg-white shadow-xl border border-gray-100">
         <!-- Header con Identidad Municipal y Stepper -->
         <div class="bg-[#0d5238] px-8 py-7 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-emerald-800/40">
             <div class="flex items-center gap-4">
@@ -59,7 +57,7 @@
             </div>
         </div>
 
-        <form @submit.prevent="submitForm" enctype="multipart/form-data" class="p-8 space-y-6">
+        <form @submit.prevent="submitForm" @keydown.enter.prevent="handleKeydownEnter($event)" enctype="multipart/form-data" class="p-8 space-y-6">
             @csrf
 
             <!-- PASO 1: Identificación Legal y Territorio -->
@@ -92,7 +90,6 @@
                                 @input="formatRif()"
                                 x-ref="rifNumero"
                                 maxlength="8" 
-                                required 
                                 placeholder="12345678" 
                                 class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-mono font-bold tracking-wider text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238] text-center"
                             >
@@ -103,7 +100,6 @@
                                 @input="formatRif()"
                                 x-ref="rifDigito"
                                 maxlength="1" 
-                                required 
                                 placeholder="0" 
                                 class="w-12 px-2 py-2.5 rounded-xl border border-gray-200 text-xs font-mono font-bold tracking-wider text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238] text-center"
                             >
@@ -157,7 +153,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5">Razón Social *</label>
-                        <input type="text" x-model="form.razon_social" required placeholder="Inversiones Carrizal C.A." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]">
+                        <input type="text" x-model="form.razon_social" placeholder="Inversiones Carrizal C.A." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5">Nombre Comercial</label>
@@ -168,7 +164,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5">Correo Electrónico Comercial *</label>
-                        <input type="email" x-model="form.correo_comercial" required placeholder="contacto@empresa.com" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]">
+                        <input type="email" x-model="form.correo_comercial" placeholder="contacto@empresa.com" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]">
                     </div>
 
                     <div>
@@ -190,7 +186,6 @@
                                 x-model="form.telefono_num" 
                                 x-on:input="form.telefono_num = $event.target.value.replace(/\D/g, '')"
                                 maxlength="7"
-                                required 
                                 placeholder="1234567" 
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs font-mono font-bold tracking-wider text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]"
                             >
@@ -208,7 +203,6 @@
                             <select 
                                 x-model="form.comuna" 
                                 @change="onComunaChange()" 
-                                required 
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]"
                             >
                                 <option value="">Seleccione Circuito o Comuna...</option>
@@ -223,7 +217,6 @@
                             <select 
                                 x-model="form.sector" 
                                 :disabled="!form.comuna" 
-                                required 
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238] disabled:bg-gray-100 disabled:cursor-not-allowed"
                             >
                                 <option value="">Seleccione Sector...</option>
@@ -237,11 +230,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1.5">Calle / Avenida *</label>
-                            <input type="text" x-model="form.calle_avenida" required placeholder="Ej: Av. Sucre, Callejón El Carmen" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]">
+                            <input type="text" x-model="form.calle_avenida" placeholder="Ej: Av. Sucre, Callejón El Carmen" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]">
                         </div>
                         <div>
                             <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1.5">Edificio / Galpón / Local *</label>
-                            <input type="text" x-model="form.edificio_galpon_local" required placeholder="Ej: C.C. La Cascada, Nivel 1, Local 45" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]">
+                            <input type="text" x-model="form.edificio_galpon_local" placeholder="Ej: C.C. La Cascada, Nivel 1, Local 45" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:border-[#0d5238] focus:ring-1 focus:ring-[#0d5238]">
                         </div>
                     </div>
                 </div>
@@ -541,7 +534,6 @@
 
                 <div class="grid grid-cols-1 gap-4">
                     
-                    <!-- Template macro reutilizable para cada bloque de documento -->
                     <!-- Componente: RENMA -->
                     <div class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -827,6 +819,43 @@
             </div>
         </form>
     </div>
+
+    <!-- VENTANA DE ALERTA MODAL MODERNA -->
+    <div 
+        x-show="showAlertModal" 
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+    >
+        <div 
+            @click.outside="showAlertModal = false"
+            class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-5 text-center transform transition-all"
+        >
+            <div class="mx-auto w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+
+            <div>
+                <h3 class="text-base font-bold text-gray-900">Campos Incompletos</h3>
+                <p class="text-xs text-gray-500 mt-1 whitespace-pre-line" x-text="alertMessage"></p>
+            </div>
+
+            <button 
+                type="button" 
+                @click="showAlertModal = false"
+                class="w-full py-2.5 px-4 rounded-xl bg-[#0d5238] hover:bg-[#073825] text-white text-xs font-bold shadow-md transition-colors cursor-pointer"
+            >
+                Entendido, completar datos
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -834,6 +863,8 @@ function vincularEmpresaForm(territorios, empresaExistente) {
     return {
         step: 1,
         submitting: false,
+        showAlertModal: false,
+        alertMessage: '',
         territoriosData: territorios || {},
         sectoresDisponibles: [],
         files: {},
@@ -904,12 +935,27 @@ function vincularEmpresaForm(territorios, empresaExistente) {
             this.formatRacda();
         },
 
+        showModal(msg) {
+            this.alertMessage = msg;
+            this.showAlertModal = true;
+        },
+
+        handleKeydownEnter(event) {
+            // Prevenir envío accidental al presionar Enter a menos que esté en el botón de finalizar del paso 3
+            if (this.step < 3) {
+                event.preventDefault();
+                this.nextStep();
+            } else if (this.step === 3) {
+                event.preventDefault();
+                this.submitForm();
+            }
+        },
+
         loadEmpresaData(data) {
             this.form.razon_social = data.razon_social || '';
             this.form.nombre_comercial = data.nombre_comercial || '';
             this.form.correo_comercial = data.correo_comercial || '';
             
-            // Desglosar RIF
             if (data.rif) {
                 const parts = data.rif.split('-');
                 if (parts.length === 3) {
@@ -919,7 +965,6 @@ function vincularEmpresaForm(territorios, empresaExistente) {
                 }
             }
 
-            // Desglosar Teléfono
             if (data.telefono_comercial && data.telefono_comercial.length >= 11) {
                 this.form.codigo_area = data.telefono_comercial.substring(0, 4);
                 this.form.telefono_num = data.telefono_comercial.substring(4);
@@ -1041,19 +1086,19 @@ function vincularEmpresaForm(territorios, empresaExistente) {
 
             if (this.step === 1) {
                 if (!this.rifInput.numero || !this.rifInput.digito) {
-                    alert('Por favor complete el número RIF.');
+                    this.showModal('Por favor complete el número RIF.');
                     return;
                 }
                 if (!this.patenteInput.correlativo) {
-                    alert('Por favor complete el N° Cuenta / Licencia Patente.');
+                    this.showModal('Por favor complete el N° Cuenta / Licencia Patente.');
                     return;
                 }
                 if (!this.form.razon_social || !this.form.correo_comercial || !this.form.telefono_num) {
-                    alert('Por favor complete la Razón Social, Correo y Teléfono comercial.');
+                    this.showModal('Por favor complete la Razón Social, Correo y Teléfono comercial.');
                     return;
                 }
                 if (!this.form.comuna || !this.form.sector || !this.form.calle_avenida || !this.form.edificio_galpon_local) {
-                    alert('Por favor complete todos los datos de ubicación territorial.');
+                    this.showModal('Por favor complete todos los datos de ubicación territorial.');
                     return;
                 }
             }
@@ -1137,14 +1182,14 @@ function vincularEmpresaForm(territorios, empresaExistente) {
                     const data = await response.json();
                     if (data.errors) {
                         const messages = Object.values(data.errors).flat().join('\n');
-                        alert('Errores de validación:\n' + messages);
+                        this.showModal('Errores de validación:\n' + messages);
                     } else {
-                        alert(data.message || 'Ocurrió un error al procesar el formulario.');
+                        this.showModal(data.message || 'Ocurrió un error al procesar el formulario.');
                     }
                 }
             } catch (error) {
                 console.error('Error de red:', error);
-                alert('Error de conexión con el servidor.');
+                this.showModal('Error de conexión con el servidor.');
             } finally {
                 this.submitting = false;
             }
