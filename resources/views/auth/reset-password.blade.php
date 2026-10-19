@@ -2,8 +2,9 @@
     <div class="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl space-y-6">
         
         <div class="text-center">
-            <div class="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-xl font-bold mx-auto mb-3 shadow-md">
-                <img src="{{ asset('images/carrizal_logo.png') }}" alt="Logo" class="h-8 w-8 object-contain">
+            <!-- Contenedor horizontal limpio -->
+            <div class="flex items-center justify-center mx-auto mb-3">
+                <img src="{{ asset('images/carrizal_logo.png') }}" alt="Logo Carrizal" class="h-10 w-auto object-contain">
             </div>
             <h3 class="text-xl font-bold text-slate-800">Nueva Contraseña</h3>
             <p class="text-xs text-slate-500 mt-1">Ingresa tu nueva contraseña para acceder a la plataforma.</p>
@@ -23,20 +24,21 @@
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Correo Electrónico</label>
-                <input type="email" name="correo" value="{{ $correo ?? old('correo') }}" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
+                <input type="email" name="correo" value="{{ $correo ?? old('correo') }}" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:border-emerald-600 transition">
             </div>
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nueva Contraseña</label>
-                <input type="password" name="contraseña" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
+                <input type="password" name="contraseña" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:border-emerald-600 transition">
             </div>
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Confirmar Contraseña</label>
-                <input type="password" name="contraseña_confirmation" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
+                <input type="password" name="contraseña_confirmation" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:border-emerald-600 transition">
             </div>
 
-            <button type="submit" :disabled="submitting" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
+            <!-- Botón actualizado a verde esmeralda -->
+            <button type="submit" :disabled="submitting" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
                 <span x-text="submitting ? 'Actualizando...' : 'Restablecer Contraseña'"></span>
             </button>
         </form>

@@ -3,14 +3,17 @@
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Auth\Notifications\ResetPassword as ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements CanResetPasswordContract
 {
-    use HasFactory, Notifiable, Auditable;
+    use HasFactory, Notifiable, Auditable, CanResetPassword;
 
     protected string $moduloBitacora = 'users';
 
@@ -45,7 +48,6 @@ class User extends Authenticatable
 
     public function direccion()
     {
-        // Se definen explícitamente la FK de users y la PK de direcciones
         return $this->belongsTo(Direccion::class, 'direccion_id', 'id_direccion');
     }
 
@@ -120,8 +122,27 @@ class User extends Authenticatable
         return $this->empresa && $this->empresa->estatus === 'APROBADO';
     }
 
-    public function getEmailForPasswordReset()
+    /**
+     * Mapea la columna de correo del usuario para el restablecimiento de contraseña.
+     */
+    public function getEmailForPasswordReset(): string
     {
         return $this->correo;
+    }
+
+    /**
+     * Personaliza el envío de la notificación de restablecimiento de contraseña.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $url = url(route('password.reset', [
+            'token' => $token,
+            'correo' => $this->correo,
+        ], false));
+
+        $notification = new ResetPasswordNotification($token);
+        $notification->createUrlUsing(fn () => $url);
+
+        $this->notify($notification);
     }
 }

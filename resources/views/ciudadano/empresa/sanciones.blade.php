@@ -75,8 +75,15 @@
                         @endif
                     </div>
 
-                    <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 space-y-2.5 flex flex-col justify-between">
+                    <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 space-y-3 flex flex-col justify-between">
                         <div class="space-y-1">
+                            <span class="text-gray-400 font-bold uppercase block text-[10px]">Sanción Aplicada</span>
+                            <span class="text-base font-black text-emerald-700 block">
+                                {{ number_format($s->unidades_tributarias, 2, ',', '.') }} U.T.
+                            </span>
+                        </div>
+
+                        <div class="space-y-1 pt-2 border-t border-gray-200/60">
                             <span class="text-gray-400 font-bold uppercase block text-[10px]">Límite de Subsanación</span>
                             <span class="text-sm font-extrabold text-rose-600 block">
                                 {{ $s->fecha_limite_subsanacion ? \Carbon\Carbon::parse($s->fecha_limite_subsanacion)->format('d/m/Y') : 'Sin plazo fijado' }}
@@ -88,8 +95,8 @@
                             <div class="pt-2 border-t border-gray-200/60">
                                 <span class="text-gray-400 block text-[10px] font-bold uppercase mb-1">Acta / Notificación Oficial</span>
                                 @foreach($s->evidencias_fiscalia as $file)
-                                    <a href="{{ route('sanciones.evidencia.ver', $file) }}" target="_blank" class="px-3 py-1.5 bg-white border border-gray-300 hover:border-rose-500 text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-2xs w-fit">
-                                        <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <a href="{{ route('sanciones.evidencia.ver', $file) }}" target="_blank" class="px-3 py-1.5 bg-white border border-gray-300 hover:border-emerald-500 text-emerald-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-2xs w-fit">
+                                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                         <span>Ver Documento Adjunto</span>
                                     </a>
                                 @endforeach
@@ -103,7 +110,7 @@
                     @if(in_array($s->estatus, ['NOTIFICADA', 'PENDIENTE_NOTIFICACION']))
                         <div class="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl w-full flex items-center gap-2">
                             <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span>Para consignar recaudos y solicitar el retiro o levantamiento de esta sanción, el representante legal debe asistir de forma presencial a las instalaciones de la <strong>Dirección de Manejo de Residuos</strong>.</span>
+                            <span>Para consignar recaudos, realizar el pago correspondiente y solicitar el retiro o levantamiento de esta sanción, el representante legal debe asistir de forma presencial a las instalaciones de la <strong>Dirección de Manejo de Residuos</strong>.</span>
                         </div>
                     @elseif($s->estatus === 'EN_REVISION')
                         <div class="p-3 bg-purple-50 border border-purple-200 text-purple-900 rounded-xl w-full flex items-center gap-2">

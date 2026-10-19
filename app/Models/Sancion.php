@@ -23,6 +23,7 @@ class Sancion extends Model
         'gravedad',
         'motivo_descripcion',
         'base_legal',
+        'unidades_tributarias',
         'fecha_incidencia',
         'fecha_citacion',
         'fecha_limite_subsanacion',

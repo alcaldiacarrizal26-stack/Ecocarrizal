@@ -439,6 +439,8 @@ return new class extends Migration
             $table->text('motivo_descripcion');
             $table->text('base_legal')->nullable(); 
 
+            $table->decimal('unidades_tributarias', 10, 2)->default(0.00);
+
             $table->date('fecha_incidencia');
             $table->date('fecha_citacion')->nullable();
             $table->date('fecha_limite_subsanacion')->nullable();

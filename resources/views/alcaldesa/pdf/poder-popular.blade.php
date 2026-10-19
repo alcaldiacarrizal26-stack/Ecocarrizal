@@ -62,7 +62,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Estilo para el consolidado territorial */
         .comuna-group {
             margin-bottom: 10px;
             border: 1px solid #e2e8f0;
@@ -102,110 +101,102 @@
         </button>
     </div>
 
-    <!-- Encabezado Institucional -->
+    <!-- Encabezado Institucional Dinámico -->
     <div class="header">
         <span class="sub-badge">Alcaldía del Municipio Carrizal • Despacho de la Alcaldesa</span>
         <h1>Informe Ejecutivo: Priorización del Poder Popular</h1>
-        <p>Análisis territorial de incidencias y trámites comunitarios — Registro de Denuncias</p>
+        <p>Análisis territorial de incidencias y trámites comunitarios — Registro de {{ $tipoRegistro === 'solicitud' ? 'Solicitudes Ambientales y Permisología' : 'Denuncias' }}</p>
     </div>
 
     @php
         $totalReg = $registrosGenerales->count();
-        $resueltos = $registrosGenerales->filter(function($item) {
-            return in_array(strtolower($item->estatus), ['cerrado', 'aprobado', 'resuelto', 'completado']);
+        $resueltos = $registrosGenerales->filter(function($item) use ($tipoRegistro) {
+            $estatusCampo = $tipoRegistro === 'solicitud' ? ($item->estado ?? '') : ($item->estatus ?? '');
+            return in_array(strtolower($estatusCampo), ['cerrado', 'aprobado', 'resuelto', 'completado']);
         })->count();
         $sinResolver = $totalReg - $resueltos;
 
         $pctResueltos = $totalReg > 0 ? round(($resueltos / $totalReg) * 100) : 0;
         $pctSinResolver = 100 - $pctResueltos;
 
-        // Conteo por niveles de gravedad
-        $gravedadAlta = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'alta')->count();
-        $gravedadMedia = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'media')->count();
-        $gravedadBaja = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'baja')->count();
-        
-        $totalGravedad = ($gravedadAlta + $gravedadMedia + $gravedadBaja) ?: 1;
-        $pctAlta = round(($gravedadAlta / $totalGravedad) * 100);
-        $pctMedia = round(($gravedadMedia / $totalGravedad) * 100);
-        $pctBaja = round(($gravedadBaja / $totalGravedad) * 100);
+        if ($tipoRegistro === 'denuncia') {
+            $totalGravedad = (($gravedadAlta ?? 0) + ($gravedadMedia ?? 0) + ($gravedadBaja ?? 0)) ?: 1;
+            $pctAlta = round((($gravedadAlta ?? 0) / $totalGravedad) * 100);
+            $pctMedia = round((($gravedadMedia ?? 0) / $totalGravedad) * 100);
+            $pctBaja = round((($gravedadBaja ?? 0) / $totalGravedad) * 100);
+        } else {
+            $totalDictamen = (($val1 ?? 0) + ($val2 ?? 0) + ($val3 ?? 0) + ($val4 ?? 0)) ?: 1;
+            $pctVal1 = round((($val1 ?? 0) / $totalDictamen) * 100);
+            $pctVal2 = round((($val2 ?? 0) / $totalDictamen) * 100);
+            $pctVal3 = round((($val3 ?? 0) / $totalDictamen) * 100);
+            $pctVal4 = round((($val4 ?? 0) / $totalDictamen) * 100);
+        }
 
         $maxMotivo = $motivosPrincipales->max('total') ?: 1;
     @endphp
 
-    <!-- BLOQUE METRICAS PRINCIPALES: Gráfico Circular + Gravedad en la misma fila -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px;">
+    <!-- BLOQUE METRICAS PRINCIPALES: Dos Gráficas Circulares Idénticas y Simétricas -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
         <tr>
-            <!-- 1. Gráfico Circular (Donut Chart SVG): Resueltos vs Sin Resolver -->
-            <td style="width: 50%; vertical-align: top; padding-right: 8px;">
-                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-                    <div style="font-size: 10px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 8px;">
-                        Estatus de Registros
-                    </div>
-                    
-                    <div style="display: flex; align-items: center; justify-content: space-around;">
-                        <!-- SVG Donut Chart Vectorial -->
-                        <div style="position: relative; width: 85px; height: 85px;">
-                            <svg viewBox="0 0 36 36" style="width: 85px; height: 85px; transform: rotate(-90deg); transform-origin: center;">
-                                <!-- Círculo Fondo (Sin Resolver / Ámbar) -->
-                                <path stroke="#d97706" stroke-width="4.5" fill="none"
-                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                <!-- Círculo Progreso (Resueltos / Verde Ecosocialista) -->
-                                <path stroke="#059669" stroke-width="4.5" stroke-dasharray="{{ $pctResueltos }}, 100" fill="none"
-                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            </svg>
-                            <!-- Texto en el centro del Donut (Total) -->
-                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-                                <span style="font-size: 16px; font-weight: 900; color: #0f172a; line-height: 1;">{{ $totalReg }}</span>
-                                <span style="font-size: 7px; color: #64748b; font-weight: bold; text-transform: uppercase;">TOTAL</span>
+            <!-- 1. TARJETA ESTATUS DE REGISTROS -->
+            <td width="49%" valign="top" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background-color: #f8fafc;">
+                <div style="font-size: 10px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 8px;">
+                    ESTATUS DE REGISTROS
+                </div>
+                
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td width="40%" align="center" valign="middle">
+                            <img src="{{ $chartEstatusUrl }}" width="70" height="70" style="display: block; margin: 0 auto;" alt="Estatus" />
+                            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 3px;">
+                                TOTAL: {{ $totalReg }}
                             </div>
-                        </div>
-
-                        <!-- Leyenda a la derecha del gráfico circular -->
-                        <div style="font-size: 9px; space-y-2;">
+                        </td>
+                        <td width="60%" valign="middle" style="padding-left: 8px; font-size: 9px; line-height: 1.6;">
                             <div style="margin-bottom: 6px;">
-                                <span style="display: inline-block; width: 8px; height: 8px; background-color: #059669; border-radius: 50%; margin-right: 4px;"></span>
-                                <strong>Resueltos:</strong> {{ $resueltos }} <span style="color: #059669; font-weight: bold;">({{ $pctResueltos }}%)</span>
+                                <span style="color: #059669; font-size: 12px;">■</span> 
+                                <strong>{{ $tipoRegistro === 'solicitud' ? 'Aprobados:' : 'Resueltos:' }}</strong> {{ $resueltos }} <span style="color: #059669; font-weight: bold;">({{ $pctResueltos }}%)</span>
                             </div>
                             <div>
-                                <span style="display: inline-block; width: 8px; height: 8px; background-color: #d97706; border-radius: 50%; margin-right: 4px;"></span>
-                                <strong>Sin Resolver:</strong> {{ $sinResolver }} <span style="color: #d97706; font-weight: bold;">({{ $pctSinResolver }}%)</span>
+                                <span style="color: #d97706; font-size: 12px;">■</span> 
+                                <strong>{{ $tipoRegistro === 'solicitud' ? 'Pendientes:' : 'Sin Resolver:' }}</strong> {{ $sinResolver }} <span style="color: #d97706; font-weight: bold;">({{ $pctSinResolver }}%)</span>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        </td>
+                    </tr>
+                </table>
             </td>
 
-            <!-- 2. Gráfico de Gravedad en Barras Verticales -->
-            <td style="width: 50%; vertical-align: top; padding-left: 8px;">
-                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-                    <div style="font-size: 10px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 8px;">
-                        Niveles de Gravedad
-                    </div>
+            <td width="2%"></td> <!-- Espaciador -->
 
-                    <div style="display: flex; align-items: flex-end; justify-content: space-around; height: 60px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px;">
-                        <!-- Barra Alta -->
-                        <div style="text-align: center; width: 25%;">
-                            <span style="font-size: 8px; font-weight: bold; color: #dc2626;">{{ $gravedadAlta }}</span>
-                            <div style="height: {{ max($pctAlta, 8) }}px; background-color: #dc2626; border-radius: 3px 3px 0 0; width: 100%; margin: 2px auto 0;"></div>
-                        </div>
-                        <!-- Barra Media -->
-                        <div style="text-align: center; width: 25%;">
-                            <span style="font-size: 8px; font-weight: bold; color: #d97706;">{{ $gravedadMedia }}</span>
-                            <div style="height: {{ max($pctMedia, 8) }}px; background-color: #d97706; border-radius: 3px 3px 0 0; width: 100%; margin: 2px auto 0;"></div>
-                        </div>
-                        <!-- Barra Baja -->
-                        <div style="text-align: center; width: 25%;">
-                            <span style="font-size: 8px; font-weight: bold; color: #2563eb;">{{ $gravedadBaja }}</span>
-                            <div style="height: {{ max($pctBaja, 8) }}px; background-color: #2563eb; border-radius: 3px 3px 0 0; width: 100%; margin: 2px auto 0;"></div>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-around; font-size: 8px; font-weight: bold; text-transform: uppercase;">
-                        <span style="color: #dc2626;">Alta ({{ $pctAlta }}%)</span>
-                        <span style="color: #d97706;">Media ({{ $pctMedia }}%)</span>
-                        <span style="color: #2563eb;">Baja ({{ $pctBaja }}%)</span>
-                    </div>
+            <!-- 2. TARJETA GRAVEDAD O VEREDICTOS -->
+            <td width="49%" valign="top" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background-color: #f8fafc;">
+                <div style="font-size: 10px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 8px;">
+                    {{ $tipoRegistro === 'solicitud' ? 'Veredictos de Inspección' : 'Niveles de Gravedad' }}
                 </div>
+
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td width="40%" align="center" valign="middle">
+                            <img src="{{ $tipoRegistro === 'solicitud' ? $chartDictamenUrl : $chartGravedadUrl }}" width="70" height="70" style="display: block; margin: 0 auto;" alt="Métrica 2" />
+                            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 3px;">
+                                TOTAL: {{ $totalReg }}
+                            </div>
+                        </td>
+                        
+                        <td width="60%" valign="middle" style="padding-left: 8px; font-size: 8px; line-height: 1.4;">
+                            @if($tipoRegistro === 'denuncia')
+                                <div style="margin-bottom: 4px;"><span style="color: #dc2626; font-size: 11px;">■</span> <strong>Alta:</strong> {{ $gravedadAlta }} ({{ $pctAlta }}%)</div>
+                                <div style="margin-bottom: 4px;"><span style="color: #d97706; font-size: 11px;">■</span> <strong>Media:</strong> {{ $gravedadMedia }} ({{ $pctMedia }}%)</div>
+                                <div><span style="color: #2563eb; font-size: 11px;">■</span> <strong>Baja:</strong> {{ $gravedadBaja }} ({{ $pctBaja }}%)</div>
+                            @else
+                                <div style="margin-bottom: 3px;"><span style="color: #059669; font-size: 10px;">■</span> <strong>Aprobado:</strong> {{ $val1 }} ({{ $pctVal1 }}%)</div>
+                                <div style="margin-bottom: 3px;"><span style="color: #d97706; font-size: 10px;">■</span> <strong>Observaciones:</strong> {{ $val2 }} ({{ $pctVal2 }}%)</div>
+                                <div style="margin-bottom: 3px;"><span style="color: #dc2626; font-size: 10px;">■</span> <strong>Rechazado:</strong> {{ $val3 }} ({{ $pctVal3 }}%)</div>
+                                <div><span style="color: #94a3b8; font-size: 10px;">■</span> <strong>Sin Insp.:</strong> {{ $val4 }} ({{ $pctVal4 }}%)</div>
+                            @endif
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
@@ -233,17 +224,29 @@
         </tbody>
     </table>
 
-    <!-- Bloque 2: Distribución Gráfica por Principales Motivos (Barras Horizontales) -->
-    <div class="section-title">2. Distribución Gráfica por Principales Motivos</div>
+    <!-- Bloque 2: Distribución Gráfica por Principales Motivos o Tipos de Trámite -->
+    <div class="section-title">2. Distribución Gráfica por Principales {{ $tipoRegistro === 'solicitud' ? 'Tipos de Trámite' : 'Motivos' }}</div>
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;">
         @foreach($motivosPrincipales as $motivo)
             @php
                 $porcentajeMotivo = max(round(($motivo->total / $maxMotivo) * 100), 5);
+                $nombreMotivo = $motivo->motivo;
+                if($tipoRegistro === 'solicitud') {
+                    $nombresTramites = [
+                        'inspeccion' => 'Inspección Técnica',
+                        'poda_deshierbe' => 'Poda o Deshierbe',
+                        'tala' => 'Tala de Árboles',
+                        'desmalezamiento_conformacion' => 'Desmalezamiento y Conformación'
+                    ];
+                    $nombreMotivo = $nombresTramites[$motivo->motivo] ?? ucfirst($motivo->motivo);
+                } else {
+                    $nombreMotivo = ucfirst($motivo->motivo);
+                }
             @endphp
             <div style="margin-bottom: 8px;">
                 <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; color: #334155; margin-bottom: 3px;">
-                    <span>{{ ucfirst($motivo->motivo) }}</span>
-                    <span style="color: #059669;">{{ $motivo->total }} casos</span>
+                    <span>{{ $nombreMotivo }}</span>
+                    <span style="color: #059669;">{{ $motivo->total }} {{ $tipoRegistro === 'solicitud' ? 'trámites' : 'casos' }}</span>
                 </div>
                 <div style="width: 100%; background-color: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
                     <div style="width: {{ $porcentajeMotivo }}%; background-color: #059669; height: 8px; border-radius: 4px;"></div>
@@ -275,11 +278,16 @@
 
             @foreach($agrupadoPorSector as $sectorNombre => $registrosSector)
                 @php
-                    $motivosEnSector = $registrosSector->countBy(function($item) {
-                        return ucfirst($item->tipo_contaminacion);
+                    $motivosEnSector = $registrosSector->countBy(function($item) use ($tipoRegistro) {
+                        $campoMotivo = $tipoRegistro === 'solicitud' ? $item->tipo_tramite : $item->tipo_contaminacion;
+                        return ucfirst($campoMotivo);
                     });
                     
-                    $resumenMotivosString = $motivosEnSector->map(function($count, $motivo) {
+                    $resumenMotivosString = $motivosEnSector->map(function($count, $motivo) use ($tipoRegistro) {
+                        if($tipoRegistro === 'solicitud') {
+                            $mapa = ['Inspeccion' => 'Inspección', 'Poda_deshierbe' => 'Poda', 'Tala' => 'Tala', 'Desmalezamiento_conformacion' => 'Desmalezamiento'];
+                            $motivo = $mapa[$motivo] ?? $motivo;
+                        }
                         return "{$count} {$motivo}";
                     })->implode(' • ');
 
@@ -290,14 +298,33 @@
                 <div style="padding: 6px 10px; border-bottom: 1px solid #f1f5f9; font-size: 10px;">
                     <strong>Sector: {{ $sectorNombre }}</strong> 
                     <span style="color: #64748b; display: block; margin-top: 2px;">
-                        Incidencias: [ {{ $resumenMotivosString }} ]
+                        {{ $tipoRegistro === 'solicitud' ? 'Trámites' : 'Incidencias' }}: [ {{ $resumenMotivosString }} ]
                     </span>
+                    
+                    @if($tipoRegistro === 'denuncia')
                     <span style="color: #475569; display: block; margin-top: 2px; font-size: 9px;">
                         Niveles de gravedad: 
                         @if($gAlta > 0) <span style="color: #dc2626; font-weight: bold;">Alta: {{ $gAlta }}</span> @endif
                         @if($gMedia > 0) <span style="color: #d97706; font-weight: bold; margin-left: 6px;">Media: {{ $gMedia }}</span> @endif
                         @if($gBaja > 0) <span style="color: #2563eb; font-weight: bold; margin-left: 6px;">Baja: {{ $gBaja }}</span> @endif
                     </span>
+                    @else
+                    @php
+                        $inspeccionSector = $registrosSector->map(fn($s) => $s->inspecciones()->latest()->first()?->dictamen)->filter();
+                        $aprobadosSec = $inspeccionSector->filter(fn($d) => strtoupper($d) === 'APROBADO')->count();
+                        $observadosSec = $inspeccionSector->filter(fn($d) => strtoupper($d) === 'CON_OBSERVACIONES')->count();
+                        $rechazadosSec = $inspeccionSector->filter(fn($d) => in_array(strtoupper($d), ['RECHAZADO', 'REINSPECCION_REQUERIDA']))->count();
+                        $sinInspeccionSec = $registrosSector->count() - $inspeccionSector->count();
+                    @endphp
+                    <span style="color: #475569; display: block; margin-top: 2px; font-size: 9px;">
+                        Veredictos: 
+                        @if($aprobadosSec > 0) <span style="color: #059669; font-weight: bold;">Aprobados: {{ $aprobadosSec }}</span> @endif
+                        @if($observadosSec > 0) <span style="color: #d97706; font-weight: bold; margin-left: 4px;">Obs: {{ $observadosSec }}</span> @endif
+                        @if($rechazadosSec > 0) <span style="color: #dc2626; font-weight: bold; margin-left: 4px;">Rechazados: {{ $rechazadosSec }}</span> @endif
+                        @if($sinInspeccionSec > 0) <span style="color: #94a3b8; font-weight: bold; margin-left: 4px;">Sin Insp.: {{ $sinInspeccionSec }}</span> @endif
+                    </span>
+                    @endif
+
                     <div style="text-align: right; font-weight: bold; color: #0f172a; margin-top: -14px;">
                         TOTAL: {{ $registrosSector->count() }}
                     </div>

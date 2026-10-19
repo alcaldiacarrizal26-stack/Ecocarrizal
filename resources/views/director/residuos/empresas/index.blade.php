@@ -60,9 +60,7 @@
                         class="w-full text-sm rounded-xl border border-slate-300 bg-slate-50 text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                     >
                         <option value="">Todos los estatus</option>
-                        <option value="PENDIENTE" {{ request('estatus') === 'PENDIENTE' ? 'selected' : '' }}>Pendiente</option>
                         <option value="APROBADO" {{ request('estatus') === 'APROBADO' ? 'selected' : '' }}>Aprobado</option>
-                        <option value="OBSERVADO" {{ request('estatus') === 'OBSERVADO' ? 'selected' : '' }}>Observado</option>
                         <option value="RECHAZADO" {{ request('estatus') === 'RECHAZADO' ? 'selected' : '' }}>Rechazado</option>
                     </select>
                 </div>
@@ -132,7 +130,6 @@
                                         $badgeClasses = match($estado) {
                                             'APROBADO' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                                             'RECHAZADO' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                            'OBSERVADO' => 'bg-amber-50 text-amber-700 border-amber-200',
                                             default => 'bg-slate-100 text-slate-600 border-slate-200',
                                         };
                                     @endphp

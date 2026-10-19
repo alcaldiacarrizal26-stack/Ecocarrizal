@@ -3,8 +3,9 @@
         <div class="w-full max-w-xl bg-white border border-slate-200 rounded-3xl p-8 shadow-xl space-y-6">
             
             <div class="text-center">
-                <div class="h-12 w-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white text-xl font-bold mx-auto mb-3 shadow-md">
-                    <img src="{{ asset('images/carrizal_logo.png') }}" alt="Logo" class="h-8 w-8 object-contain">
+                <!-- Contenedor horizontal limpio sin el cuadro verde forzado -->
+                <div class="flex items-center justify-center mx-auto mb-3">
+                    <img src="{{ asset('images/carrizal_logo.png') }}" alt="Alcaldía de Carrizal" class="h-10 w-auto object-contain">
                 </div>
                 <h3 class="text-xl font-bold text-slate-800">Registro de Nueva Cuenta</h3>
                 <p class="text-xs text-slate-500 mt-1">Crea tu perfil ciudadano o empresarial para trámites ambientales</p>

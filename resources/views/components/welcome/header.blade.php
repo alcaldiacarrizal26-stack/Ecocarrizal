@@ -2,8 +2,9 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         <!-- Logo -->
         <a href="#" @click.prevent="activeTab = 'inicio'" class="flex items-center gap-3 group cursor-pointer">
-            <div class="h-11 w-11 rounded-2xl bg-primary flex items-center justify-center font-black text-white text-2xl shadow-md shadow-primary/10 group-hover:scale-105 transition-transform">
-                <img src="{{ asset('images/carrizal_logo.png') }}" alt="Logo Carrizal" class="h-10 w-10 object-contain">
+            <!-- Contenedor horizontal limpio sin el cuadro verde forzado -->
+            <div class="flex items-center justify-center">
+                <img src="{{ asset('images/carrizal_logo.png') }}" alt="Logo Carrizal" class="h-10 w-auto object-contain group-hover:scale-105 transition-transform">
             </div>
             <div class="flex flex-col">
                 <span class="font-bold text-xl tracking-tight text-slate-800 group-hover:text-primary transition-colors">Ecosocialismo</span>

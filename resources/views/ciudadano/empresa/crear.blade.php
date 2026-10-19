@@ -1,9 +1,26 @@
-<x-layouts.app title="Vincular Nueva Empresa" active="empresas">
-<div class="max-w-5xl mx-auto py-8 px-4 sm:px-6">
+<x-layouts.app title="Vincular / Actualizar Empresa" active="empresas">
+<div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-6">
+
+    <!-- ALERTA DE OBSERVACIONES EN CASO DE RECHAZO U OBSERVACIÓN -->
+    @if(isset($empresa) && in_array($empresa->estatus, ['OBSERVADO', 'RECHAZADO']))
+        <div class="p-5 bg-rose-50 border border-rose-200 rounded-3xl shadow-sm space-y-2">
+            <div class="flex items-center gap-2 text-rose-800 font-bold text-sm">
+                <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <span>Su expediente comercial presenta observaciones y requiere corrección</span>
+            </div>
+            <p class="text-xs text-rose-700 leading-relaxed pl-7">
+                <strong>Motivo / Observaciones de la Dirección:</strong> 
+                {{ $empresa->observaciones_fiscalia ?? 'Por favor verifique los recaudos y datos suministrados según la normativa ambiental vigente.' }}
+            </p>
+        </div>
+    @endif
+
     <!-- Encabezado de la Página -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Vincular Nueva Empresa</h1>
+            <h1 class="text-2xl font-bold text-gray-900">
+                {{ isset($empresa) ? 'Corregir / Actualizar Expediente de Empresa' : 'Vincular Nueva Empresa' }}
+            </h1>
             <p class="text-xs text-gray-500 mt-1">Registre su firma comercial y complete el expediente de perfil ambiental.</p>
         </div>
         <a 
@@ -16,7 +33,7 @@
 
     <!-- Tarjeta Principal / Formulario Completo -->
     <div 
-        x-data="vincularEmpresaForm({{ json_encode(\App\Services\TerritorioService::getTerritorios()) }})"
+        x-data="vincularEmpresaForm({{ json_encode(\App\Services\TerritorioService::getTerritorios()) }}, {{ isset($empresa) ? json_encode($empresa) : 'null' }})"
         class="overflow-hidden rounded-3xl bg-white shadow-xl border border-gray-100"
     >
         <!-- Header con Identidad Municipal y Stepper -->
@@ -533,7 +550,7 @@
                                 <span class="text-[10px] text-gray-500 block">Inscripción o actualización ecosocialista (MINEC)</span>
                             </div>
                             <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                                <span x-text="files.doc_renma ? files.doc_renma.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <span x-text="files.doc_renma ? files.doc_renma.name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
                                 <input type="file" @change="handleFileUpload($event, 'doc_renma')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                             </label>
                         </div>
@@ -563,7 +580,7 @@
                                 <span class="text-[10px] text-amber-700 block">Emitida por la Dirección Estadal del MINEC</span>
                             </div>
                             <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-amber-300 rounded-xl cursor-pointer hover:border-amber-600 transition-all shrink-0">
-                                <span x-text="files.doc_no_objecion ? files.doc_no_objecion.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-amber-800 truncate max-w-[180px]"></span>
+                                <span x-text="files.doc_no_objecion ? files.doc_no_objecion.name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-amber-800 truncate max-w-[180px]"></span>
                                 <input type="file" @change="handleFileUpload($event, 'doc_no_objecion')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                             </label>
                         </div>
@@ -593,7 +610,7 @@
                                 <span class="text-[10px] text-gray-500 block">Constancia oficial de registro (Minea/MINEC)</span>
                             </div>
                             <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                                <span x-text="files.doc_racda ? files.doc_racda.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <span x-text="files.doc_racda ? files.doc_racda.name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
                                 <input type="file" @change="handleFileUpload($event, 'doc_racda')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                             </label>
                         </div>
@@ -623,7 +640,7 @@
                                 <span class="text-[10px] text-gray-500 block">Aprobada por Sudeaseg y vigente</span>
                             </div>
                             <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                                <span x-text="files.doc_poliza ? files.doc_poliza.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <span x-text="files.doc_poliza ? files.doc_poliza.name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
                                 <input type="file" @change="handleFileUpload($event, 'doc_poliza')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                             </label>
                         </div>
@@ -653,7 +670,7 @@
                                 <span class="text-[10px] text-gray-500 block">Análisis por laboratorio acreditado</span>
                             </div>
                             <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                                <span x-text="files.doc_efluentes ? files.doc_efluentes.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <span x-text="files.doc_efluentes ? files.doc_efluentes.name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
                                 <input type="file" @change="handleFileUpload($event, 'doc_efluentes')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                             </label>
                         </div>
@@ -683,7 +700,7 @@
                                 <span class="text-[10px] text-gray-500 block">Medición de chimeneas / fuentes fijas</span>
                             </div>
                             <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                                <span x-text="files.doc_emisiones ? files.doc_emisiones.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <span x-text="files.doc_emisiones ? files.doc_emisiones.name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
                                 <input type="file" @change="handleFileUpload($event, 'doc_emisiones')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                             </label>
                         </div>
@@ -713,7 +730,7 @@
                                 <span class="text-[10px] text-gray-500 block">Rutas internas, segregación y disposición final</span>
                             </div>
                             <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                                <span x-text="files.doc_plan_desechos ? files.doc_plan_desechos.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <span x-text="files.doc_plan_desechos ? files.doc_plan_desechos.name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
                                 <input type="file" @change="handleFileUpload($event, 'doc_plan_desechos')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                             </label>
                         </div>
@@ -743,7 +760,7 @@
                                 <span class="text-[10px] text-gray-500 block">Protocolos de actuación ante derrames/incendios</span>
                             </div>
                             <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                                <span x-text="files.doc_plan_emergencia ? files.doc_plan_emergencia.name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                <span x-text="files.doc_plan_emergencia ? files.doc_plan_emergencia.name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
                                 <input type="file" @change="handleFileUpload($event, 'doc_plan_emergencia')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                             </label>
                         </div>
@@ -804,7 +821,7 @@
                         :disabled="submitting"
                         class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 disabled:opacity-50"
                     >
-                        <span x-text="submitting ? 'Procesando...' : 'Finalizar Registro'"></span>
+                        <span x-text="submitting ? 'Procesando...' : (isEditing ? 'Reenviar Expediente Corregido' : 'Finalizar Registro')"></span>
                     </button>
                 </div>
             </div>
@@ -813,7 +830,7 @@
 </div>
 
 <script>
-function vincularEmpresaForm(territorios) {
+function vincularEmpresaForm(territorios, empresaExistente) {
     return {
         step: 1,
         submitting: false,
@@ -836,15 +853,15 @@ function vincularEmpresaForm(territorios) {
         rifInput: { tipo: 'J', numero: '', digito: '' },
         patenteInput: { tipo_formato: 'SIGAT_OFICIAL', prefix: 'CZ-AE-', correlativo: '' },
 
-        racdaInput: {
-            correlativo: ''
-        },
+        racdaInput: { correlativo: '' },
 
         manejadoraRifInput: { tipo: 'J', numero: '', digito: '' },
         manejadoraRacdaInput: { correlativo: '' },
 
         generadorRifInput: { tipo: 'J', numero: '', digito: '' },
         generadorRacdaInput: { correlativo: '' },
+
+        isEditing: false,
 
         form: {
             rif: '',
@@ -880,7 +897,49 @@ function vincularEmpresaForm(territorios) {
         },
 
         init() {
+            if (empresaExistente) {
+                this.isEditing = true;
+                this.loadEmpresaData(empresaExistente);
+            }
             this.formatRacda();
+        },
+
+        loadEmpresaData(data) {
+            this.form.razon_social = data.razon_social || '';
+            this.form.nombre_comercial = data.nombre_comercial || '';
+            this.form.correo_comercial = data.correo_comercial || '';
+            
+            // Desglosar RIF
+            if (data.rif) {
+                const parts = data.rif.split('-');
+                if (parts.length === 3) {
+                    this.rifInput.tipo = parts[0];
+                    this.rifInput.numero = parts[1];
+                    this.rifInput.digito = parts[2];
+                }
+            }
+
+            // Desglosar Teléfono
+            if (data.telefono_comercial && data.telefono_comercial.length >= 11) {
+                this.form.codigo_area = data.telefono_comercial.substring(0, 4);
+                this.form.telefono_num = data.telefono_comercial.substring(4);
+            }
+
+            this.form.comuna = data.comuna || '';
+            this.onComunaChange();
+            this.form.sector = data.sector || '';
+            this.form.calle_avenida = data.calle_avenida || '';
+            this.form.edificio_galpon_local = data.edificio_galpon_local || '';
+            this.form.numero_cuenta_patente = data.numero_cuenta_patente || '';
+            this.patenteInput.correlativo = data.numero_cuenta_patente ? data.numero_cuenta_patente.replace('CZ-AE-', '') : '';
+
+            if (data.perfil_ambiental) {
+                this.form.perfil.rol_ambiental = data.perfil_ambiental.rol_ambiental || 'GENERADOR';
+                this.form.perfil.subtipo_generador = data.perfil_ambiental.subtipo_generador || 'PEQUENO';
+                this.form.perfil.genera_efluentes = !!data.perfil_ambiental.genera_efluentes;
+                this.form.perfil.genera_emisiones = !!data.perfil_ambiental.genera_emisiones;
+                this.form.perfil.genera_peligrosos = !!data.perfil_ambiental.genera_peligrosos;
+            }
         },
 
         onRolChange(nuevoRol) {
@@ -1027,7 +1086,6 @@ function vincularEmpresaForm(territorios) {
             formData.append('calle_avenida', this.form.calle_avenida);
             formData.append('edificio_galpon_local', this.form.edificio_galpon_local);
             
-            // Aplanado dinámico del objeto `perfil`
             Object.keys(this.form.perfil).forEach(key => {
                 const val = this.form.perfil[key];
                 if (Array.isArray(val)) {
@@ -1041,14 +1099,12 @@ function vincularEmpresaForm(territorios) {
                 }
             });
 
-            // Archivos adjuntos
             Object.keys(this.files).forEach(key => {
                 if (this.files[key]) {
                     formData.append(`documentos[${key}]`, this.files[key]);
                 }
             });
 
-            // Fechas de emisión, vencimiento e indicador de vitalicio
             Object.keys(this.fechasEmision).forEach(key => {
                 if (this.fechasEmision[key]) {
                     formData.append(`fechas_emision[${key}]`, this.fechasEmision[key]);

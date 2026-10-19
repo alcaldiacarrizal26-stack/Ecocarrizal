@@ -7,14 +7,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use App\Models\User;
 use App\Models\BitacoraEvento;
 
 class ResetPasswordController extends Controller
 {
     public function create(Request $request, $token)
     {
-        return view('auth.reset-password', ['token' => $token, 'correo' => $request->correo]);
+        return view('auth.reset-password', [
+            'token' => $token,
+            'correo' => $request->query('correo'),
+        ]);
     }
 
     public function update(Request $request)
@@ -22,19 +24,22 @@ class ResetPasswordController extends Controller
         $request->validate([
             'token' => 'required',
             'correo' => 'required|email',
-            'contraseña' => 'required|min:6|confirmed',
+            'password' => 'required|min:6|confirmed',
+        ], [
+            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
         ]);
 
         $status = Password::reset(
             [
                 'email' => $request->correo,
-                'password' => $request->contraseña,
-                'password_confirmation' => $request->contraseña_confirmation,
-                'token' => $request->token
+                'password' => $request->password,
+                'password_confirmation' => $request->password_confirmation,
+                'token' => $request->token,
             ],
             function ($user, $password) {
                 $user->forceFill([
-                    'password' => Hash::make($password)
+                    'password' => Hash::make($password),
                 ])->setRememberToken(Str::random(60));
 
                 $user->save();

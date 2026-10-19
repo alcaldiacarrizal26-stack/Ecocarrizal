@@ -56,7 +56,6 @@ class ReporteController extends Controller
     {
         $query = Solicitud::with(['usuario', 'inspector.user', 'recaudos']);
 
-        // Filtros de búsqueda para Gestión Ambiental
         if ($request->filled('tipo_tramite')) {
             $query->where('tipo_tramite', $request->tipo_tramite);
         }
@@ -72,7 +71,6 @@ class ReporteController extends Controller
 
         $solicitudes = $query->latest()->paginate(15)->withQueryString();
         
-        // Métricas rápidas para las tarjetas ejecutivas
         $totalTramites = Solicitud::count();
         $tramitesAprobados = Solicitud::where('estado', 'aprobado')->count();
         $compensacionesPendientes = Compensacion::where('estatus', 'PENDIENTE')->count();
@@ -97,7 +95,6 @@ class ReporteController extends Controller
     {
         $query = Empresa::with(['user', 'perfilAmbiental']);
 
-        // Filtros de búsqueda para Residuos Comerciales
         if ($request->filled('buscar')) {
             $busqueda = $request->buscar;
             $query->where(function($q) use ($busqueda) {
@@ -111,7 +108,6 @@ class ReporteController extends Controller
 
         $empresas = $query->latest()->paginate(15)->withQueryString();
         
-        // Métricas de Residuos
         $totalEmpresas = Empresa::count();
         $empresasAprobadas = Empresa::where('estatus', 'APROBADO')->count();
         $empresasPendientes = Empresa::whereIn('estatus', ['PENDIENTE', 'PENDIENTE_APROBACION'])->count();
@@ -139,7 +135,7 @@ class ReporteController extends Controller
      */
     public function poderPopular(Request $request)
     {
-        $tipoRegistro = $request->input('tipo', 'denuncia'); // 'denuncia' o 'solicitud'
+        $tipoRegistro = $request->input('tipo', 'denuncia');
         
         if ($tipoRegistro === 'solicitud') {
             $query = Solicitud::with(['usuario', 'inspector.user', 'recaudos']);
@@ -160,7 +156,6 @@ class ReporteController extends Controller
             $registros = $query->latest()->paginate(15)->withQueryString();
             $comunasList = Solicitud::select('comuna')->distinct()->pluck('comuna');
         } else {
-            // Para denuncias cargamos exclusivamente las relaciones válidas
             $query = Denuncia::with(['user', 'inspector.user']);
             
             if ($request->filled('codigo')) {
@@ -194,14 +189,12 @@ class ReporteController extends Controller
     {
         $tipoRegistro = $request->input('tipo', 'denuncia');
         
-        // Obtener datos agrupados por Comuna y Sector (Priorizando los más activos)
         $rankingComunas = ($tipoRegistro === 'solicitud' ? Solicitud::query() : Denuncia::query())
             ->select('comuna', 'sector', \DB::raw('count(*) as total'))
             ->groupBy('comuna', 'sector')
             ->orderByDesc('total')
             ->get();
 
-        // Agrupar por motivos principales
         $motivosPrincipales = ($tipoRegistro === 'solicitud' ? Solicitud::query() : Denuncia::query())
             ->select(
                 $tipoRegistro === 'solicitud' ? 'tipo_tramite as motivo' : 'tipo_contaminacion as motivo', 
@@ -212,16 +205,139 @@ class ReporteController extends Controller
             ->limit(5)
             ->get();
 
-        // Listado general de todos los registros para el resumen final
-        $registrosGenerales = ($tipoRegistro === 'solicitud' ? Solicitud::query() : Denuncia::query())
-            ->latest()
-            ->get();
+        $registrosGenerales = ($tipoRegistro === 'solicitud' 
+            ? Solicitud::with('inspecciones') 
+            : Denuncia::query()
+        )->latest()->get();
 
-        return view('alcaldesa.pdf.poder-popular', compact(
-            'rankingComunas',
-            'motivosPrincipales',
-            'registrosGenerales',
-            'tipoRegistro'
-        ));
+        $totalReg = $registrosGenerales->count();
+        
+        $resueltos = $registrosGenerales->filter(function($item) use ($tipoRegistro) {
+            $estatusCampo = $tipoRegistro === 'solicitud' ? ($item->estado ?? '') : ($item->estatus ?? '');
+            return in_array(strtolower($estatusCampo), ['cerrado', 'aprobado', 'resuelto', 'completado']);
+        })->count();
+        $sinResolver = $totalReg - $resueltos;
+
+        $maxMotivo = $motivosPrincipales->max('total') ?: 1;
+
+        // Título dinámico para el informe
+        $tituloInforme = $tipoRegistro === 'solicitud' 
+            ? 'Informe Ejecutivo: Solicitudes Ambientales y Permisología' 
+            : 'Informe Ejecutivo: Priorización del Poder Popular - Denuncias';
+
+        // Gráfico 1: Estatus de Registros (Dona)
+        $chartEstatusConfig = [
+            'type' => 'doughnut',
+            'data' => [
+                'labels' => ['Resueltos / Aprobados', 'Pendientes / Sin Resolver'],
+                'datasets' => [[
+                    'data' => [$resueltos, $sinResolver],
+                    'backgroundColor' => ['#059669', '#d97706'],
+                    'borderWidth' => 0
+                ]]
+            ],
+            'options' => [
+                'legend' => ['display' => false],
+                'plugins' => ['legend' => ['display' => false]],
+                'cutoutPercentage' => 65
+            ]
+        ];
+        $chartEstatusUrl = "https://quickchart.io/chart?w=120&h=120&c=" . urlencode(json_encode($chartEstatusConfig));
+
+        if ($tipoRegistro === 'solicitud') {
+            $dictamenAprobado = 0;
+            $dictamenObservaciones = 0;
+            $dictamenRechazado = 0;
+            $sinInspeccion = 0;
+
+            foreach ($registrosGenerales as $solicitud) {
+                $inspeccion = $solicitud->inspecciones()->latest()->first();
+                if (!$inspeccion) {
+                    $sinInspeccion++;
+                } else {
+                    $dictamen = strtoupper($inspeccion->dictamen ?? '');
+                    if ($dictamen === 'APROBADO') $dictamenAprobado++;
+                    elseif ($dictamen === 'CON_OBSERVACIONES') $dictamenObservaciones++;
+                    elseif (in_array($dictamen, ['RECHAZADO', 'REINSPECCION_REQUERIDA'])) $dictamenRechazado++;
+                    else $sinInspeccion++;
+                }
+            }
+
+            $labelGrafica2Title = "Veredictos de Inspección";
+            $val1 = $dictamenAprobado;
+            $val2 = $dictamenObservaciones;
+            $val3 = $dictamenRechazado;
+            $val4 = $sinInspeccion;
+            
+            $chartDictamenConfig = [
+                'type' => 'doughnut',
+                'data' => [
+                    'labels' => ['Aprobado', 'Con Observaciones', 'Rechazado', 'Sin Inspección'],
+                    'datasets' => [[
+                        'data' => [$val1, $val2, $val3, $val4],
+                        'backgroundColor' => ['#059669', '#d97706', '#dc2626', '#94a3b8'],
+                        'borderWidth' => 0
+                    ]]
+                ],
+                'options' => [
+                    'legend' => ['display' => false],
+                    'plugins' => ['legend' => ['display' => false]],
+                    'cutoutPercentage' => 65
+                ]
+            ];
+            $chartDictamenUrl = "https://quickchart.io/chart?w=120&h=120&c=" . urlencode(json_encode($chartDictamenConfig));
+
+            return view('alcaldesa.pdf.poder-popular', compact(
+                'rankingComunas',
+                'motivosPrincipales',
+                'registrosGenerales',
+                'tipoRegistro',
+                'chartEstatusUrl',
+                'chartDictamenUrl',
+                'maxMotivo',
+                'val1', 'val2', 'val3', 'val4',
+                'labelGrafica2Title',
+                'tituloInforme'
+            ));
+
+        } else {
+            $gravedadAlta = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'alta')->count();
+            $gravedadMedia = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'media')->count();
+            $gravedadBaja = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'baja')->count();
+
+            $chartGravedadConfig = [
+                'type' => 'doughnut',
+                'data' => [
+                    'labels' => ['Alta', 'Media', 'Baja'],
+                    'datasets' => [[
+                        'data' => [$gravedadAlta, $gravedadMedia, $gravedadBaja],
+                        'backgroundColor' => ['#dc2626', '#d97706', '#2563eb'],
+                        'borderWidth' => 0
+                    ]]
+                ],
+                'options' => [
+                    'legend' => ['display' => false],
+                    'plugins' => ['legend' => ['display' => false]],
+                    'cutoutPercentage' => 65
+                ]
+            ];
+            $chartGravedadUrl = "https://quickchart.io/chart?w=120&h=120&c=" . urlencode(json_encode($chartGravedadConfig));
+            $labelGrafica2Title = "Niveles de Gravedad";
+
+            return view('alcaldesa.pdf.poder-popular', compact(
+                'rankingComunas',
+                'motivosPrincipales',
+                'registrosGenerales',
+                'tipoRegistro',
+                'chartEstatusUrl',
+                'chartGravedadUrl',
+                'maxMotivo',
+                'gravedadAlta',
+                'gravedadMedia',
+                'gravedadBaja',
+                'labelGrafica2Title',
+                'tituloInforme'
+            ));
+        }
     }
 }

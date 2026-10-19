@@ -64,6 +64,11 @@ class Solicitud extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function inspecciones(): HasMany
+    {
+        return $this->hasMany(Inspeccion::class, 'solicitud_id');
+    }
+
     /* --- Accessors Útiles --- */
 
     public function getAplicaAutorizacionPropietarioAttribute(): bool

@@ -17,20 +17,22 @@ class ForgotPasswordController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        $request->validate([
+            'email' => 'required|email',
+        ]);
 
-        // Buscamos directamente por nuestra columna 'correo' en la base de datos
+        // Buscamos por la columna 'correo' personalizada en la BD
         $user = User::where('correo', $request->email)->first();
 
         if (!$user) {
             return back()->withErrors(['email' => 'No encontramos ningún usuario registrado con este correo electrónico.']);
         }
 
-        // Generamos el token utilizando el correo real de la BD
+        // Generamos el token de restablecimiento
         $token = Password::broker()->createToken($user);
 
-        // Aquí puedes simular o enviar la notificación/correo con el enlace de restablecimiento
-        // Ejemplo de enlace: url('/reset-password/' . $token . '?correo=' . urlencode($user->correo))
+        // Enviamos la notificación por correo electrónico con la URL correspondiente
+        $user->sendPasswordResetNotification($token);
 
         BitacoraEvento::registrar([
             'modulo' => 'auth',

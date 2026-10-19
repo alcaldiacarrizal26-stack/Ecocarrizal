@@ -91,7 +91,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @forelse($sanciones as $s)
+                    @forelse($sanciones as$s)
                         <tr class="hover:bg-slate-50/80 transition">
                             <td class="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">
                                 {{ $s->codigo_expediente }}
@@ -138,7 +138,7 @@
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap">
                                 @if(!empty($s->evidencias_fiscalia))
-                                    @foreach($s->evidencias_fiscalia as $file)
+                                    @foreach($s->evidencias_fiscalia as$file)
                                         <a href="{{ asset('storage/' . $file) }}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 hover:underline font-semibold text-[11px]">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                             Ver Acta
@@ -201,7 +201,9 @@
             <form action="{{ route('director.residuos.empresas.sanciones.store', $empresa->id) }}" 
                   method="POST" 
                   enctype="multipart/form-data" 
-                  class="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
+                  class="p-6 space-y-6 overflow-y-auto flex-1 text-xs"
+                  x-data="{ submitting: false }"
+                  @submit="if(submitting) { $event.preventDefault(); } else { submitting = true; }">
                 @csrf
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -217,7 +219,7 @@
                                     x-model="tipoInfraccion" 
                                     @change="actualizarBaseLegal()" 
                                     required 
-                                    class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-rose-500">
+                                    class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500">
                                 <option value="FALTA_DECLARACION_JURADA">Falta de Declaración Jurada de Residuos</option>
                                 <option value="INCONGRUENCIA_DISPOSICION">Incongruencia / Falsedad en Manifiestos HDS</option>
                                 <option value="VERTIDO_NO_AUTORIZADO">Vertido o Almacenamiento Clandestino</option>
@@ -233,7 +235,7 @@
                                    name="tipo_infraccion_manual" 
                                    x-model="tipoInfraccionManual" 
                                    placeholder="Ej. Emisión de olores molestos sin tratamiento previo..." 
-                                   class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-rose-500">
+                                   class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500">
                         </div>
 
                         <input type="hidden" name="tipo_infraccion" :value="tipoInfraccion === 'OTRO' ? tipoInfraccionManual : tipoInfraccion">
@@ -249,14 +251,14 @@
                                 :readonly="tipoInfraccion !== 'OTRO'"
                                 required 
                                 placeholder="Ej: Art. 45 Ordenanza Municipal / Art. 72 LOA" 
-                                :class="tipoInfraccion !== 'OTRO' ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed' : 'bg-slate-50 text-slate-800 border-slate-300 focus:ring-2 focus:ring-rose-500'"
+                                :class="tipoInfraccion !== 'OTRO' ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed' : 'bg-slate-50 text-slate-800 border-slate-300 focus:ring-2 focus:ring-emerald-500'"
                                 class="w-full rounded-xl p-2.5 transition-all">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Gravedad *</label>
-                                <select name="gravedad" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-rose-500">
+                                <select name="gravedad" x-model="gravedad" @change="actualizarUnidadesTributarias()" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500">
                                     <option value="LEVE">LEVE</option>
                                     <option value="GRAVE">GRAVE</option>
                                     <option value="MUY_GRAVE">MUY GRAVE</option>
@@ -269,9 +271,26 @@
                             </div>
                         </div>
 
+                        <!-- NUEVO CAMPO: Unidades Tributarias / Monto Editable -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block font-bold text-slate-700 uppercase">Sanción en Unidades Tributarias (U.T.) *</label>
+                                <span class="text-[10px] text-emerald-700 font-bold">Editable manualmente</span>
+                            </div>
+                            <input type="number" 
+                                   name="unidades_tributarias" 
+                                   x-model="unidadesTributarias" 
+                                   step="0.01" 
+                                   min="0" 
+                                   required 
+                                   placeholder="Ej. 50" 
+                                   class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 font-bold focus:ring-2 focus:ring-emerald-500">
+                            <p class="text-[10px] text-slate-400 mt-1">Ajuste el valor en U.T. según reglamento o criterio de fiscalización.</p>
+                        </div>
+
                         <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Motivo / Hallazgos Evidenciados *</label>
-                            <textarea name="motivo_descripcion" rows="4" required placeholder="Describe detalladamente los hallazgos durante la inspección o fiscalización..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800"></textarea>
+                            <textarea name="motivo_descripcion" rows="3" required placeholder="Describe detalladamente los hallazgos durante la inspección o fiscalización..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800"></textarea>
                         </div>
                     </div>
 
@@ -312,10 +331,10 @@
 
                         <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Adjuntar Acta / Fotos Evidencia</label>
-                            <div class="relative border-2 border-dashed border-slate-300 hover:border-rose-500 rounded-2xl p-5 text-center bg-slate-50/50 hover:bg-rose-50/30 transition-all cursor-pointer"
-                                 @dragover.prevent="$el.classList.add('border-rose-500', 'bg-rose-50/50')"
-                                 @dragleave.prevent="$el.classList.remove('border-rose-500', 'bg-rose-50/50')"
-                                 @drop.prevent="$el.classList.remove('border-rose-500', 'bg-rose-50/50'); $refs.fileInput.files = $event.dataTransfer.files; handleFiles($refs.fileInput.files)">
+                            <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-5 text-center bg-slate-50/50 hover:bg-emerald-50/30 transition-all cursor-pointer"
+                                 @dragover.prevent="$el.classList.add('border-emerald-500', 'bg-emerald-50/50')"
+                                 @dragleave.prevent="$el.classList.remove('border-emerald-500', 'bg-emerald-50/50')"
+                                 @drop.prevent="$el.classList.remove('border-emerald-500', 'bg-emerald-50/50');$refs.fileInput.files = $event.dataTransfer.files; handleFiles($refs.fileInput.files)">
                                 
                                 <input type="file" 
                                        name="evidencia" 
@@ -346,16 +365,19 @@
                     <button type="button" @click="modalNuevaSancion = false" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition cursor-pointer">
                         Cancelar
                     </button>
-                    <button type="submit" class="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl shadow-sm hover:bg-rose-700 transition cursor-pointer flex items-center gap-1.5">
+                    <button type="submit" 
+                            :disabled="submitting" 
+                            :class="submitting ? 'bg-emerald-800/60 text-emerald-100 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'"
+                            class="px-5 py-2.5 font-bold rounded-xl transition shadow-sm flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Confirmar y Notificar
+                        <span x-text="submitting ? 'Notificando...' : 'Confirmar y Notificar'"></span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 2: RESOLVER / RETIRAR SANCIÓN (EVALUACIÓN PRESENCIAL / CONSIGNACIÓN EN OFICINA) -->
+    <!-- MODAL 2: RESOLVER / RETIRAR SANCIÓN -->
     <div x-show="modalResolver" 
          x-cloak 
          class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -381,17 +403,20 @@
                 <button type="button" @click="modalResolver = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">&times;</button>
             </div>
 
-            <form :action="'/director/residuos/empresas/sanciones/' + sancionSeleccionada?.id + '/resolver'" method="POST" enctype="multipart/form-data" class="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
+            <form :action="'/director/residuos/empresas/sanciones/' + sancionSeleccionada?.id + '/resolver'" 
+                  method="POST" 
+                  enctype="multipart/form-data" 
+                  class="p-6 space-y-6 overflow-y-auto flex-1 text-xs"
+                  x-data="{ submittingResolver: false }"
+                  @submit="if(submittingResolver) { $event.preventDefault(); } else { submittingResolver = true; }">
                 @csrf
                 @method('PATCH')
 
-                <!-- AVISO DE CONSIGNACIÓN PRESENCIAL -->
                 <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 flex items-start gap-2.5">
                     <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span>El representante legal ha acudido de forma presencial a las instalaciones de la Dirección para la consignación de recaudos y la subsanación de la infracción. Registre el dictamen y las observaciones de cierre.</span>
                 </div>
 
-                <!-- SECCIÓN DE DICTAMEN DEL DIRECTOR -->
                 <div class="space-y-4 pt-2">
                     <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">Decisión Administrativa y Levantamiento</h4>
 
@@ -413,7 +438,7 @@
                         <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-4 text-center bg-slate-50/50 hover:bg-emerald-50/30 transition-all cursor-pointer"
                              @dragover.prevent="$el.classList.add('border-emerald-500', 'bg-emerald-50/50')"
                              @dragleave.prevent="$el.classList.remove('border-emerald-500', 'bg-emerald-50/50')"
-                             @drop.prevent="$el.classList.remove('border-emerald-500', 'bg-emerald-50/50'); $refs.resolucionFileInput.files = $event.dataTransfer.files; handleResolucionFile($refs.resolucionFileInput.files)">
+                             @drop.prevent="$el.classList.remove('border-emerald-500', 'bg-emerald-50/50');$refs.resolucionFileInput.files = $event.dataTransfer.files; handleResolucionFile($refs.resolucionFileInput.files)">
                             
                             <input type="file" 
                                    name="evidencia_resolucion" 
@@ -442,9 +467,12 @@
                     <button type="button" @click="modalResolver = false" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition cursor-pointer">
                         Cancelar
                     </button>
-                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition cursor-pointer flex items-center gap-1.5">
+                    <button type="submit" 
+                            :disabled="submittingResolver" 
+                            :class="submittingResolver ? 'bg-emerald-800/60 text-emerald-100 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'"
+                            class="px-5 py-2.5 font-bold rounded-xl transition shadow-sm flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        Registrar Resolución y Cerrar
+                        <span x-text="submittingResolver ? 'Guardando...' : 'Registrar Resolución y Cerrar'"></span>
                     </button>
                 </div>
             </form>
@@ -462,12 +490,15 @@ function sancionManager() {
         tipoInfraccion: 'FALTA_DECLARACION_JURADA',
         tipoInfraccionManual: '',
         baseLegal: 'Art. 45 de la Ordenanza Municipal de Manejo de Residuos y Desechos Sólidos',
+        gravedad: 'LEVE',
+        unidadesTributarias: 20, // Valor base inicial estimado, editable libremente
         fechaLimite: '',
         fileName: '',
         fileResolucionName: '',
 
         init() {
             this.setPlazoDays(10);
+            this.actualizarUnidadesTributarias();
         },
 
         actualizarBaseLegal() {
@@ -484,26 +515,4 @@ function sancionManager() {
             } else {
                 this.baseLegal = '';
             }
-        },
-
-        setPlazoDays(days) {
-            const date = new Date();
-            date.setDate(date.getDate() + days);
-            this.fechaLimite = date.toISOString().split('T')[0];
-        },
-
-        handleFiles(files) {
-            if (files && files.length > 0) {
-                this.fileName = files[0].name;
-            }
-        },
-
-        handleResolucionFile(files) {
-            if (files && files.length > 0) {
-                this.fileResolucionName = files[0].name;
-            }
-        }
-    }
-}
-</script>
-</x-layouts.app>
+            this.actualizarUnidadesTributarias();
