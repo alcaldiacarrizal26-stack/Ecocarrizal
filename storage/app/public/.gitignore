@@ -1,2 +1,7 @@
 *
 !.gitignore
+
+# Excepciones para incluir la carpeta del Marco Legal en Git
+!pdf/
+!pdf/marco_legal/
+!pdf/marco_legal/*.pdf

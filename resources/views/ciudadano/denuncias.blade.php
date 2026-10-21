@@ -1,4 +1,4 @@
-<x-layouts.app title="Reportes y Denuncias" active="reportes">
+<x-layouts.app title="Reportes y Denuncias" active="denuncias">
     <div 
         class="max-w-7xl mx-auto space-y-8" 
         x-data="{ 
@@ -68,7 +68,6 @@
                 if (this.puntoReferencia.trim().length < 3 || this.descripcion.trim().length < 5) return false;
                 if (this.tipoContaminacion === 'Otro' && this.otroTipoContaminacion.trim().length < 3) return false;
                 
-                // Si es alta, requiere al menos 3 caracteres en justificación
                 if (this.gravedad === 'alta' && this.justificacionGravedad.trim().length < 3) return false;
                 
                 if (this.evidenciasCount < 1 || this.fileError !== '') return false;
@@ -161,15 +160,15 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 font-medium">
-                                @foreach ($denuncias as $denuncia)
+                                @foreach ($denuncias as$denuncia)
                                     <tr 
                                         x-show="filtroEstatus === 'todos' || filtroEstatus === '{{ strtolower(trim($denuncia->estatus)) }}'"
                                         class="hover:bg-slate-50/50"
                                     >
                                         <td class="p-4 font-bold text-slate-800">
-                                            {{ $denuncia->tipo_contaminacion === 'Otro' ? $denuncia->otro_tipo_contaminacion : $denuncia->tipo_contaminacion }}
+                                            {{ $denuncia->tipo_contaminacion === 'Otro' ? $denuncia->otro_tipo_contaminacion :$denuncia->tipo_contaminacion }}
                                         </td>
-                                        <td class="p-4">{{ $denuncia->comuna }} — {{ $denuncia->sector }}</td>
+                                        <td class="p-4">{{ $denuncia->comuna }} — {{$denuncia->sector }}</td>
                                         <td class="p-4">
                                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase
                                                 @if($denuncia->nivel_gravedad === 'alta') bg-rose-100 text-rose-700
@@ -312,7 +311,7 @@
                 </div>
 
                 <form 
-                    action="{{ route('ciudadano.reportes.store') }}" 
+                    action="{{ route('ciudadano.denuncias.store') }}" 
                     method="POST" 
                     enctype="multipart/form-data" 
                     class="space-y-4"

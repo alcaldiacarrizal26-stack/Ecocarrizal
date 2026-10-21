@@ -211,27 +211,16 @@ class SolicitudController extends Controller
             'documentos.*'                     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
-        // Ejecutar Transacción
+        // Ejecutar Transacción con Bloqueo Advisory de PostgreSQL
         DB::transaction(function () use ($request, $validated, $userId) {
             $yearActual = Carbon::now()->year;
 
-            /*
-             * PREVENCIÓN DE RACE CONDITION EN POSTGRESQL:
-             * 1. Hacemos el conteo total para saber la cantidad acumulada.
-             * 2. Consultamos la última fila insertada en el año aplicando lockForUpdate().
-             * Esto bloquea la transacción concurrente sin dar error sintáctico con agregaciones.
-             */
-            $conteoAno = DB::table('solicitudes')
-                ->whereYear('created_at', $yearActual)
-                ->count();
+            DB::statement('SELECT pg_advisory_xact_lock(?)', [crc32('solicitudes_codigo_' . $yearActual)]);
 
-            $ultimaSolicitud = DB::table('solicitudes')
+            $ultimoSecuencial = DB::table('solicitudes')
                 ->whereYear('created_at', $yearActual)
-                ->latest('created_at')
-                ->lockForUpdate()
-                ->first();
+                ->count() + 1;
 
-            $ultimoSecuencial = $conteoAno + 1;
             $codigoExpediente = sprintf('SOL-%d-%04d', $yearActual, $ultimoSecuencial);
 
             $datosEspecificos = [

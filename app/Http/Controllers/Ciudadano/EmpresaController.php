@@ -8,6 +8,7 @@ use App\Models\Sancion;
 use App\Models\PerfilAmbiental;
 use App\Models\DocumentoExpediente;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -85,8 +86,8 @@ class EmpresaController extends Controller
      */
     public function store(Request $request)
     {
-        $user = auth()->user();
-        $empresaExistente = $user->empresa;
+        $user = auth()->id();
+        $empresaExistente = Empresa::where('user_id', $user)->first();
 
         // Si ya tiene una empresa y su estatus NO es corregible (OBSERVADO o RECHAZADO), bloquear
         if ($empresaExistente && !in_array($empresaExistente->estatus, ['OBSERVADO', 'RECHAZADO'])) {
@@ -120,154 +121,158 @@ class EmpresaController extends Controller
             'es_vitalicio'          => 'nullable|array',
         ]);
 
-        return DB::transaction(function () use ($request, $empresaExistente) {
-            if ($empresaExistente) {
-                // Actualizar empresa existente bajo observación/rechazo
-                $empresaExistente->update([
-                    'rif'                   => strtoupper(trim($request->rif)),
-                    'razon_social'          => trim($request->razon_social),
-                    'nombre_comercial'      => $request->nombre_comercial ? trim($request->nombre_comercial) : null,
-                    'numero_cuenta_patente' => trim($request->numero_cuenta_patente),
-                    'correo_comercial'      => strtolower(trim($request->correo_comercial)),
-                    'telefono_comercial'    => trim($request->telefono_comercial),
-                    'comuna'                => trim($request->comuna),
-                    'sector'                => trim($request->sector),
-                    'calle_avenida'         => trim($request->calle_avenida),
-                    'edificio_galpon_local' => trim($request->edificio_galpon_local),
-                    'estatus'               => 'PENDIENTE_APROBACION', // Regresa a revisión
-                    'observaciones_fiscalia' => null, // Limpia la observación anterior tras corregir
-                ]);
-                $empresa = $empresaExistente;
+        // BLINDAJE CONTRA RACE CONDITION: Candado atómico por 5 segundos para el registro/actualización de empresas
+        $lockKey = 'empresa_store_lock_' . $user;
 
-                // Actualizar o recrear el perfil ambiental
-                $empresa->perfilAmbiental()->delete();
-            } else {
-                // Crear nueva empresa
-                $empresa = Empresa::create([
-                    'user_id'               => auth()->id(),
-                    'rif'                   => strtoupper(trim($request->rif)),
-                    'razon_social'          => trim($request->razon_social),
-                    'nombre_comercial'      => $request->nombre_comercial ? trim($request->nombre_comercial) : null,
-                    'numero_cuenta_patente' => trim($request->numero_cuenta_patente),
-                    'correo_comercial'      => strtolower(trim($request->correo_comercial)),
-                    'telefono_comercial'    => trim($request->telefono_comercial),
-                    'comuna'                => trim($request->comuna),
-                    'sector'                => trim($request->sector),
-                    'calle_avenida'         => trim($request->calle_avenida),
-                    'edificio_galpon_local' => trim($request->edificio_galpon_local),
-                    'estatus'               => 'PENDIENTE_APROBACION',
-                ]);
-            }
+        return Cache::lock($lockKey, 5)->get(function () use ($request, $empresaExistente, $user) {
+            return DB::transaction(function () use ($request, $empresaExistente, $user) {
+                if ($empresaExistente) {
+                    // Actualizar empresa existente bajo observación/rechazo
+                    $empresaExistente->update([
+                        'rif'                    => strtoupper(trim($request->rif)),
+                        'razon_social'           => trim($request->razon_social),
+                        'nombre_comercial'       => $request->nombre_comercial ? trim($request->nombre_comercial) : null,
+                        'numero_cuenta_patente'  => trim($request->numero_cuenta_patente),
+                        'correo_comercial'       => strtolower(trim($request->correo_comercial)),
+                        'telefono_comercial'     => trim($request->telefono_comercial),
+                        'comuna'                 => trim($request->comuna),
+                        'sector'                 => trim($request->sector),
+                        'calle_avenida'          => trim($request->calle_avenida),
+                        'edificio_galpon_local'  => trim($request->edificio_galpon_local),
+                        'estatus'                => 'PENDIENTE_APROBACION', // Regresa a revisión
+                        'observaciones_fiscalia' => null, // Limpia la observación anterior tras corregir
+                    ]);
+                    $empresa = $empresaExistente;
 
-            if ($request->has('perfil')) {
-                $perfilData = is_string($request->perfil) ? json_decode($request->perfil, true) : $request->perfil;
-
-                $rolAmbiental = $perfilData['rol_ambiental'] ?? 'GENERADOR';
-
-                $numRacda = trim($perfilData['numero_racda'] ?? '');
-                if (empty($numRacda) || Str::contains(strtolower($numRacda), 'no aplica')) {
-                    $numRacda = null;
+                    // Actualizar o recrear el perfil ambiental
+                    $empresa->perfilAmbiental()->delete();
+                } else {
+                    // Crear nueva empresa
+                    $empresa = Empresa::create([
+                        'user_id'               => $user,
+                        'rif'                   => strtoupper(trim($request->rif)),
+                        'razon_social'          => trim($request->razon_social),
+                        'nombre_comercial'      => $request->nombre_comercial ? trim($request->nombre_comercial) : null,
+                        'numero_cuenta_patente' => trim($request->numero_cuenta_patente),
+                        'correo_comercial'      => strtolower(trim($request->correo_comercial)),
+                        'telefono_comercial'    => trim($request->telefono_comercial),
+                        'comuna'                => trim($request->comuna),
+                        'sector'                => trim($request->sector),
+                        'calle_avenida'         => trim($request->calle_avenida),
+                        'edificio_galpon_local' => trim($request->edificio_galpon_local),
+                        'estatus'               => 'PENDIENTE_APROBACION',
+                    ]);
                 }
 
-                $cleanArray = function ($key) use ($perfilData) {
-                    if (!isset($perfilData[$key])) return null;
-                    $val = $perfilData[$key];
-                    if (is_array($val)) return $val;
-                    if (is_string($val)) {
-                        $decoded = json_decode($val, true);
-                        return is_array($decoded) ? $decoded : [$val];
+                if ($request->has('perfil')) {
+                    $perfilData = is_string($request->perfil) ? json_decode($request->perfil, true) : $request->perfil;
+
+                    $rolAmbiental = $perfilData['rol_ambiental'] ?? 'GENERADOR';
+
+                    $numRacda = trim($perfilData['numero_racda'] ?? '');
+                    if (empty($numRacda) || Str::contains(strtolower($numRacda), 'no aplica')) {
+                        $numRacda = null;
                     }
-                    return null;
-                };
 
-                $esGenerador = ($rolAmbiental === 'GENERADOR');
-                $esManejador = ($rolAmbiental === 'MANEJADOR');
+                    $cleanArray = function ($key) use ($perfilData) {
+                        if (!isset($perfilData[$key])) return null;
+                        $val = $perfilData[$key];
+                        if (is_array($val)) return $val;
+                        if (is_string($val)) {
+                            $decoded = json_decode($val, true);
+                            return is_array($decoded) ? $decoded : [$val];
+                        }
+                        return null;
+                    };
 
-                $modalidadManejadora  = $esGenerador ? ($perfilData['modalidad_manejadora'] ?? 'PROPIA') : null;
-                $manejadoraContratada = $esGenerador ? ($perfilData['manejadora_contratada'] ?? $perfilData['manejadora_nombre'] ?? null) : null;
-                $manejadoraRif        = $esGenerador ? ($perfilData['manejadora_rif'] ?? null) : null;
-                $manejadoraRacda      = $esGenerador ? ($perfilData['manejadora_racda'] ?? null) : null;
+                    $esGenerador = ($rolAmbiental === 'GENERADOR');
+                    $esManejador = ($rolAmbiental === 'MANEJADOR');
 
-                $modalidadAtencion        = $esManejador ? ($perfilData['modalidad_atencion_manejador'] ?? 'MULTICLIENTE') : null;
-                $generadorExclusivoNombre = $esManejador ? ($perfilData['generador_exclusivo_nombre'] ?? null) : null;
-                $generadorExclusivoRif    = $esManejador ? ($perfilData['generador_exclusivo_rif'] ?? null) : null;
-                $generadorExclusivoRacda  = $esManejador ? ($perfilData['generador_exclusivo_racda'] ?? null) : null;
-                $actividadesManejador     = $esManejador ? $cleanArray('actividades_manejador') : null;
+                    $modalidadManejadora  = $esGenerador ? ($perfilData['modalidad_manejadora'] ?? 'PROPIA') : null;
+                    $manejadoraContratada = $esGenerador ? ($perfilData['manejadora_contratada'] ?? $perfilData['manejadora_nombre'] ?? null) : null;
+                    $manejadoraRif        = $esGenerador ? ($perfilData['manejadora_rif'] ?? null) : null;
+                    $manejadoraRacda      = $esGenerador ? ($perfilData['manejadora_racda'] ?? null) : null;
 
-                $empresa->perfilAmbiental()->create([
-                    'rol_ambiental'                => $rolAmbiental,
-                    'subtipo_generador'            => $esGenerador ? ($perfilData['subtipo_generador'] ?? 'PEQUENO') : null,
-                    'numero_racda'                 => $numRacda,
+                    $modalidadAtencion        = $esManejador ? ($perfilData['modalidad_atencion_manejador'] ?? 'MULTICLIENTE') : null;
+                    $generadorExclusivoNombre = $esManejador ? ($perfilData['generador_exclusivo_nombre'] ?? null) : null;
+                    $generadorExclusivoRif    = $esManejador ? ($perfilData['generador_exclusivo_rif'] ?? null) : null;
+                    $generadorExclusivoRacda  = $esManejador ? ($perfilData['generador_exclusivo_racda'] ?? null) : null;
+                    $actividadesManejador     = $esManejador ? $cleanArray('actividades_manejador') : null;
 
-                    'genera_efluentes'             => filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'genera_emisiones'             => filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'genera_peligrosos'            => filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'genera_ruidos'                => filter_var($perfilData['genera_ruidos'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'usa_pozo_agua'                => filter_var($perfilData['usa_pozo_agua'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    $empresa->perfilAmbiental()->create([
+                        'rol_ambiental'                => $rolAmbiental,
+                        'subtipo_generador'            => $esGenerador ? ($perfilData['subtipo_generador'] ?? 'PEQUENO') : null,
+                        'numero_racda'                 => $numRacda,
 
-                    'modalidad_manejadora'         => $modalidadManejadora,
-                    'manejadora_contratada'        => $manejadoraContratada,
-                    'manejadora_rif'               => $manejadoraRif,
-                    'manejadora_racda'             => $manejadoraRacda,
+                        'genera_efluentes'             => filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                        'genera_emisiones'             => filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                        'genera_peligrosos'            => filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                        'genera_ruidos'                => filter_var($perfilData['genera_ruidos'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                        'usa_pozo_agua'                => filter_var($perfilData['usa_pozo_agua'] ?? false, FILTER_VALIDATE_BOOLEAN),
 
-                    'modalidad_atencion_manejador' => $modalidadAtencion,
-                    'generador_exclusivo_nombre'   => $generadorExclusivoNombre,
-                    'generador_exclusivo_rif'      => $generadorExclusivoRif,
-                    'generador_exclusivo_racda'    => $generadorExclusivoRacda,
+                        'modalidad_manejadora'         => $modalidadManejadora,
+                        'manejadora_contratada'        => $manejadoraContratada,
+                        'manejadora_rif'               => $manejadoraRif,
+                        'manejadora_racda'             => $manejadoraRacda,
 
-                    'actividades_manejador'        => $actividadesManejador,
-                    'sustancias_manejadas'         => $perfilData['sustancias_manejadas'] ?? null,
-                    'residuos_tipos'               => $cleanArray('residuos_tipos'),
-                    'residuos_comunes'             => $cleanArray('residuos_comunes'),
-                    'residuos_reciclables'         => $cleanArray('residuos_reciclables'),
-                    'residuos_peligrosos'          => $cleanArray('residuos_peligrosos'),
-                ]);
-            }
+                        'modalidad_atencion_manejador' => $modalidadAtencion,
+                        'generador_exclusivo_nombre'   => $generadorExclusivoNombre,
+                        'generador_exclusivo_rif'      => $generadorExclusivoRif,
+                        'generador_exclusivo_racda'    => $generadorExclusivoRacda,
 
-            if ($request->hasFile('documentos')) {
-                $nombresRequisitos = [
-                    'doc_renma'           => 'Registro RENMA',
-                    'doc_no_objecion'     => 'Constancia de No Objeción Ambiental',
-                    'doc_racda'           => 'Registro RACDA',
-                    'doc_poliza'          => 'Póliza de Seguro de Responsabilidad Ambiental',
-                    'doc_efluentes'       => 'Caracterización de Efluentes Líquidos',
-                    'doc_emisiones'       => 'Caracterización de Emisiones Atmosféricas',
-                    'doc_plan_desechos'   => 'Plan de Manejo de Desechos y Residuos Sólidos',
-                    'doc_plan_emergencia' => 'Plan de Emergencia y Contingencia Ambiental',
-                ];
+                        'actividades_manejador'        => $actividadesManejador,
+                        'sustancias_manejadas'         => $perfilData['sustancias_manejadas'] ?? null,
+                        'residuos_tipos'               => $cleanArray('residuos_tipos'),
+                        'residuos_comunes'             => $cleanArray('residuos_comunes'),
+                        'residuos_reciclables'         => $cleanArray('residuos_reciclables'),
+                        'residuos_peligrosos'          => $cleanArray('residuos_peligrosos'),
+                    ]);
+                }
 
-                $fechasEmision     = $request->input('fechas_emision', []);
-                $fechasVencimiento = $request->input('fechas_vencimiento', []);
-                $esVitalicio       = $request->input('es_vitalicio', []);
+                if ($request->hasFile('documentos')) {
+                    $nombresRequisitos = [
+                        'doc_renma'           => 'Registro RENMA',
+                        'doc_no_objecion'     => 'Constancia de No Objeción Ambiental',
+                        'doc_racda'           => 'Registro RACDA',
+                        'doc_poliza'          => 'Póliza de Seguro de Responsabilidad Ambiental',
+                        'doc_efluentes'       => 'Caracterización de Efluentes Líquidos',
+                        'doc_emisiones'       => 'Caracterización de Emisiones Atmosféricas',
+                        'doc_plan_desechos'   => 'Plan de Manejo de Desechos y Residuos Sólidos',
+                        'doc_plan_emergencia' => 'Plan de Emergencia y Contingencia Ambiental',
+                    ];
 
-                foreach ($request->file('documentos') as $codigoRequisito => $file) {
-                    if ($file && $file->isValid()) {
-                        $path = $file->store("expedientes/{$empresa->id}", 'public');
+                    $fechasEmision     = $request->input('fechas_emision', []);
+                    $fechasVencimiento = $request->input('fechas_vencimiento', []);
+                    $esVitalicio       = $request->input('es_vitalicio', []);
 
-                        $vitalicio = filter_var($esVitalicio[$codigoRequisito] ?? false, FILTER_VALIDATE_BOOLEAN);
+                    foreach ($request->file('documentos') as $codigoRequisito => $file) {
+                        if ($file && $file->isValid()) {
+                            $path = $file->store("expedientes/{$empresa->id}", 'public');
 
-                        // Buscar si ya existía el documento para actualizarlo o crearlo nuevo
-                        $empresa->documentosExpediente()->updateOrCreate(
-                            ['codigo_requisito' => strtoupper($codigoRequisito)],
-                            [
-                                'nombre_requisito'  => $nombresRequisitos[$codigoRequisito] ?? 'Documento Adjunto',
-                                'archivo_path'      => $path,
-                                'fecha_emision'     => $fechasEmision[$codigoRequisito] ?? null,
-                                'fecha_vencimiento' => $vitalicio ? null : ($fechasVencimiento[$codigoRequisito] ?? null),
-                                'es_vitalicio'      => $vitalicio,
-                                'estado_revision'   => 'VALIDO',
-                            ]
-                        );
+                            $vitalicio = filter_var($esVitalicio[$codigoRequisito] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+                            $empresa->documentosExpediente()->updateOrCreate(
+                                ['codigo_requisito' => strtoupper($codigoRequisito)],
+                                [
+                                    'nombre_requisito'  => $nombresRequisitos[$codigoRequisito] ?? 'Documento Adjunto',
+                                    'archivo_path'      => $path,
+                                    'fecha_emision'     => $fechasEmision[$codigoRequisito] ?? null,
+                                    'fecha_vencimiento' => $vitalicio ? null : ($fechasVencimiento[$codigoRequisito] ?? null),
+                                    'es_vitalicio'      => $vitalicio,
+                                    'estado_revision'   => 'VALIDO',
+                                ]
+                            );
+                        }
                     }
                 }
-            }
 
-            if ($request->wantsJson()) {
-                return response()->json(['success' => true, 'message' => 'Expediente procesado y enviado a revisión correctamente.']);
-            }
+                if ($request->wantsJson()) {
+                    return response()->json(['success' => true, 'message' => 'Expediente procesado y enviado a revisión correctamente.']);
+                }
 
-            return redirect()->route('ciudadano.empresas')->with('success', 'Expediente actualizado y reenviado a revisión.');
-        });
+                return redirect()->route('ciudadano.empresas')->with('success', 'Expediente actualizado y reenviado a revisión.');
+            });
+        }) ?: back()->withErrors(['rif' => 'Se está procesando una solicitud idéntica de registro de empresa. Por favor espera un momento.'])->withInput();
     }
 
     /**

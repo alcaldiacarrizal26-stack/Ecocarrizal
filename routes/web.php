@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Models\Inspector;
 
 // Controladores Generales
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InspeccionController;
@@ -17,14 +18,14 @@ use App\Http\Controllers\SoporteController;
 
 // Controladores Ciudadano
 use App\Http\Controllers\Ciudadano\SolicitudController;
-use App\Http\Controllers\Ciudadano\ReporteController;
+use App\Http\Controllers\Ciudadano\DenunciaController;
 use App\Http\Controllers\Ciudadano\EmpresaController as CiudadanoEmpresaController;
 use App\Http\Controllers\Ciudadano\DeclaracionResiduoController; 
 use App\Http\Controllers\Ciudadano\CompensacionController;
 
 // Controladores Director por Dirección
 use App\Http\Controllers\Director\Ambiente\InspectorController as AmbienteInspectorController;
-use App\Http\Controllers\Director\Ambiente\ReporteController as AmbienteReporteController;
+use App\Http\Controllers\Director\Ambiente\DenunciaController as AmbienteDenunciaController;
 use App\Http\Controllers\Director\Ambiente\SolicitudController as AmbienteSolicitudController;
 use App\Http\Controllers\Director\Ambiente\CompensacionController as AmbienteCompensacionController;
 use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Director\Residuos\DeclaracionResiduoController as Resid
 use App\Http\Controllers\Alcaldesa\ReporteController as AlcaldesaReporteController;
 
 // Conroladores Admin
+use App\Http\Controllers\Admin\AlmacenamientoController;
 use App\Http\Controllers\Admin\BitacoraController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\UsuarioController;
@@ -42,7 +44,8 @@ use App\Http\Controllers\Admin\UsuarioController;
 // -------------------------------------------------------------
 // Rutas Públicas (Autenticación por Vistas Dedicadas)
 // -------------------------------------------------------------
-Route::get('/', [AuthController::class, 'showHome'])->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/marco-legal/pdf/{documento}', [HomeController::class, 'descargarMarcoLegalPdf'])->name('marco.legal.pdf');
 
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -93,7 +96,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
 
     // Módulos con protección contra doble envío / spam
     Route::middleware(['throttle:10,1'])->group(function () {
-        Route::post('/reportes', [ReporteController::class, 'store'])->name('reportes.store');
+        Route::post('/denuncias', [DenunciaController::class, 'store'])->name('denuncias.store');
         Route::post('/solicitudes', [SolicitudController::class, 'store'])->name('solicitudes.store');
         Route::put('/solicitudes/{tramite}/pendientes', [SolicitudController::class, 'subirPendientes'])->name('solicitudes.pendientes');
         Route::post('/empresas', [CiudadanoEmpresaController::class, 'store'])->name('empresas.store');
@@ -105,7 +108,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
     });
 
     // Consultas de vista
-    Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes');
+    Route::get('/denuncias', [DenunciaController::class, 'index'])->name('denuncias');
     Route::get('/solicitudes', [SolicitudController::class, 'index'])->name('solicitudes');
     Route::get('/empresas', [CiudadanoEmpresaController::class, 'index'])->name('empresas');
     Route::get('/empresas/crear', [CiudadanoEmpresaController::class, 'create'])->name('empresas.create');
@@ -126,6 +129,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
 // -------------------------------------------------------------
 // Panel Directores
 // -------------------------------------------------------------
+
 Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('director.')->group(function () {
     
     // ---------------------------------------------------------
@@ -146,11 +150,11 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
         Route::get('/solicitudes/{solicitud}', [AmbienteSolicitudController::class, 'show'])->name('solicitudes.show');
 
         // Denuncias / Reportes
-        Route::get('/reportes', [AmbienteReporteController::class, 'index'])->name('reportes');
-        Route::get('/reportes/exportar', [AmbienteReporteController::class, 'export'])->middleware('throttle:15,1')->name('reportes.export');
-        Route::get('/denuncias/{id}', [AmbienteReporteController::class, 'show'])->name('denuncias.show');
-        Route::post('/denuncias/{id}/asignar', [AmbienteReporteController::class, 'asignarInspector'])->name('denuncias.asignar');
-        Route::put('/reportes/{denuncia}/asignar', [AmbienteReporteController::class, 'asignar'])->name('reportes.asignar');
+        Route::get('/denuncias', [AmbienteDenunciaController::class, 'index'])->name('denuncias');
+        Route::get('/denuncias/exportar', [AmbienteDenunciaController::class, 'export'])->middleware('throttle:15,1')->name('denuncias.export');
+        Route::get('/denuncias/{id}', [AmbienteDenunciaController::class, 'show'])->name('denuncias.show');
+        Route::post('/denuncias/{id}/asignar', [AmbienteDenunciaController::class, 'asignarInspector'])->name('denuncias.asignar');
+        Route::put('/denuncias/{denuncia}/asignar', [AmbienteDenunciaController::class, 'asignar'])->name('denuncias.asignar');
 
         // Compensación Ambiental
         Route::get('/compensacion', [AmbienteCompensacionController::class, 'index'])->name('compensacion');
@@ -218,6 +222,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Soporte Admin (Buzón general y respuestas)
     Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
     Route::patch('/soporte/{id}/responder', [SoporteController::class, 'actualizarRespuesta'])->name('soporte.responder');
+
+    Route::get('/almacenamiento', [AlmacenamientoController::class, 'index'])->name('almacenamiento');
 
     // Rutas de administración adicionales
     Route::get('/bitacora', [BitacoraController::class, 'index'])->name('bitacora');

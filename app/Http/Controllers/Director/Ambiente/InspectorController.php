@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Director\Ambiente;
 
 use App\Http\Controllers\Controller;
 use App\Models\Inspector;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -15,11 +17,10 @@ class InspectorController extends Controller
     public function index()
     {
         $inspectores = Inspector::with(['user', 'solicitudes' => function ($query) {
-            // Usar los valores exactos definidos en estado_solicitud_enum
-            $query->whereIn('estado', ['inspector_asignado', 'en_inspeccion']);
+            // Estatus unificados congruentes con SolicitudController y DenunciaController
+            $query->whereIn('estado', ['inspector_asignado', 'en_revision']);
         }, 'denuncias' => function ($query) {
-            // Si estatus_denuncia_enum también usa minúsculas, mantener la congruencia
-            $query->whereIn('estatus', ['asignada', 'en_inspeccion']);
+            $query->whereIn('estatus', ['inspector_asignado', 'en_revision']);
         }])->get();
 
         return view('director.ambiente.inspectores', compact('inspectores'));
@@ -51,30 +52,39 @@ class InspectorController extends Controller
             'password'          => 'required|string|min:8',
         ]);
 
-        DB::transaction(function () use ($request, $direccionId) {
-            $user = User::create([
-                'role_id'        => 3,
-                'direccion_id'   => $direccionId,
-                'cedula'         => $request->cedula,
-                'nombre'         => $request->nombre,
-                'apellido'       => $request->apellido,
-                'correo'         => $request->correo,
-                'telefono'       => $request->telefono,
-                'password'       => Hash::make($request->password),
-                'accepted_terms' => true,
-                'is_active'      => true,
-            ]);
+        // Candado atómico para prevenir condiciones de carrera al registrar inspectores concurrentemente
+        $lockKey = 'inspector_store_lock_' . md5($request->cedula . $request->correo);
 
-            Inspector::create([
-                'user_id'           => $user->id,
-                'direccion_id'      => $direccionId,
-                'codigo_credencial' => $request->codigo_credencial,
-                'especialidad'      => $request->especialidad,
-                'disponible'        => true,
-            ]);
-        });
+        return Cache::lock($lockKey, 5)->get(function () use ($request, $direccionId) {
+            DB::transaction(function () use ($request, $direccionId) {
+                // Obtener dinámicamente el rol de inspector en lugar de usar ID estático
+                $roleInspector = Role::where('nombre', 'inspector')->first();
+                $roleId = $roleInspector->id_roles ?? 3;
 
-        return redirect()->route('director.ambiente.inspectores')
-            ->with('success', 'Inspector de Ambiente registrado exitosamente.');
+                $user = User::create([
+                    'role_id'        => $roleId,
+                    'direccion_id'   => $direccionId,
+                    'cedula'         => $request->cedula,
+                    'nombre'         => $request->nombre,
+                    'apellido'       => $request->apellido,
+                    'correo'         => $request->correo,
+                    'telefono'       => $request->telefono,
+                    'password'       => Hash::make($request->password),
+                    'accepted_terms' => true,
+                    'is_active'      => true,
+                ]);
+
+                Inspector::create([
+                    'user_id'           => $user->id,
+                    'direccion_id'      => $direccionId,
+                    'codigo_credencial' => $request->codigo_credencial,
+                    'especialidad'      => $request->especialidad,
+                    'disponible'        => true,
+                ]);
+            });
+
+            return redirect()->route('director.ambiente.inspectores')
+                ->with('success', 'Inspector de Ambiente registrado exitosamente.');
+        }) ?: back()->withErrors(['correo' => 'Se está procesando un registro idéntico en este momento. Por favor espera.'])->withInput();
     }
 }

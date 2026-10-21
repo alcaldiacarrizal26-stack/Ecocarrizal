@@ -7,7 +7,7 @@ use App\Models\Denuncia;
 use App\Models\User;
 use Illuminate\Http\Request;
 
-class ReporteController extends Controller
+class DenunciaController extends Controller
 {
     public function index(Request $request)
     {
@@ -38,7 +38,7 @@ class ReporteController extends Controller
                                     ->count(),
         ];
 
-        return view('director.ambiente.reportes', compact(
+        return view('director.ambiente.denuncias', compact(
             'denuncias',
             'funcionarios',
             'stats',
@@ -51,27 +51,41 @@ class ReporteController extends Controller
      */
     public function asignar(Request $request, Denuncia $denuncia)
     {
+        // Vulnerabilidad corregida: Validar también que el ID recibido pertenezca estrictamente 
+        // a un usuario con rol de director o inspector activo para evitar asignaciones maliciosas.
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => [
+                'required', 
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    $valido = User::where('id', $value)
+                        ->where('is_active', true)
+                        ->whereHas('role', function ($q) {
+                            $q->whereIn('nombre', ['director', 'inspector']);
+                        })->exists();
+
+                    if (!$valido) {
+                        $fail('El usuario seleccionado no es un funcionario válido o activo para asignación.');
+                    }
+                },
+            ],
         ]);
 
         $funcionario = User::with('inspector')->findOrFail($request->user_id);
 
-        // Si el usuario es Director/Inspector pero no tiene perfil de inspector creado en la tabla 'inspectores', 
-        // se crea automáticamente para poder mantener la integridad referencial (inspector_id en denuncias)
         $inspector = $funcionario->inspector;
 
         if (!$inspector) {
             $inspector = \App\Models\Inspector::create([
-                'user_id' => $funcionario->id,
+                'user_id'           => $funcionario->id,
                 'codigo_credencial' => 'DIR-' . str_pad($funcionario->id, 4, '0', STR_PAD_LEFT),
-                'especialidad' => 'Dirección y Supervisión',
-                'estatus' => 'activo'
+                'especialidad'      => 'Dirección y Supervisión',
+                'estatus'           => 'activo'
             ]);
         }
 
-        $denuncia->inspector_id = $inspector->id;
-        $denuncia->estatus = 'inspector_asignado';
+        $denuncia->inspector_id               = $inspector->id;
+        $denuncia->estatus                    = 'inspector_asignado';
         $denuncia->fecha_asignacion_inspector = now();
         $denuncia->save();
 

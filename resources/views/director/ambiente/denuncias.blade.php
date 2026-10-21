@@ -1,4 +1,4 @@
-<x-layouts.app title="Gestión de Denuncias" active="ambiente_reportes">
+<x-layouts.app title="Gestión de Denuncias Ambientales" active="ambiente_denuncias">
 <div class="p-6 max-w-7xl mx-auto space-y-6" x-data="{ modalOpen: false, denunciaActual: null }">
 
     <!-- ALERTAS DE NOTIFICACIÓN DE SESIÓN -->
@@ -33,13 +33,13 @@
     <!-- Encabezado -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800">Reportes de Denuncias Ambientales</h1>
-            <p class="text-sm text-slate-500">Gestión y seguimiento de incidencias reportadas por los ciudadanos</p>
+            <h1 class="text-2xl font-bold text-slate-800">Gestión de Denuncias Ambientales</h1>
+            <p class="text-sm text-slate-500">Supervisión y asignación de incidencias reportadas por la ciudadanía</p>
         </div>
 
-        <a href="{{ route('director.ambiente.reportes.export') }}" class="inline-flex items-center justify-center px-4 py-2 bg-slate-800 text-white text-xs font-medium rounded-xl hover:bg-slate-700 transition self-start md:self-auto shadow-sm">
+        <a href="{{ route('director.ambiente.denuncias.export') }}" class="inline-flex items-center justify-center px-4 py-2 bg-slate-800 text-white text-xs font-medium rounded-xl hover:bg-slate-700 transition self-start md:self-auto shadow-sm">
             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            Exportar Reporte
+            Exportar Denuncias
         </a>
     </div>
 
@@ -88,7 +88,7 @@
 
     <!-- Barra de Filtro Manual -->
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <form method="GET" action="{{ route('director.ambiente.reportes') }}" class="flex items-center gap-3">
+        <form method="GET" action="{{ route('director.ambiente.denuncias') }}" class="flex items-center gap-3">
             <label for="filtro_estatus" class="text-xs font-semibold text-slate-500 whitespace-nowrap">Filtrar por estatus:</label>
             <select 
                 id="filtro_estatus"
@@ -181,7 +181,7 @@
                                 <button 
                                     type="button"
                                     onclick="abrirModalInspector({
-                                        actionUrl: '{{ route('director.ambiente.reportes.asignar', $denuncia->id) }}',
+                                        actionUrl: '{{ route('director.ambiente.denuncias.asignar', $denuncia->id) }}',
                                         method: 'PUT',
                                         titulo: 'Asignar Inspector a la Denuncia {{ $denuncia->codigo }}',
                                         subtitulo: 'Sector: {{ $denuncia->sector }}'
@@ -218,7 +218,7 @@
         @endif
     </div>
 
-    <!-- MODAL DE DETALLES DEL REPORTE -->
+    <!-- MODAL DE DETALLES DE LA DENUNCIA -->
     <div 
         x-show="modalOpen" 
         x-cloak
@@ -238,9 +238,9 @@
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                 <div>
                     <h3 class="text-lg font-bold text-gray-800">
-                        Detalle del Reporte: <span class="text-emerald-600" x-text="denunciaActual?.codigo"></span>
+                        Detalle de la Denuncia: <span class="text-emerald-600" x-text="denunciaActual?.codigo"></span>
                     </h3>
-                    <p class="text-xs text-gray-500" x-text="'Registrado el ' + (denunciaActual?.created_at ? new Date(denunciaActual.created_at).toLocaleString() : '')"></p>
+                    <p class="text-xs text-gray-500" x-text="'Registrada el ' + (denunciaActual?.created_at ? new Date(denunciaActual.created_at).toLocaleString() : '')"></p>
                 </div>
                 <button @click="modalOpen = false" class="text-gray-400 hover:text-gray-600 focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -326,7 +326,7 @@
                 <button 
                     type="button"
                     @click="modalOpen = false; abrirModalInspector({
-                        actionUrl: '/director/ambiente/reportes/' + denunciaActual.id + '/asignar',
+                        actionUrl: '/director/ambiente/denuncias/' + denunciaActual.id + '/asignar',
                         method: 'PUT',
                         titulo: 'Asignar Inspector a ' + denunciaActual.codigo,
                         subtitulo: 'Sector: ' + denunciaActual.sector
