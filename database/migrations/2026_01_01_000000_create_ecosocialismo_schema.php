@@ -192,7 +192,7 @@ return new class extends Migration
             $table->string('rif', 15)->unique();
             $table->string('razon_social');
             $table->string('nombre_comercial')->nullable();
-            $table->string('numero_cuenta_patente');
+            $table->string('numero_cuenta_patente')->unique(); // Restricción única añadida
             $table->string('correo_comercial');
             $table->string('telefono_comercial');
             
@@ -215,18 +215,18 @@ return new class extends Migration
             $table->index('estatus');
         });
 
-        // 7. Órdenes de Inspección para Empresas (Ciclo de vida idéntico a denuncias/solicitudes)
+        // 7. Órdenes de Inspección para Empresas
         Schema::create('ordenes_inspeccion', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('codigo_orden', 30)->unique(); // Ej: ORD-RES-2026-001
+            $table->string('codigo_orden', 30)->unique(); 
             
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
             $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
             $table->foreignId('director_id')->nullable()->constrained('users')->nullOnDelete();
 
-            $table->string('tipo_inspeccion', 30)->default('ORDINARIA'); // ORDINARIA o DE_OFICIO
+            $table->string('tipo_inspeccion', 30)->default('ORDINARIA'); 
             $table->text('base_legal_inspeccion');
-            $table->text('observaciones_campo'); // Motivo o descripción de la orden
+            $table->text('observaciones_campo'); 
             $table->text('orden_adjunta_path')->nullable();
 
             $table->timestampTz('fecha_visita_programada');
@@ -255,7 +255,7 @@ return new class extends Migration
             // Clasificación Ambiental
             $table->string('rol_ambiental')->default('GENERADOR'); 
             $table->string('subtipo_generador')->nullable(); 
-            $table->string('numero_racda')->nullable(); 
+            $table->string('numero_racda')->nullable()->unique(); // Único solo para el RACDA principal de la empresa
             
             // Módulos de Generación
             $table->boolean('genera_efluentes')->default(false);
@@ -267,12 +267,12 @@ return new class extends Migration
             $table->string('modalidad_manejadora')->nullable(); 
             $table->string('manejadora_contratada')->nullable();
             $table->string('manejadora_rif', 15)->nullable();
-            $table->string('manejadora_racda')->nullable();
+            $table->string('manejadora_racda')->nullable(); // No único (externo)
 
             $table->string('modalidad_atencion_manejador')->nullable(); 
             $table->string('generador_exclusivo_nombre')->nullable();
             $table->string('generador_exclusivo_rif', 15)->nullable();
-            $table->string('generador_exclusivo_racda')->nullable();
+            $table->string('generador_exclusivo_racda')->nullable(); // No único (externo)
 
             $table->jsonb('actividades_manejador')->nullable();
             $table->text('sustancias_manejadas')->nullable();
@@ -341,7 +341,8 @@ return new class extends Migration
             $table->text('observaciones_fiscalia')->nullable();
             $table->timestampsTz();
 
-            $table->index(['empresa_id', 'periodo']);
+            // Restricción única para evitar declaraciones duplicadas por empresa en el mismo período
+            $table->unique(['empresa_id', 'periodo']);
         });
 
         if (DB::getDriverName() === 'pgsql') {
@@ -390,7 +391,7 @@ return new class extends Migration
             });
         }
 
-        // 9. Inspecciones y Acta de Evaluación (Unificada para Solicitudes, Denuncias y Órdenes de Empresa)
+        // 9. Inspecciones y Acta de Evaluación
         Schema::create('inspecciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('codigo_acta', 30)->unique();
@@ -400,7 +401,7 @@ return new class extends Migration
             
             $table->foreignUuid('solicitud_id')->nullable()->constrained('solicitudes')->nullOnDelete();
             $table->foreignUuid('denuncia_id')->nullable()->constrained('denuncias')->nullOnDelete();
-            $table->foreignUuid('orden_inspeccion_id')->nullable()->constrained('ordenes_inspeccion')->nullOnDelete(); // Enlace formal a la orden de empresa
+            $table->foreignUuid('orden_inspeccion_id')->nullable()->constrained('ordenes_inspeccion')->nullOnDelete();
             
             $table->foreignId('inspector_id')->constrained('inspectores')->cascadeOnDelete();
             $table->foreignUuid('empresa_id')->nullable()->constrained('empresas')->nullOnDelete();
