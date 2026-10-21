@@ -94,13 +94,12 @@ class ReporteController extends Controller
     public function residuos(Request $request)
     {
         // Por defecto, si no se selecciona nada, establecemos la semana actual (Lunes a Domingo)
-        // Usando el año actual 2026 y la fecha actual de referencia
         $fechaInicio = $request->input('fecha_inicio', now()->startOfWeek()->toDateString());
         $fechaFin = $request->input('fecha_fin', now()->endOfWeek()->toDateString());
 
+        // Consultas para el Directorio de Empresas
         $query = \App\Models\Empresa::with(['user', 'perfilAmbiental', 'documentosExpediente']);
 
-        // Filtros previos...
         if ($request->filled('buscar')) {
             $busqueda = $request->input('buscar');
             $query->where(function($q) use ($busqueda) {
@@ -125,18 +124,26 @@ class ReporteController extends Controller
             });
         }
 
-        $empresas = $query->latest()->paginate(10)->withQueryString();
-
+        $empresas = $query->latest()->paginate(10, ['*'], 'empresas_page')->withQueryString();
         $totalEmpresas = \App\Models\Empresa::count();
-
-        // 1. Totales de toneladas filtrados estrictamente por el rango semanal de declaraciones
-        $totalesPorCategoria = [
-            'comunes' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_comunes'),
-            'reciclables' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_reciclables'),
-            'peligrosas' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_peligrosas'),
-        ];
-
         $comunasDisponibles = \App\Models\Empresa::whereNotNull('comuna')->distinct()->pluck('comuna');
+
+        // Consultas y paginación para el Balance de Declaraciones de Residuos
+        $declaracionesQuery = \App\Models\DeclaracionResiduo::with(['empresa.perfilAmbiental'])
+            ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+
+        if ($request->filled('rol_declarante')) {
+            $declaracionesQuery->where('rol_declarante', $request->input('rol_declarante'));
+        }
+
+        $declaraciones = $declaracionesQuery->latest()->paginate(10, ['*'], 'declaraciones_page')->withQueryString();
+
+        // Totales de toneladas filtrados estrictamente por el rango semanal de declaraciones
+        $totalesPorCategoria = [
+            'comunes' => (clone $declaracionesQuery)->sum('toneladas_comunes'),
+            'reciclables' => (clone $declaracionesQuery)->sum('toneladas_reciclables'),
+            'peligrosas' => (clone $declaracionesQuery)->sum('toneladas_peligrosas'),
+        ];
 
         return view('alcaldesa.residuos', compact(
             'empresas', 
@@ -144,7 +151,8 @@ class ReporteController extends Controller
             'totalesPorCategoria', 
             'comunasDisponibles',
             'fechaInicio',
-            'fechaFin'
+            'fechaFin',
+            'declaraciones'
         ));
     }
 
@@ -359,6 +367,35 @@ class ReporteController extends Controller
         }
     }
 
+    public function exportarEmpresasPdf()
+    {
+        $totalEmpresas = \App\Models\Empresa::count();
+        $totalGeneradores = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'GENERADOR'))->count();
+        $totalManejadores = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'MANEJADOR'))->count();
+        $totalNoAplica = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'NO_APLICA'))->count();
+
+        $empresas = \App\Models\Empresa::with(['perfilAmbiental'])->get();
+        $resumenComunasEmpresas = [];
+
+        foreach ($empresas->groupBy('comuna') as $comuna => $lista) {
+            if (empty($comuna)) continue;
+            $resumenComunasEmpresas[$comuna] = [
+                'generador' => $lista->filter(fn($e) => $e->perfilAmbiental?->rol_ambiental === 'GENERADOR')->count(),
+                'manejador' => $lista->filter(fn($e) => $e->perfilAmbiental?->rol_ambiental === 'MANEJADOR')->count(),
+                'no_aplica' => $lista->filter(fn($e) => $e->perfilAmbiental?->rol_ambiental === 'NO_APLICA')->count(),
+                'total' => $lista->count(),
+            ];
+        }
+
+        return view('alcaldesa.pdf.empresas', compact(
+            'totalEmpresas', 
+            'totalGeneradores', 
+            'totalManejadores', 
+            'totalNoAplica', 
+            'resumenComunasEmpresas'
+        ));
+    }
+
     public function exportarResiduosPdf(Request $request)
     {
         $fechaInicio = $request->input('fecha_inicio', now()->startOfWeek()->toDateString());
@@ -426,6 +463,72 @@ class ReporteController extends Controller
             'lideresPorComuna',
             'fechaInicio',
             'fechaFin'
+        ));
+    }
+
+    public function exportarAmbientePdf(Request $request)
+    {
+        // Validar que existan las fechas del filtro; si no, bloquear o retornar error
+        if (!$request->filled('fecha_inicio') || !$request->filled('fecha_fin')) {
+            return back()->with('error', 'Debe seleccionar un rango de fechas válido para generar el informe de Gestión Ambiental.');
+        }
+
+        $fechaInicio = $request->input('fecha_inicio');
+        $fechaFin = $request->input('fecha_fin');
+
+        // Query base filtrado por el rango de fechas
+        $query = Solicitud::with(['inspecciones', 'inspector.user', 'recaudos'])
+            ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+
+        $solicitudes = $query->get();
+        $totalTramites = $solicitudes->count();
+
+        // 1. Desglose por Tipos de Trámite y sus Estatus
+        // Y conteo de trámites sin fecha de cierre o sin inspector asignado
+        $tramitesSinCierre = $solicitudes->filter(fn($s) => is_null($s->fecha_cierre))->count();
+        $tramitesSinInspector = $solicitudes->filter(fn($s) => is_null($s->inspector_id))->count();
+
+        $resumenPorTipo = [];
+        $agrupadasPorTipo = $solicitudes->groupBy('tipo_tramite');
+
+        foreach ($agrupadasPorTipo as $tipo => $lista) {
+            $estatusConteo = $lista->groupBy('estado')->map->count();
+            $resumenPorTipo[$tipo] = [
+                'total' => $lista->count(),
+                'estatus' => $estatusConteo,
+            ];
+        }
+
+        // 2. Desglose por Comuna (cantidad por tipo de trámite y total)
+        $resumenPorComuna = [];
+        $agrupadasPorComuna = $solicitudes->groupBy('comuna');
+
+        foreach ($agrupadasPorComuna as $comuna => $listaComuna) {
+            if (empty($comuna)) continue;
+            $tiposEnComuna = $listaComuna->groupBy('tipo_tramite')->map->count();
+            $resumenPorComuna[$comuna] = [
+                'tipos' => $tiposEnComuna,
+                'total' => $listaComuna->count(),
+            ];
+        }
+
+        // 3. Compensaciones Ambientales (a deber / pendientes vs concretadas / completadas)
+        $compensacionesQuery = Compensacion::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+        $compensacionesADeber = (clone $compensacionesQuery)->where('estatus', 'PENDIENTE')->count();
+        $compensacionesConcretadas = (clone $compensacionesQuery)->where('estatus', 'COMPLETADO')->count();
+        $totalCompensaciones = $compensacionesQuery->count();
+
+        return view('alcaldesa.pdf.ambiente', compact(
+            'fechaInicio',
+            'fechaFin',
+            'totalTramites',
+            'tramitesSinCierre',
+            'tramitesSinInspector',
+            'resumenPorTipo',
+            'resumenPorComuna',
+            'compensacionesADeber',
+            'compensacionesConcretadas',
+            'totalCompensaciones'
         ));
     }
 }

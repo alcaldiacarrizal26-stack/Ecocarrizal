@@ -240,7 +240,12 @@ Route::middleware(['auth', 'role:alcaldesa,admin'])->prefix('alcaldesa')->name('
     Route::get('/reportes', [AlcaldesaReporteController::class, 'index'])->name('reportes');
     Route::get('/ambiente', [AlcaldesaReporteController::class, 'ambiente'])->name('ambiente');
     Route::get('/residuos', [AlcaldesaReporteController::class, 'residuos'])->name('residuos');
-    Route::get('/residuos/pdf', [AlcaldesaReporteController::class, 'exportarResiduosPdf'])->name('residuos.pdf'); // <-- Ruta añadida para el PDF
+    
+    // Rutas separadas e independientes para cada PDF
+    Route::get('/residuos/pdf', [AlcaldesaReporteController::class, 'exportarResiduosPdf'])->name('residuos.pdf');
+    Route::get('/empresas/pdf', [AlcaldesaReporteController::class, 'exportarEmpresasPdf'])->name('empresas.pdf');
+    Route::get('/ambiente/pdf', [AlcaldesaReporteController::class, 'exportarAmbientePdf'])->name('ambiente.pdf');
+    
     Route::get('/poder-popular', [AlcaldesaReporteController::class, 'poderPopular'])->name('poderPopular');
     Route::get('/poder-popular/pdf', [AlcaldesaReporteController::class, 'exportarPoderPopularPdf'])->name('poderPopular.pdf');
 });

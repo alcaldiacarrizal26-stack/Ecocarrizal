@@ -11,6 +11,19 @@
                 <h1 class="text-2xl font-bold text-slate-800 mt-1">Control de Trámites y Compensaciones Ambientales</h1>
                 <p class="text-xs text-slate-500 mt-0.5">Seguimiento institucional de solicitudes de poda, desmalezamiento, tala y planes de reforestación.</p>
             </div>
+
+            <!-- Botón de Impresión / PDF condicionado a las fechas -->
+            @if(request()->filled('fecha_inicio') && request()->filled('fecha_fin'))
+                <button type="button" onclick="imprimirAmbientePdf()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition-all shrink-0 cursor-pointer">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <span>Imprimir Informe Ambiental</span>
+                </button>
+            @else
+                <button type="button" disabled title="Debe seleccionar un rango de fechas para habilitar el reporte" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-200 text-slate-400 text-xs font-bold rounded-xl cursor-not-allowed shrink-0">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <span>Imprimir Informe Ambiental</span>
+                </button>
+            @endif
         </div>
 
         <!-- Tarjetas de Resumen Ejecutivo -->
@@ -54,7 +67,7 @@
 
         <!-- Barra de Filtros Fluidos -->
         <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
-            <form method="GET" action="{{ route('alcaldesa.ambiente') }}" class="flex flex-wrap lg:flex-nowrap items-end gap-3 w-full">
+            <form method="GET" action="{{ route('alcaldesa.ambiente') }}" id="filtroAmbienteForm" class="flex flex-wrap lg:flex-nowrap items-end gap-3 w-full">
                 
                 <!-- Tipo de Trámite -->
                 <div class="w-full sm:w-auto flex-1.5 min-w-[160px]">
@@ -82,14 +95,14 @@
 
                 <!-- Fecha Inicio -->
                 <div class="w-full sm:w-auto flex-1 min-w-[135px]">
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Desde</label>
-                    <input type="date" name="fecha_inicio" value="{{ request('fecha_inicio') }}" class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Desde (Requerido)</label>
+                    <input type="date" name="fecha_inicio" value="{{ request('fecha_inicio') }}" required class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
                 </div>
 
                 <!-- Fecha Fin -->
                 <div class="w-full sm:w-auto flex-1 min-w-[135px]">
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Hasta</label>
-                    <input type="date" name="fecha_fin" value="{{ request('fecha_fin') }}" class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Hasta (Requerido)</label>
+                    <input type="date" name="fecha_fin" value="{{ request('fecha_fin') }}" required class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
                 </div>
 
                 <!-- Botones de Acción -->
@@ -105,6 +118,12 @@
             </form>
         </div>
 
+        @if(!request()->filled('fecha_inicio') || !request()->filled('fecha_fin'))
+        <div class="p-8 bg-amber-50 border border-amber-200 rounded-3xl text-center space-y-2">
+            <p class="text-xs font-bold text-amber-800 uppercase tracking-wider">Filtro de Fechas Requerido</p>
+            <p class="text-xs text-amber-600">Por favor, seleccione un rango de fechas de inicio y cierre para visualizar los datos del balance ambiental y habilitar el reporte PDF.</p>
+        </div>
+       @else
         <!-- Tabla de Solicitudes Ambientales -->
         <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
             <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Historial de Trámites Ambientales</h3>
@@ -162,6 +181,7 @@
                 {{ $solicitudes->links() }}
             </div>
         </div>
+        @endif
 
         <!-- Modal de Detalles del Trámite y Recaudos -->
         <div x-show="modalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
@@ -222,4 +242,22 @@
         </div>
 
     </div>
+
+    <!-- Script para abrir el PDF de Ambiente mediante iframe oculto -->
+    <iframe id="pdfAmbienteFrame" style="display: none;"></iframe>
+    <script>
+        function imprimirAmbientePdf() {
+            const form = document.getElementById('filtroAmbienteForm');
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData).toString();
+            const url = "{{ route('alcaldesa.ambiente.pdf') }}?" + params;
+
+            const frame = document.getElementById('pdfAmbienteFrame');
+            frame.src = url;
+            frame.onload = function() {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+            };
+        }
+    </script>
 </x-layouts.app>
