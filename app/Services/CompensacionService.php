@@ -4,26 +4,11 @@ namespace App\Services;
 
 class CompensacionService
 {
-    // Especies bajo veda o protección especial en Venezuela
-    public const ESPECIES_PROTEGIDAS = [
-        'araguaney',
-        'ceiba',
-        'caoba',
-        'cedro',
-        'saman',
-        'pino_lasso',
-        'apamate'
-    ];
-
     /**
-     * Calcula la cantidad de ejemplares requeridos para compensación.
+     * Calcula la cantidad de ejemplares requeridos para compensación (Ratio fijo 1x8).
      */
-    public static function calcularEjemplares(
-        int $cantidadTalar,
-        bool $esEspecieProtegida = false,
-        int $ratioBase = 8
-    ): int {
-        $multiplicador = $esEspecieProtegida ? 2 : 1;
-        return $cantidadTalar * $ratioBase * $multiplicador;
+    public static function calcularEjemplares(int $cantidadTalar, int $ratioBase = 8): int
+    {
+        return $cantidadTalar * $ratioBase;
     }
 }

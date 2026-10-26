@@ -25,7 +25,7 @@
                 'poda_deshierbe': {
                     nombre: 'Solicitud de Permiso para Poda o Deshierbe',
                     descripcion: 'Autorización técnica para labores de mantenimiento, fitosanitarias o poda de formación de vegetación.',
-                    plazoDias: 90,
+                    plazoDias: 31,
                     requisitosObligatorios: [
                         { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'Requisito inicial obligatorio' },
                         { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar', hint: 'Detallar motivos y ramas a intervenir' }
@@ -46,7 +46,7 @@
                 'tala': {
                     nombre: 'Solicitud de Permiso para Tala de Árboles',
                     descripcion: 'Autorización técnica para el derribo/remoción de ejemplares arbóreos por riesgo, infraestructura o enfermedad.',
-                    plazoDias: 90,
+                    plazoDias: 31,
                     requisitosObligatorios: [
                         { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'Requisito inicial obligatorio' },
                         { key: 'carta_explicativa', label: 'Carta Justificativa de Tala', hint: 'Detallar motivos de riesgo o estado fitosanitario' },
@@ -68,7 +68,7 @@
                 'desmalezamiento_conformacion': {
                     nombre: 'Permiso de Desmalezamiento y Conformación de Terreno',
                     descripcion: 'Permisos para trabajos de limpieza profunda, acondicionamiento y movimiento menor de suelos.',
-                    plazoDias: 90,
+                    plazoDias: 31,
                     requisitosObligatorios: [
                         { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'Requisito inicial obligatorio' },
                         { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar', hint: 'Detallar intervención de suelo' }
@@ -343,9 +343,9 @@
                                     <td class="p-4 text-center">
                                         @php
                                             $plazosDias = [
-                                                'poda_deshierbe' => 90,
-                                                'tala' => 90,
-                                                'desmalezamiento_conformacion' => 90,
+                                                'poda_deshierbe' => 31,
+                                                'tala' => 31,
+                                                'desmalezamiento_conformacion' => 31,
                                                 'inspeccion' => 0,
                                             ];
 

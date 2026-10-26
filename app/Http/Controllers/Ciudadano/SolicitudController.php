@@ -31,7 +31,7 @@ class SolicitudController extends Controller
             'poda_deshierbe' => [
                 'nombre' => 'Solicitud de Permiso para Poda o Deshierbe',
                 'descripcion' => 'Autorización técnica para labores de mantenimiento, fitosanitarias o poda de formación de vegetación.',
-                'plazoDias' => 90,
+                'plazoDias' => 31,
                 'requisitosObligatorios' => [
                     ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
                     ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar motivos y ramas a intervenir']
@@ -72,7 +72,7 @@ class SolicitudController extends Controller
             'tala' => [
                 'nombre' => 'Solicitud de Permiso para Tala de Árboles',
                 'descripcion' => 'Autorización técnica para el derribo/remoción de ejemplares arbóreos por riesgo, infraestructura o enfermedad.',
-                'plazoDias' => 90,
+                'plazoDias' => 31,
                 'requisitosObligatorios' => [
                     ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
                     ['key' => 'carta_explicativa', 'label' => 'Carta Justificativa de Tala', 'hint' => 'Detallar motivos de riesgo, daño a infraestructura o estado fitosanitario del árbol'],
@@ -114,7 +114,7 @@ class SolicitudController extends Controller
             'desmalezamiento_conformacion' => [
                 'nombre' => 'Permiso de Desmalezamiento y Conformación de Terreno',
                 'descripcion' => 'Permisos para trabajos de limpieza profunda, acondicionamiento y movimiento menor de suelos.',
-                'plazoDias' => 90,
+                'plazoDias' => 31,
                 'requisitosObligatorios' => [
                     ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
                     ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar intervención de suelo']

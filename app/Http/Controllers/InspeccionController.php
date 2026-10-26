@@ -179,7 +179,6 @@ class InspeccionController extends Controller
 
             'cantidad_arboles_talar' => $esSolicitudTala ? 'nullable|required_if:dictamen,APROBADO|integer|min:1' : 'nullable',
             'especie_afectada'       => 'nullable|string|max:100',
-            'es_especie_protegida'   => 'nullable|boolean',
             'especie_compensacion'   => $esSolicitudTala ? 'nullable|required_if:dictamen,APROBADO|string|max:100' : 'nullable',
         ]);
 
@@ -293,9 +292,8 @@ class InspeccionController extends Controller
                     $validated['dictamen'] === 'APROBADO'
                 ) {
                     $cantidadTalar = (int) ($request->cantidad_arboles_talar ?? 1);
-                    $esProtegida = (bool) ($request->es_especie_protegida ?? false);
 
-                    $cantidadAsignada = CompensacionService::calcularEjemplares($cantidadTalar, $esProtegida, 8);
+                    $cantidadAsignada = CompensacionService::calcularEjemplares($cantidadTalar, 8);
 
                     Compensacion::create([
                         'codigo_resolucion'  => 'RES-COMP-' . date('Y') . '-' . strtoupper(Str::random(5)),

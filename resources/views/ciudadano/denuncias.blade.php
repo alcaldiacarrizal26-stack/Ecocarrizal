@@ -160,7 +160,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 font-medium">
-                                @foreach ($denuncias as$denuncia)
+                                @foreach ($denuncias as $denuncia)
                                     <tr 
                                         x-show="filtroEstatus === 'todos' || filtroEstatus === '{{ strtolower(trim($denuncia->estatus)) }}'"
                                         class="hover:bg-slate-50/50"

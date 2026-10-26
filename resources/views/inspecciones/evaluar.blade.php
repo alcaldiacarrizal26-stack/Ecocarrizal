@@ -149,10 +149,10 @@
                         <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
-                        <span>Cálculo de Compensación Ambiental (Tala Autorizada)</span>
+                        <span>Cálculo de Compensación Ambiental (Tala Autorizada - Relación 1x8)</span>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Árboles Autorizados a Talar</label>
                             <input type="number" name="cantidad_arboles_talar" id="cant_talar" min="1" value="{{ old('cantidad_arboles_talar', 1) }}"
@@ -170,19 +170,10 @@
                                 <option value="Caoba" {{ old('especie_compensacion') === 'Caoba' ? 'selected' : '' }}>Caoba</option>
                             </select>
                         </div>
-
-                        <div class="flex items-center pt-5">
-                            <label class="relative flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" name="es_especie_protegida" value="1" id="check_protegida" onchange="recalcularCompensacion()"
-                                       {{ old('es_especie_protegida') ? 'checked' : '' }}
-                                       class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
-                                <span class="text-xs font-semibold text-amber-900">¿Especie Protegida / Vedada? (Ratio 1:16)</span>
-                            </label>
-                        </div>
                     </div>
 
                     <div class="bg-white p-3 rounded-xl border border-emerald-200/60 flex items-center justify-between text-xs sm:text-sm">
-                        <span class="text-slate-600">Relación de Compensación Aplicada: <strong id="ratio_text" class="text-slate-800">1:8 (Estándar)</strong></span>
+                        <span class="text-slate-600">Relación de Compensación Aplicada: <strong id="ratio_text" class="text-slate-800">1:8 (Estándar Único)</strong></span>
                         <div class="text-emerald-800 font-bold">
                             Total a Compensar: <span id="total_compensar_badge" class="text-base text-emerald-600 font-extrabold">8</span> ejemplares
                         </div>
@@ -301,20 +292,18 @@
 
         function recalcularCompensacion() {
             const cantInput = document.getElementById('cant_talar');
-            const checkProtegida = document.getElementById('check_protegida');
             const totalBadge = document.getElementById('total_compensar_badge');
             const ratioText = document.getElementById('ratio_text');
 
             if (!cantInput || !totalBadge) return;
 
             const cant = Math.max(1, parseInt(cantInput.value) || 1);
-            const esProtegida = checkProtegida ? checkProtegida.checked : false;
-            const ratio = esProtegida ? 16 : 8;
+            const ratio = 8; // Ratio fijo universal 1x8
 
             totalBadge.textContent = cant * ratio;
             
             if (ratioText) {
-                ratioText.textContent = esProtegida ? '1:16 (Protegida/Vedada)' : '1:8 (Estándar)';
+                ratioText.textContent = '1:8 (Estándar Único)';
             }
         }
 
