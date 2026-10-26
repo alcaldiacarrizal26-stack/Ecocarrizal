@@ -131,17 +131,17 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
 // -------------------------------------------------------------
 
 Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('director.')->group(function () {
+
+    // Gestión de Inspectores (Compartida para Directores de Ambiente y Residuos)
+    Route::get('/inspectores', [\App\Http\Controllers\Director\InspectorController::class, 'index'])->name('inspectores.index');
+    Route::post('/inspectores', [\App\Http\Controllers\Director\InspectorController::class, 'store'])->name('inspectores.store');
+    Route::patch('/inspectores/{inspector}/toggle', [\App\Http\Controllers\Director\InspectorController::class, 'toggleStatus'])->name('inspectores.toggle');
     
     // ---------------------------------------------------------
     // Dirección de Ambiente
     // ---------------------------------------------------------
     Route::prefix('ambiente')->name('ambiente.')->group(function () {
         Route::get('/dashboard', [AmbienteDashboardController::class, 'index'])->name('dashboard');
-        
-        // Gestión de Inspectores
-        Route::get('/inspectores', [AmbienteInspectorController::class, 'index'])->name('inspectores');
-        Route::post('/inspectores', [AmbienteInspectorController::class, 'store'])->name('inspectores.store');
-        Route::patch('/inspectores/{inspector}/toggle', [AmbienteInspectorController::class, 'toggleStatus'])->name('inspectores.toggle');
 
         // Solicitudes (Trámites Ambientales)
         Route::get('/solicitudes', [AmbienteSolicitudController::class, 'index'])->name('solicitudes');

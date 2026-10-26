@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Director\Ambiente;
+namespace App\Http\Controllers\Director;
 
 use App\Http\Controllers\Controller;
 use App\Models\Inspector;
@@ -11,19 +11,21 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class InspectorController extends Controller
 {
     public function index()
     {
-        $inspectores = Inspector::with(['user', 'solicitudes' => function ($query) {
-            // Estatus unificados congruentes con SolicitudController y DenunciaController
+        $inspectores = Inspector::with(['user', 'direccion', 'solicitudes' => function ($query) {
             $query->whereIn('estado', ['inspector_asignado', 'en_revision']);
         }, 'denuncias' => function ($query) {
             $query->whereIn('estatus', ['inspector_asignado', 'en_revision']);
         }])->get();
 
-        return view('director.ambiente.inspectores', compact('inspectores'));
+        return view('director.inspectores', compact('inspectores'));
     }
 
     public function toggleStatus($id)
@@ -49,15 +51,12 @@ class InspectorController extends Controller
             'telefono'          => 'required|string|max:15',
             'codigo_credencial' => 'required|string|max:50|unique:inspectores,codigo_credencial',
             'especialidad'      => 'nullable|string|max:100',
-            'password'          => 'required|string|min:8',
         ]);
 
-        // Candado atómico para prevenir condiciones de carrera al registrar inspectores concurrentemente
         $lockKey = 'inspector_store_lock_' . md5($request->cedula . $request->correo);
 
         return Cache::lock($lockKey, 5)->get(function () use ($request, $direccionId) {
             DB::transaction(function () use ($request, $direccionId) {
-                // Obtener dinámicamente el rol de inspector en lugar de usar ID estático
                 $roleInspector = Role::where('nombre', 'inspector')->first();
                 $roleId = $roleInspector->id_roles ?? 3;
 
@@ -69,7 +68,7 @@ class InspectorController extends Controller
                     'apellido'       => $request->apellido,
                     'correo'         => $request->correo,
                     'telefono'       => $request->telefono,
-                    'password'       => Hash::make($request->password),
+                    'password'       => Hash::make(Str::random(32)),
                     'accepted_terms' => true,
                     'is_active'      => true,
                 ]);
@@ -81,10 +80,31 @@ class InspectorController extends Controller
                     'especialidad'      => $request->especialidad,
                     'disponible'        => true,
                 ]);
+
+                // 1. Generar token de seguridad de Laravel
+                $token = Password::broker()->createToken($user);
+
+                // 2. Construir URL absoluta para configurar la contraseña
+                $url = route('password.reset', [
+                    'token' => $token,
+                    'correo' => $user->correo,
+                ]);
+
+                // 3. Enviar correo con presentación exclusiva para nuevos inspectores
+                Mail::send('emails.plantilla-base', [
+                    'titulo'      => 'Bienvenido al Sistema — Alcaldía de Carrizal',
+                    'subtitulo'   => 'Acreditación y Activación de Cuenta de Inspector',
+                    'contenido'   => "Estimado/a <strong>{$user->nombre} {$user->apellido}</strong>,<br><br>Has sido registrado formalmente como Inspector Activo en la plataforma de gestión de la Alcaldía del Municipio Carrizal.<br><br>Para comenzar a operar en el módulo de campo, haz clic en el botón inferior para configurar tu contraseña de acceso por primera vez.<br><br>Este enlace de activación es de uso único y expirará en 60 minutos.",
+                    'textoAccion' => 'Configurar mi Contraseña',
+                    'urlAccion'   => $url
+                ], function ($message) use ($user) {
+                    $message->to($user->correo)
+                            ->subject('Activación de Cuenta de Inspector — Alcaldía de Carrizal');
+                });
             });
 
-            return redirect()->route('director.ambiente.inspectores')
-                ->with('success', 'Inspector de Ambiente registrado exitosamente.');
+            return redirect()->route('director.inspectores.index')
+                ->with('success', 'Inspector registrado exitosamente. Se le ha enviado un correo de activación para que configure su contraseña.');
         }) ?: back()->withErrors(['correo' => 'Se está procesando un registro idéntico en este momento. Por favor espera.'])->withInput();
     }
 }
