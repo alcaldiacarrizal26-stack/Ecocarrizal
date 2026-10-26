@@ -57,8 +57,8 @@
             $currentActive = 'inspecciones';
         } elseif (request()->routeIs('*empresas*') || request()->is('*/empresas*')) {
             $currentActive = $prefix === 'ciudadano' ? 'empresas' : 'residuos_empresas';
-        } elseif (request()->routeIs('*ambiente.reportes*') || request()->routeIs('*denuncias*') || request()->is('*/ambiente/reportes*')) {
-            $currentActive = 'ambiente_reportes';
+        } elseif (request()->routeIs('*ambiente.denuncias*') || request()->routeIs('*denuncias*') || request()->is('*/ambiente/denuncias*')) {
+            $currentActive = 'ambiente_denuncias';
         } elseif (request()->routeIs('*ambiente.solicitudes*') || request()->is('*/ambiente/solicitudes*')) {
             $currentActive = 'ambiente_solicitudes';
         } elseif (request()->routeIs('*ambiente.compensacion*') || request()->is('*/ambiente/compensacion*')) {
@@ -126,7 +126,7 @@
                     <span>Solicitudes y Trámites</span>
                 </a>
 
-                <a href="{{ Route::has('ciudadano.reportes') ? route('ciudadano.reportes') : url('/ciudadano/reportes') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'reportes' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                <a href="{{ Route::has('ciudadano.denuncias') ? route('ciudadano.denuncias') : url('/ciudadano/denuncias') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'denuncias' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <span>Reportes y Denuncias</span>
                 </a>
@@ -225,7 +225,7 @@
                     <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
                         Gestión Ambiental
                     </div>
-                    <a href="{{ Route::has('director.ambiente.reportes') ? route('director.ambiente.reportes') : url('/director/ambiente/reportes') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_reportes' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                    <a href="{{ Route::has('director.ambiente.denuncias') ? route('director.ambiente.denuncias') : url('/director/ambiente/denuncias') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_denuncias' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         <span>Reportes y Denuncias</span>
                     </a>

@@ -55,7 +55,7 @@
                     <h3 class="text-base font-bold text-slate-800">Reportes y Denuncias</h3>
                     <p class="text-xs text-slate-500 leading-relaxed">Notifica incidentes de contaminación, vertederos no autorizados, quema de desechos o talas ilegales de forma anónima o pública.</p>
                 </div>
-                <a href="{{ route('ciudadano.reportes') }}" class="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition-colors">
+                <a href="{{ route('ciudadano.denuncias') }}" class="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition-colors">
                     <span>Crear Reporte</span>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </a>

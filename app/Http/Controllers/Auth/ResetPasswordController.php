@@ -32,7 +32,7 @@ class ResetPasswordController extends Controller
 
         $status = Password::reset(
             [
-                'email' => $request->correo,
+                'correo' => $request->correo,
                 'password' => $request->password,
                 'password_confirmation' => $request->password_confirmation,
                 'token' => $request->token,
@@ -54,7 +54,7 @@ class ResetPasswordController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('success', __($status))
-            : back()->withErrors(['correo' => [__($status)]]);
+            ? redirect()->route('login')->with('success', '¡Tu contraseña ha sido restablecida exitosamente! Ya puedes iniciar sesión con tus nuevas credenciales.')
+            : back()->withErrors(['correo' => ['No se pudo completar el restablecimiento. El enlace puede haber expirado o los datos son incorrectos.']]);
     }
 }

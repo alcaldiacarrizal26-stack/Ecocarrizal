@@ -135,14 +135,22 @@ class User extends Authenticatable implements CanResetPasswordContract
      */
     public function sendPasswordResetNotification($token): void
     {
-        $url = url(route('password.reset', [
+        // Generamos la URL absoluta con el token y el correo
+        $url = route('password.reset', [
             'token' => $token,
             'correo' => $this->correo,
-        ], false));
+        ]);
 
-        $notification = new ResetPasswordNotification($token);
-        $notification->createUrlUsing(fn () => $url);
-
-        $this->notify($notification);
+        // Enviamos el correo directamente usando nuestra plantilla base HTML
+        \Illuminate\Support\Facades\Mail::send('emails.plantilla-base', [
+            'titulo'      => 'Recuperación de Contraseña — Alcaldía de Carrizal',
+            'subtitulo'   => 'Restablecimiento de credenciales',
+            'contenido'   => 'Has solicitado restablecer tu contraseña para acceder a la plataforma de Ecosocialismo. Haz clic en el botón inferior para proceder con el cambio.<br><br>Este enlace de seguridad expirará en 60 minutos.',
+            'textoAccion' => 'Restablecer Contraseña',
+            'urlAccion'   => $url
+        ], function ($message) {
+            $message->to($this->correo)
+                    ->subject('Recuperación de Contraseña - Alcaldía de Carrizal');
+        });
     }
 }
