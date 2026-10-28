@@ -148,16 +148,8 @@
                 const tramite = this.tiposTramites[this.selectedTramiteKey];
                 if (!tramite) return false;
                 
-                for (let req of tramite.requisitosObligatorios) {
-                    if (!this.archivosSubidos[req.key]) return false;
-                }
-
-                if (this.aplicaAutorizacionPropietario && !this.archivosSubidos['autorizacion_propietario']) return false;
-                if (this.aplicaVariablesAmbientales && !this.archivosSubidos['variables_ambientales']) return false;
-                if (this.esPersonaJuridica) {
-                    if (!this.archivosSubidos['registro_mercantil']) return false;
-                    if (!this.archivosSubidos['rif_empresa']) return false;
-                }
+                // La cédula es el único requisito inicial estricto para registrar la solicitud
+                if (!this.archivosSubidos['cedula']) return false;
 
                 return true;
             },
@@ -355,7 +347,7 @@
                                                 : ($diasPlazo > 0 && $tramite->estado === 'incompleta' ? $tramite->created_at->addDays($diasPlazo) : null);
                                         @endphp
 
-                                        @if($fechaLimite)
+                                        @if($fechaLimite && $tramite->estado === 'incompleta')
                                             <div x-data="{ timer: obtenerTiempoRestante('{{ $fechaLimite->toIso8601String() }}') }">
                                                 <template x-if="timer && !timer.expirado">
                                                     <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border bg-amber-50/80 text-amber-800 border-amber-200 text-[10px] font-bold" :title="'Fecha límite: ' + timer.fechaFormatted">
@@ -675,7 +667,7 @@
 
                             <template x-if="requisitosPendientesModal.length === 0">
                                 <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-center text-xs text-emerald-800 font-bold">
-                                    Has consignado la totalidad de los documentos para este expediente.
+                                    Has consignado la totalidad de los documentos para este expediente. El trámite ha pasado a estatus pendiente de revisión.
                                 </div>
                             </template>
 

@@ -173,7 +173,6 @@ class SolicitudController extends Controller
     {
         $userId = auth()->id();
 
-        // 1. CAPA ANTI-SPAM: Throttle Rate Limiting
         $rateLimitKey = 'solicitud-submission:' . $userId;
         if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
@@ -184,7 +183,6 @@ class SolicitudController extends Controller
                 ->with('error', "Has superado el límite de solicitudes permitidas. Por favor, espera {$minutes} minuto(s) antes de intentar registrar un nuevo trámite.");
         }
 
-        // 2. CAPA ANTI-SPAM: Prevenir duplicados idénticos en 60 segundos
         $duplicateExists = Solicitud::where('user_id', $userId)
             ->where('tipo_tramite', $request->input('tipo_tramite'))
             ->where('motivo_descripcion', $request->input('motivo_solicitud'))
@@ -197,7 +195,6 @@ class SolicitudController extends Controller
                 ->with('error', 'Ya has enviado una solicitud con estas especificaciones recientemente. Revisa tu lista de trámites.');
         }
 
-        // 3. VALIDACIÓN DE DATOS
         $validated = $request->validate([
             'tipo_tramite'                     => 'required|string|in:inspeccion,poda_deshierbe,desmalezamiento_conformacion,tala',
             'comuna'                           => 'required|string',
@@ -207,11 +204,10 @@ class SolicitudController extends Controller
             'aplica_autorizacion_propietario'  => 'nullable|boolean',
             'aplica_variables_ambientales'     => 'nullable|boolean',
             'es_persona_juridica'              => 'nullable|boolean',
-            'documentos'                       => 'required|array|min:1',
+            'documentos'                       => 'nullable|array',
             'documentos.*'                     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
-        // Ejecutar Transacción con Bloqueo Advisory de PostgreSQL
         DB::transaction(function () use ($request, $validated, $userId) {
             $yearActual = Carbon::now()->year;
 
@@ -229,10 +225,12 @@ class SolicitudController extends Controller
                 'es_persona_juridica'             => $request->boolean('es_persona_juridica'),
             ];
 
-            // Determinación de Requisitos Esperados vs Consignados
             $configTramites = $this->getTiposTramitesConfig();
             $configActual = $configTramites[$validated['tipo_tramite']] ?? null;
 
+            $plazoDias = $configActual['plazoDias'] ?? 0;
+
+            // 1. Recopilar TODAS las llaves obligatorias y condicionales que exige este trámite
             $keysEsperadas = [];
             if ($configActual) {
                 foreach ($configActual['requisitosObligatorios'] as $req) {
@@ -245,12 +243,20 @@ class SolicitudController extends Controller
                 }
             }
 
+            // 2. Filtrar únicamente los archivos que el usuario SÍ adjuntó y son válidos
             $documentosSubidos = $request->file('documentos') ?? [];
-            $keysSubidas = array_keys(array_filter($documentosSubidos, fn($file) => $file !== null));
+            $keysSubidas = [];
+            foreach ($documentosSubidos as $key => $file) {
+                if ($file && $file->isValid() && $file->getSize() > 0) {
+                    $keysSubidas[] = $key;
+                }
+            }
 
+            // 3. Calcular qué requisitos obligatorios/condicionales faltan por subir
             $faltantes = array_diff($keysEsperadas, $keysSubidas);
             $plazoDias = $configActual['plazoDias'] ?? 0;
 
+            // 4. Si faltan documentos y el trámite tiene plazo, nace incompleta con fecha límite
             if (count($faltantes) > 0 && $plazoDias > 0) {
                 $estadoFinal = 'incompleta';
                 $fechaLimite = Carbon::now()->addDays($plazoDias);
@@ -274,32 +280,116 @@ class SolicitudController extends Controller
                 'fecha_limite_documentos' => $fechaLimite,
             ]);
 
+            // Guardar los archivos que sí se hayan adjuntado
+            foreach ($documentosSubidos as $key => $file) {
+                if ($file && $file->isValid()) {
+                    $path = $file->store("solicitudes/{$solicitud->id}", 'public');
+                    $extension = strtolower($file->getClientOriginalExtension());
+
+                    SolicitudRecaudo::create([
+                        'id'                       => (string) Str::uuid(),
+                        'solicitud_id'             => $solicitud->id,
+                        'tipo_recaudo'             => $key,
+                        'nombre_archivo'           => $file->getClientOriginalName(),
+                        'bucket_path'              => $path,
+                        'archivo_url'              => Storage::url($path),
+                        'es_evidencia_fotografica' => in_array($extension, ['jpg', 'jpeg', 'png']),
+                        'created_at'               => now(),
+                    ]);
+                }
+            }
+        });
+
+        RateLimiter::hit($rateLimitKey, 600);
+
+        return redirect()
+            ->route('ciudadano.solicitudes')
+            ->with('success', 'Tu solicitud ha sido registrada exitosamente.');
+    }
+
+    public function subirPendientes(Request $request, $id)
+    {
+        $solicitud = Solicitud::with('recaudos')->where('user_id', auth()->id())->findOrFail($id);
+
+        // Validar si el plazo ya expiró
+        if ($solicitud->fecha_limite_documentos && Carbon::now()->gt(Carbon::parse($solicitud->fecha_limite_documentos))) {
+            $solicitud->estado = 'cancelado'; // O rechazado por vencimiento
+            $solicitud->save();
+
+            return redirect()->route('ciudadano.solicitudes')
+                ->with('error', 'El plazo límite para consignar la documentación de este expediente ha expirado. La solicitud ha sido cancelada y debes crear una nueva.');
+        }
+
+        $request->validate([
+            'documentos'   => 'required|array|min:1',
+            'documentos.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+
+        DB::transaction(function () use ($request, $solicitud) {
             if ($request->hasFile('documentos')) {
                 foreach ($request->file('documentos') as $key => $file) {
                     if ($file && $file->isValid()) {
                         $path = $file->store("solicitudes/{$solicitud->id}", 'public');
                         $extension = strtolower($file->getClientOriginalExtension());
 
-                        SolicitudRecaudo::create([
-                            'id'                       => (string) Str::uuid(),
-                            'solicitud_id'             => $solicitud->id,
-                            'tipo_recaudo'             => $key,
-                            'nombre_archivo'           => $file->getClientOriginalName(),
-                            'bucket_path'              => $path,
-                            'archivo_url'              => Storage::url($path),
-                            'es_evidencia_fotografica' => in_array($extension, ['jpg', 'jpeg', 'png']),
-                            'created_at'               => now(),
-                        ]);
+                        SolicitudRecaudo::updateOrCreate(
+                            [
+                                'solicitud_id' => $solicitud->id,
+                                'tipo_recaudo' => $key,
+                            ],
+                            [
+                                'id'                       => (string) Str::uuid(),
+                                'nombre_archivo'           => $file->getClientOriginalName(),
+                                'bucket_path'              => $path,
+                                'archivo_url'              => Storage::url($path),
+                                'es_evidencia_fotografica' => in_array($extension, ['jpg', 'jpeg', 'png']),
+                                'created_at'               => now(),
+                            ]
+                        );
                     }
+                }
+            }
+
+            $solicitud->load('recaudos');
+
+            $configTramites = $this->getTiposTramitesConfig();
+            $configActual = $configTramites[$solicitud->tipo_tramite] ?? null;
+
+            if ($configActual) {
+                $keysObligatoriasYCondicionales = [];
+                foreach ($configActual['requisitosObligatorios'] as $req) {
+                    $keysObligatoriasYCondicionales[] = $req['key'];
+                }
+
+                $datosEspecificos = is_array($solicitud->datos_especificos) 
+                    ? $solicitud->datos_especificos 
+                    : (json_decode($solicitud->datos_especificos, true) ?? []);
+
+                if (!empty($datosEspecificos['aplica_autorizacion_propietario'])) {
+                    $keysObligatoriasYCondicionales[] = 'autorizacion_propietario';
+                }
+                if (!empty($datosEspecificos['aplica_variables_ambientales'])) {
+                    $keysObligatoriasYCondicionales[] = 'variables_ambientales';
+                }
+                if (!empty($datosEspecificos['es_persona_juridica'])) {
+                    $keysObligatoriasYCondicionales[] = 'registro_mercantil';
+                    $keysObligatoriasYCondicionales[] = 'rif_empresa';
+                }
+
+                $consignados = $solicitud->recaudos->pluck('tipo_recaudo')->toArray();
+                $faltantes = array_diff($keysObligatoriasYCondicionales, $consignados);
+
+                // Si ya no hay faltantes obligatorios/condicionales, pasa a pendiente y limpia fecha límite
+                if (count($faltantes) === 0) {
+                    $solicitud->estado = 'pendiente';
+                    $solicitud->fecha_limite_documentos = null;
+                    $solicitud->save();
                 }
             }
         });
 
-        // Registrar intento en RateLimiter tras guardar con éxito
-        RateLimiter::hit($rateLimitKey, 600);
-
         return redirect()
             ->route('ciudadano.solicitudes')
-            ->with('success', 'Tu solicitud ha sido registrada exitosamente.');
+            ->with('success', 'Documentos adjuntados exitosamente. El expediente ha sido actualizado.');
     }
 }

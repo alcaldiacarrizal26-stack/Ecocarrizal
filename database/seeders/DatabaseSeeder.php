@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
             ['id_direccion' => 2, 'nombre_direc' => 'Dirección de Residuos', 'descripcion_direc' => 'Control Residual de las empresas', 'created_at' => now()],
         ]);
 
-        // 3. Usuario Ciudadano (Rol 4 - Sin dirección)[cite: 7]
+        // 3. Usuario Ciudadano (Rol 4 - Sin dirección)[cite: 7, 8]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-30541863'],
             [
@@ -40,10 +40,11 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
 
-        // 4. Usuario Administrador (Rol 1 - Sin dirección)[cite: 7]
+        // 4. Usuario Administrador (Rol 1 - Sin dirección)[cite: 7, 8]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-12345678'],
             [
@@ -58,10 +59,11 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
 
-        // 5. Usuario Alcaldesa (Rol 5 - Sin dirección)[cite: 7]
+        // 5. Usuario Alcaldesa (Rol 5 - Sin dirección)[cite: 7, 8]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-00000001'],
             [
@@ -76,10 +78,11 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
 
-        // 6. Usuario Director (Rol 2 - Dirección de Ambiente - Sí lleva dirección)[cite: 7]
+        // 6. Usuario Director (Rol 2 - Dirección de Ambiente - Sí lleva dirección)[cite: 7, 8]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-87654321'],
             [
@@ -94,10 +97,11 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
 
-        // 7. Usuario Director (Rol 2 - Dirección de Residuos - Sí lleva dirección)[cite: 7]
+        // 7. Usuario Director (Rol 2 - Dirección de Residuos - Sí lleva dirección)[cite: 7, 8]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-98765432'],
             [
@@ -112,10 +116,11 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
 
-        // 8. Usuario Inspector (Rol 3 - Dirección de Ambiente - Sí lleva dirección)[cite: 7]
+        // 8. Usuario Inspector (Rol 3 - Dirección de Ambiente - Sí lleva dirección)[cite: 7, 8]
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-11223344'],
             [
@@ -130,10 +135,11 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+                'email_verified_at' => now(), // Correcto: Pertenece a la tabla users
             ]
         );
 
-        // 9. Registro en la tabla de inspectores[cite: 7]
+        // 9. Registro en la tabla de inspectores[cite: 7, 8]
         $inspectorUser = DB::table('users')->where('cedula', 'V-11223344')->first();
 
         if ($inspectorUser) {
@@ -144,11 +150,12 @@ class DatabaseSeeder extends Seeder
                     'codigo_credencial' => 'INS-2026-001',
                     'created_at' => now(),
                     'updated_at' => now(),
+                    // Eliminado 'email_verified_at' de aquí porque no existe en la tabla inspectores
                 ]
             );
         }
 
-        // 10. Ajustar secuencias de ID en PostgreSQL[cite: 7]
+        // 10. Ajustar secuencias de ID en PostgreSQL[cite: 7, 8]
         DB::statement("SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1)) FROM users;");
         
         if (DB::getDriverName() === 'pgsql') {

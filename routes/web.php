@@ -4,9 +4,11 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 // Modelos Utilizados
 use App\Models\Inspector;
+use App\Models\User;
 
 // Controladores Generales
 use App\Http\Controllers\HomeController;
@@ -62,12 +64,47 @@ Route::middleware(['guest'])->group(function () {
     Route::post('/reset-password', [ResetPasswordController::class, 'update'])->name('password.update');
 });
 
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+// Vista de espera de verificación de correo
+Route::get('/email/verify-notice', function () {
+    if (auth()->check() && auth()->user()->hasVerifiedEmail()) {
+        return redirect()->route('dashboard');
+    }
+
+    $correoPendiente = session('correo_pendiente');
+    
+    if (!$correoPendiente) {
+        $ultimoUsuario = \App\Models\User::whereNull('email_verified_at')->latest()->first();
+        $correoPendiente = $ultimoUsuario ? $ultimoUsuario->correo : '';
+    }
+
+    return view('auth.verify-notice', ['correoPendiente' => $correoPendiente]);
+})->name('verification.notice');
+
+Route::post('/email/update-notice', [\App\Http\Controllers\AuthController::class, 'updatePendingEmail'])->name('verification.update-email');
+
+Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
+    $user = User::findOrFail($id);
+
+    // Validar que el hash coincida con el correo del usuario
+    if (!hash_equals((string) $hash, sha1($user->getEmailForPasswordReset()))) {
+        abort(403, 'Enlace de verificación inválido.');
+    }
+
+    // Verificar si ya estaba verificado para evitar duplicar la fecha
+    if (!$user->hasVerifiedEmail()) {
+        $user->markEmailAsVerified();
+    }
+
+    return redirect()->route('login')->with('success', '¡Correo electrónico verificado exitosamente! Ya puedes iniciar sesión.');
+})->middleware(['signed'])->name('verification.verify');
 
 // -------------------------------------------------------------
 // Rutas Autenticadas (General / Despachador)
 // -------------------------------------------------------------
 Route::middleware(['auth'])->group(function () {
+    // Ruta para cerrar sesión
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
     // Despachador principal único: evalúa el rol y redirige según corresponda
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -135,6 +172,7 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
     // Gestión de Inspectores (Compartida para Directores de Ambiente y Residuos)
     Route::get('/inspectores', [\App\Http\Controllers\Director\InspectorController::class, 'index'])->name('inspectores.index');
     Route::post('/inspectores', [\App\Http\Controllers\Director\InspectorController::class, 'store'])->name('inspectores.store');
+    Route::put('/inspectores/{inspector}', [\App\Http\Controllers\Director\InspectorController::class, 'update'])->name('inspectores.update');
     Route::patch('/inspectores/{inspector}/toggle', [\App\Http\Controllers\Director\InspectorController::class, 'toggleStatus'])->name('inspectores.toggle');
     
     // ---------------------------------------------------------

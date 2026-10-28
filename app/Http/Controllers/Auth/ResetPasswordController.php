@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\BitacoraEvento;
+use App\Models\User;
 
 class ResetPasswordController extends Controller
 {
@@ -67,19 +68,25 @@ class ResetPasswordController extends Controller
                     'password' => Hash::make($password),
                 ])->setRememberToken(Str::random(60));
 
+                // Si el correo aún no está verificado (como ocurre con los nuevos inspectores),
+                // lo marcamos como verificado automáticamente al configurar su contraseña.
+                if (is_null($user->email_verified_at)) {
+                    $user->email_verified_at = now();
+                }
+
                 $user->save();
 
                 BitacoraEvento::registrar([
-                    'modulo' => 'auth',
+                    'modulo'      => 'auth',
                     'tipo_evento' => 'CAMBIO_CONTRASENA',
-                    'nivel' => 'warning',
-                    'descripcion' => "El usuario {$user->correo} restableció su contraseña exitosamente.",
+                    'nivel'       => 'warning',
+                    'descripcion' => "El usuario {$user->correo} configuró/restableció su contraseña exitosamente.",
                 ]);
             }
         );
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('success', '¡Tu contraseña ha sido restablecida exitosamente! Ya puedes iniciar sesión con tus nuevas credenciales.')
+            ? redirect()->route('login')->with('success', '¡Tu contraseña ha sido configurada exitosamente! Ya puedes iniciar sesión con tus credenciales.')
             : back()->withErrors(['correo' => ['No se pudo completar el restablecimiento. El enlace puede haber expirado o los datos son incorrectos.']]);
     }
 }

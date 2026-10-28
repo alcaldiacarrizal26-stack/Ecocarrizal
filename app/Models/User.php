@@ -28,6 +28,7 @@ class User extends Authenticatable implements CanResetPasswordContract
         'password',
         'accepted_terms',
         'is_active',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -38,6 +39,7 @@ class User extends Authenticatable implements CanResetPasswordContract
     protected $casts = [
         'accepted_terms' => 'boolean',
         'is_active' => 'boolean',
+        'email_verified_at' => 'datetime',
     ];
 
     // Relaciones

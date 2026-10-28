@@ -61,16 +61,17 @@ class InspectorController extends Controller
                 $roleId = $roleInspector->id_roles ?? 3;
 
                 $user = User::create([
-                    'role_id'        => $roleId,
-                    'direccion_id'   => $direccionId,
-                    'cedula'         => $request->cedula,
-                    'nombre'         => $request->nombre,
-                    'apellido'       => $request->apellido,
-                    'correo'         => $request->correo,
-                    'telefono'       => $request->telefono,
-                    'password'       => Hash::make(Str::random(32)),
-                    'accepted_terms' => true,
-                    'is_active'      => true,
+                    'role_id'           => $roleId,
+                    'direccion_id'      => $direccionId,
+                    'cedula'            => $request->cedula,
+                    'nombre'            => $request->nombre,
+                    'apellido'          => $request->apellido,
+                    'correo'            => $request->correo,
+                    'telefono'          => $request->telefono,
+                    'password'          => Hash::make(Str::random(32)),
+                    'accepted_terms'    => true,
+                    'is_active'         => true,
+                    'email_verified_at' => null, // Inicia sin verificar hasta que configure su contraseña
                 ]);
 
                 Inspector::create([
@@ -106,5 +107,44 @@ class InspectorController extends Controller
             return redirect()->route('director.inspectores.index')
                 ->with('success', 'Inspector registrado exitosamente. Se le ha enviado un correo de activación para que configure su contraseña.');
         }) ?: back()->withErrors(['correo' => 'Se está procesando un registro idéntico en este momento. Por favor espera.'])->withInput();
+    }
+
+    public function update(Request $request, $id)
+    {
+        $inspector = Inspector::with('user')->findOrFail($id);
+        $user = $inspector->user;
+
+        // Validar si el correo ya fue verificado (cuenta activada) para bloquear la edición por completo
+        if (!is_null($user->email_verified_at)) {
+            return redirect()->back()->withErrors(['error' => 'Este inspector ya ha activado su cuenta y su perfil se encuentra bloqueado contra modificaciones por seguridad.']);
+        }
+
+        $request->validate([
+            'cedula'            => 'required|string|max:20|unique:users,cedula,' . $user->id,
+            'nombre'            => 'required|string|max:100',
+            'apellido'          => 'required|string|max:100',
+            'correo'            => 'required|email|max:255|unique:users,correo,' . $user->id,
+            'telefono'          => 'required|string|max:15',
+            'codigo_credencial' => 'required|string|max:50|unique:inspectores,codigo_credencial,' . $inspector->id,
+            'especialidad'      => 'nullable|string|max:100',
+        ]);
+
+        DB::transaction(function () use ($request, $inspector, $user) {
+            $user->update([
+                'cedula'   => $request->cedula,
+                'nombre'   => $request->nombre,
+                'apellido' => $request->apellido,
+                'correo'   => $request->correo,
+                'telefono' => $request->telefono,
+            ]);
+
+            $inspector->update([
+                'codigo_credencial' => $request->codigo_credencial,
+                'especialidad'      => $request->especialidad,
+            ]);
+        });
+
+        return redirect()->route('director.inspectores.index')
+            ->with('success', 'Datos del inspector actualizados exitosamente.');
     }
 }

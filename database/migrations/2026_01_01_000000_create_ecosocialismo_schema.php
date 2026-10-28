@@ -69,6 +69,7 @@ return new class extends Migration
 
             $table->boolean('accepted_terms')->default(true);
             $table->boolean('is_active')->default(true);
+            $table->timestampTz('email_verified_at')->nullable();
 
             $table->string('password');
             $table->rememberToken();

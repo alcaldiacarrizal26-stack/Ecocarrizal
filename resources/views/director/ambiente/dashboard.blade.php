@@ -157,7 +157,7 @@
                     <h2 class="text-base font-bold text-slate-900">Cuerpo de Inspección Activo</h2>
                     <p class="text-xs text-slate-500">Personal disponible para inspecciones y fiscalizaciones en terreno.</p>
                 </div>
-                <a href="{{ route('director.ambiente.inspectores') }}" class="text-xs font-semibold text-emerald-600 hover:underline">Gestionar Equipo &rarr;</a>
+                <a href="{{ route('director.inspectores.index') }}" class="text-xs font-semibold text-emerald-600 hover:underline">Gestionar Equipo &rarr;</a>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
