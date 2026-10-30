@@ -156,6 +156,43 @@ class SolicitudController extends Controller
         ];
     }
 
+    private function getKeysEsperadasParaSolicitud(string $tipoTramite, array $datosEspecificos): array
+    {
+        $configTramites = $this->getTiposTramitesConfig();
+        $configActual = $configTramites[$tipoTramite] ?? null;
+        if (!$configActual) {
+            return [];
+        }
+
+        $keys = [];
+
+        // 1. Obligatorios
+        foreach ($configActual['requisitosObligatorios'] as $req) {
+            $keys[] = $req['key'];
+        }
+
+        // 2. Condicionales activos
+        if (!empty($datosEspecificos['aplica_autorizacion_propietario'])) {
+            $keys[] = 'autorizacion_propietario';
+        }
+        if (!empty($datosEspecificos['aplica_variables_ambientales'])) {
+            $keys[] = 'variables_ambientales';
+        }
+        if (!empty($datosEspecificos['es_persona_juridica'])) {
+            $keys[] = 'registro_mercantil';
+            $keys[] = 'rif_empresa';
+        }
+
+        // 3. Opcionales / Documentos Complementarios
+        if (!empty($configActual['requisitosOpcionales'])) {
+            foreach ($configActual['requisitosOpcionales'] as $req) {
+                $keys[] = $req['key'];
+            }
+        }
+
+        return array_unique($keys);
+    }
+
     public function index()
     {
         $territorios = TerritorioService::getTerritorios();
@@ -227,23 +264,10 @@ class SolicitudController extends Controller
 
             $configTramites = $this->getTiposTramitesConfig();
             $configActual = $configTramites[$validated['tipo_tramite']] ?? null;
-
             $plazoDias = $configActual['plazoDias'] ?? 0;
 
-            // 1. Recopilar TODAS las llaves obligatorias y condicionales que exige este trámite
-            $keysEsperadas = [];
-            if ($configActual) {
-                foreach ($configActual['requisitosObligatorios'] as $req) {
-                    $keysEsperadas[] = $req['key'];
-                }
-                foreach ($configActual['requisitosCondicionales'] as $req) {
-                    if (!empty($req['flag_check']) && $request->boolean($req['flag_check'])) {
-                        $keysEsperadas[] = $req['key'];
-                    }
-                }
-            }
+            $keysEsperadas = $this->getKeysEsperadasParaSolicitud($validated['tipo_tramite'], $datosEspecificos);
 
-            // 2. Filtrar únicamente los archivos que el usuario SÍ adjuntó y son válidos
             $documentosSubidos = $request->file('documentos') ?? [];
             $keysSubidas = [];
             foreach ($documentosSubidos as $key => $file) {
@@ -252,11 +276,8 @@ class SolicitudController extends Controller
                 }
             }
 
-            // 3. Calcular qué requisitos obligatorios/condicionales faltan por subir
             $faltantes = array_diff($keysEsperadas, $keysSubidas);
-            $plazoDias = $configActual['plazoDias'] ?? 0;
 
-            // 4. Si faltan documentos y el trámite tiene plazo, nace incompleta con fecha límite
             if (count($faltantes) > 0 && $plazoDias > 0) {
                 $estadoFinal = 'incompleta';
                 $fechaLimite = Carbon::now()->addDays($plazoDias);
@@ -280,9 +301,8 @@ class SolicitudController extends Controller
                 'fecha_limite_documentos' => $fechaLimite,
             ]);
 
-            // Guardar los archivos que sí se hayan adjuntado
             foreach ($documentosSubidos as $key => $file) {
-                if ($file && $file->isValid()) {
+                if ($file && $file->isValid() && $file->getSize() > 0) {
                     $path = $file->store("solicitudes/{$solicitud->id}", 'public');
                     $extension = strtolower($file->getClientOriginalExtension());
 
@@ -311,9 +331,8 @@ class SolicitudController extends Controller
     {
         $solicitud = Solicitud::with('recaudos')->where('user_id', auth()->id())->findOrFail($id);
 
-        // Validar si el plazo ya expiró
         if ($solicitud->fecha_limite_documentos && Carbon::now()->gt(Carbon::parse($solicitud->fecha_limite_documentos))) {
-            $solicitud->estado = 'cancelado'; // O rechazado por vencimiento
+            $solicitud->estado = 'cancelado';
             $solicitud->save();
 
             return redirect()->route('ciudadano.solicitudes')
@@ -352,39 +371,19 @@ class SolicitudController extends Controller
 
             $solicitud->load('recaudos');
 
-            $configTramites = $this->getTiposTramitesConfig();
-            $configActual = $configTramites[$solicitud->tipo_tramite] ?? null;
+            $datosEspecificos = is_array($solicitud->datos_especificos) 
+                ? $solicitud->datos_especificos 
+                : (json_decode($solicitud->datos_especificos, true) ?? []);
 
-            if ($configActual) {
-                $keysObligatoriasYCondicionales = [];
-                foreach ($configActual['requisitosObligatorios'] as $req) {
-                    $keysObligatoriasYCondicionales[] = $req['key'];
-                }
+            $keysEsperadas = $this->getKeysEsperadasParaSolicitud($solicitud->tipo_tramite, $datosEspecificos);
+            $consignados = $solicitud->recaudos->pluck('tipo_recaudo')->toArray();
+            $faltantes = array_diff($keysEsperadas, $consignados);
 
-                $datosEspecificos = is_array($solicitud->datos_especificos) 
-                    ? $solicitud->datos_especificos 
-                    : (json_decode($solicitud->datos_especificos, true) ?? []);
-
-                if (!empty($datosEspecificos['aplica_autorizacion_propietario'])) {
-                    $keysObligatoriasYCondicionales[] = 'autorizacion_propietario';
-                }
-                if (!empty($datosEspecificos['aplica_variables_ambientales'])) {
-                    $keysObligatoriasYCondicionales[] = 'variables_ambientales';
-                }
-                if (!empty($datosEspecificos['es_persona_juridica'])) {
-                    $keysObligatoriasYCondicionales[] = 'registro_mercantil';
-                    $keysObligatoriasYCondicionales[] = 'rif_empresa';
-                }
-
-                $consignados = $solicitud->recaudos->pluck('tipo_recaudo')->toArray();
-                $faltantes = array_diff($keysObligatoriasYCondicionales, $consignados);
-
-                // Si ya no hay faltantes obligatorios/condicionales, pasa a pendiente y limpia fecha límite
-                if (count($faltantes) === 0) {
-                    $solicitud->estado = 'pendiente';
-                    $solicitud->fecha_limite_documentos = null;
-                    $solicitud->save();
-                }
+            // ÚNICAMENTE pasa a 'pendiente' y elimina el plazo si ya NO queda ningún documento faltante (0 faltantes en total)
+            if (count($faltantes) === 0) {
+                $solicitud->estado = 'pendiente';
+                $solicitud->fecha_limite_documentos = null;
+                $solicitud->save();
             }
         });
 
