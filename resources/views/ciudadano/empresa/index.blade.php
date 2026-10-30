@@ -54,6 +54,28 @@
             $sancionesActivas = $empresa->sanciones ? $empresa->sanciones->whereIn('estatus', ['NOTIFICADA', 'EN_REVISION', 'PENDIENTE_NOTIFICACION']) : collect();
         @endphp
 
+        <!-- ALERTA DE OBSERVACIONES O RECHAZO DE LA DIRECCIÓN -->
+        @if(in_array($empresa->estatus, ['OBSERVADO', 'RECHAZADO']))
+            <div class="p-5 bg-rose-50 border border-rose-200 rounded-3xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-rose-900">
+                <div class="flex items-start gap-3">
+                    <div class="p-2 bg-rose-100 rounded-2xl text-rose-700 shrink-0 mt-0.5">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    </div>
+                    <div class="space-y-1">
+                        <h4 class="text-xs font-extrabold uppercase tracking-wide text-rose-800">Su expediente comercial requiere correcciones</h4>
+                        <p class="text-xs text-rose-700 leading-relaxed">
+                            <strong>Motivo / Observaciones de la Dirección:</strong> 
+                            {{ $empresa->observaciones_fiscalia ?? 'Por favor verifique los recaudos y datos suministrados según la normativa ambiental vigente.' }}
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ route('ciudadano.empresas.create') }}" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap self-end sm:self-center flex items-center gap-1.5 shrink-0">
+                    <span>Corregir y Reenviar</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </a>
+            </div>
+        @endif
+
         <!-- Alerta con Redirección a la Vista Dedicada de Sanciones -->
         @if($sancionesActivas->count() > 0)
             <div class="p-4 bg-rose-50 border border-rose-200 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-rose-900 shadow-xs">
@@ -130,7 +152,7 @@
                 </div>
             </div>
 
-            <!-- NUEVA SECCIÓN: Expediente de Documentos y Vigencia -->
+            <!-- EXPEDIENTE DE DOCUMENTOS Y VIGENCIA -->
             <div class="pt-4 border-t border-gray-100 space-y-3">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xs font-bold text-gray-800 uppercase tracking-wide">Recaudos y Vigencia de Documentos</h3>
@@ -190,7 +212,7 @@
                                 </div>
                             </div>
 
-                            <!-- Formulario Desplegable de Renovación Integrado junto a las fechas -->
+                            <!-- Formulario Desplegable de Renovación -->
                             <div x-show="openRenovar" x-cloak x-transition class="pt-3 border-t border-gray-200/60 mt-2">
                                 <form method="POST" action="{{ route('ciudadano.empresas.documentos.renovar', $doc->id) }}" enctype="multipart/form-data" class="p-4 bg-white rounded-2xl border border-emerald-200/80 shadow-xs space-y-3">
                                     @csrf
@@ -241,6 +263,13 @@
                 </span>
 
                 <div class="flex items-center gap-2">
+                    @if(in_array($empresa->estatus, ['OBSERVADO', 'RECHAZADO']))
+                        <a href="{{ route('ciudadano.empresas.create') }}" class="px-4 py-2 bg-[#0d5238] hover:bg-[#073825] text-white rounded-xl font-bold transition shadow-xs flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            <span>Corregir Expediente</span>
+                        </a>
+                    @endif
+
                     <a href="{{ route('ciudadano.empresas.sanciones.index') }}" class="px-3.5 py-2 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-xl font-bold transition-all flex items-center gap-1">
                         <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         <span>Historial Citaciones ({{ $empresa->sanciones ? $empresa->sanciones->count() : 0 }})</span>

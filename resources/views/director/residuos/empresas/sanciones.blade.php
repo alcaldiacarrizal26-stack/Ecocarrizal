@@ -4,7 +4,7 @@
 
     <!-- ALERTAS -->
     @if(session('success'))
-        <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-emerald-800 text-sm shadow-sm">
+        <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-emerald-800 text-sm shadow-sm" translate="no">
             <div class="flex items-center gap-2">
                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span>{{ session('success') }}</span>
@@ -16,22 +16,22 @@
     <!-- CABECERA DE NAVEGACIÓN -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1" translate="no">
                 <a href="{{ route('director.residuos.empresas.index') }}" class="hover:underline">Empresas</a>
                 <span>/</span>
                 <a href="{{ route('director.residuos.empresas.show', $empresa->id) }}" class="hover:underline">{{ $empresa->razon_social }}</a>
                 <span>/</span>
                 <span class="text-slate-700 font-semibold">Sanciones y Procedimientos</span>
             </div>
-            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Expediente Sancionatorio</h1>
-            <p class="text-sm text-slate-500">RIF: {{ $empresa->rif }} | Control fiscal y resoluciones administrativas</p>
+            <h1 class="text-2xl font-bold text-slate-800 tracking-tight" translate="no">Expediente Sancionatorio</h1>
+            <p class="text-sm text-slate-500" translate="no">RIF: {{ $empresa->rif }} | Control fiscal y resoluciones administrativas</p>
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{{ route('director.residuos.empresas.show', $empresa->id) }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+            <a href="{{ route('director.residuos.empresas.show', $empresa->id) }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition" translate="no">
                 &larr; Volver a Empresa
             </a>
-            <button type="button" @click="modalNuevaSancion = true" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2">
+            <button type="button" @click="modalNuevaSancion = true" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2" translate="no">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                 Aperturar Sanción / Citación
             </button>
@@ -39,7 +39,7 @@
     </div>
 
     <!-- TARJETAS DE MÉTRICAS -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" translate="no">
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-xs font-semibold text-slate-500 uppercase">Total Procedimientos</p>
@@ -72,7 +72,7 @@
     </div>
 
     <!-- TABLA DE EXPEDIENTES SANCIONATORIOS -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" translate="no">
         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
             <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Histórico de Citaciones e Infracciones</h2>
         </div>
@@ -91,9 +91,9 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @forelse($sanciones as$s)
+                    @forelse($sanciones as $s)
                         <tr class="hover:bg-slate-50/80 transition">
-                            <td class="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">
+                            <td class="px-4 py-3 font-bold text-slate-800 whitespace-nowrap font-mono">
                                 {{ $s->codigo_expediente }}
                             </td>
                             <td class="px-4 py-3">
@@ -138,7 +138,7 @@
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap">
                                 @if(!empty($s->evidencias_fiscalia))
-                                    @foreach($s->evidencias_fiscalia as$file)
+                                    @foreach($s->evidencias_fiscalia as $file)
                                         <a href="{{ asset('storage/' . $file) }}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 hover:underline font-semibold text-[11px]">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                             Ver Acta
@@ -190,7 +190,7 @@
              x-transition:enter-end="opacity-100 scale-100 translate-y-0"
              class="relative bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-100 z-10 my-auto flex flex-col max-h-[90vh]">
             
-            <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center shrink-0">
+            <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center shrink-0" translate="no">
                 <div>
                     <h3 class="font-bold text-slate-800 text-base">Aperturar Citación / Sanción Administrativa</h3>
                     <p class="text-xs text-slate-500 mt-0.5">Fundamentación legal y plazos de subsanación (LOPA / LOA)</p>
@@ -209,28 +209,29 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     
                     <div class="space-y-4">
-                        <div class="border-b border-slate-100 pb-2">
+                        <div class="border-b border-slate-100 pb-2" translate="no">
                             <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">1. Tipificación y Fundamento Legal</h4>
                         </div>
 
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Concepto de Infracción *</label>
+                            <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Concepto de Infracción *</label>
                             <select name="tipo_infraccion_select" 
                                     x-model="tipoInfraccion" 
                                     @change="actualizarBaseLegal()" 
                                     required 
-                                    class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                                <option value="FALTA_DECLARACION_JURADA">Falta de Declaración Jurada de Residuos</option>
-                                <option value="INCONGRUENCIA_DISPOSICION">Incongruencia / Falsedad en Manifiestos HDS</option>
-                                <option value="VERTIDO_NO_AUTORIZADO">Vertido o Almacenamiento Clandestino</option>
-                                <option value="OBSTACULIZACION_FISCALIA">Obstaculización de la Función Inspectora</option>
-                                <option value="INCUMPLIMIENTO_MEDIDAS">Incumplimiento de Medidas Correctoras</option>
-                                <option value="OTRO">Otro (Especificar manualmente)</option>
+                                    class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500"
+                                    translate="no">
+                                <option value="FALTA_DECLARACION_JURADA" translate="no">Falta de Declaración Jurada de Residuos</option>
+                                <option value="INCONGRUENCIA_DISPOSICION" translate="no">Incongruencia / Falsedad en Manifiestos HDS</option>
+                                <option value="VERTIDO_NO_AUTORIZADO" translate="no">Vertido o Almacenamiento Clandestino</option>
+                                <option value="OBSTACULIZACION_FISCALIA" translate="no">Obstaculización de la Función Inspectora</option>
+                                <option value="INCUMPLIMIENTO_MEDIDAS" translate="no">Incumplimiento de Medidas Correctoras</option>
+                                <option value="OTRO" translate="no">Otro (Especificar manualmente)</option>
                             </select>
                         </div>
 
                         <div x-show="tipoInfraccion === 'OTRO'" x-cloak>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Nombre / Título de Infracción Personalizada *</label>
+                            <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Nombre / Título de Infracción Personalizada *</label>
                             <input type="text" 
                                    name="tipo_infraccion_manual" 
                                    x-model="tipoInfraccionManual" 
@@ -241,7 +242,7 @@
                         <input type="hidden" name="tipo_infraccion" :value="tipoInfraccion === 'OTRO' ? tipoInfraccionManual : tipoInfraccion">
 
                         <div>
-                            <div class="flex justify-between items-center mb-1">
+                            <div class="flex justify-between items-center mb-1" translate="no">
                                 <label class="block font-bold text-slate-700 uppercase">Base Legal Aplicable *</label>
                                 <span class="text-[10px] text-slate-400 font-semibold" x-text="tipoInfraccion === 'OTRO' ? 'Edición manual habilitada' : 'Sugerida automáticamente'"></span>
                             </div>
@@ -257,49 +258,51 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Gravedad *</label>
-                                <select name="gravedad" x-model="gravedad" @change="actualizarUnidadesTributarias()" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                                    <option value="LEVE">LEVE</option>
-                                    <option value="GRAVE">GRAVE</option>
-                                    <option value="MUY_GRAVE">MUY GRAVE</option>
+                                <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Gravedad *</label>
+                                <select name="gravedad" x-model="gravedad" @change="actualizarUnidadesTributarias()" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500" translate="no">
+                                    <option value="LEVE" translate="no">LEVE</option>
+                                    <option value="GRAVE" translate="no">GRAVE</option>
+                                    <option value="MUY_GRAVE" translate="no">MUY GRAVE</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Fecha Incidencia *</label>
+                                <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Fecha Incidencia *</label>
                                 <input type="date" name="fecha_incidencia" value="{{ date('Y-m-d') }}" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
                             </div>
                         </div>
 
-                        <!-- NUEVO CAMPO: Unidades Tributarias / Monto Editable -->
+                        <!-- Sanción en Unidades Tributarias (U.T.) con límite estricto -->
                         <div>
-                            <div class="flex justify-between items-center mb-1">
+                            <div class="flex justify-between items-center mb-1" translate="no">
                                 <label class="block font-bold text-slate-700 uppercase">Sanción en Unidades Tributarias (U.T.) *</label>
-                                <span class="text-[10px] text-emerald-700 font-bold">Editable manualmente</span>
+                                <span class="text-[10px] text-emerald-700 font-bold">Máx. 6 dígitos enteros</span>
                             </div>
                             <input type="number" 
-                                   name="unidades_tributarias" 
-                                   x-model="unidadesTributarias" 
-                                   step="0.01" 
-                                   min="0" 
-                                   required 
-                                   placeholder="Ej. 50" 
-                                   class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 font-bold focus:ring-2 focus:ring-emerald-500">
-                            <p class="text-[10px] text-slate-400 mt-1">Ajuste el valor en U.T. según reglamento o criterio de fiscalización.</p>
+                                name="unidades_tributarias" 
+                                x-model="unidadesTributarias" 
+                                step="0.01" 
+                                min="0" 
+                                max="999999.99" 
+                                oninput="if(this.value.length > 8) this.value = this.value.slice(0, 8);"
+                                required 
+                                placeholder="Ej. 50" 
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 font-bold focus:ring-2 focus:ring-emerald-500">
+                            <p class="text-[10px] text-slate-400 mt-1" translate="no">Ajuste el valor en U.T. según reglamento o criterio de fiscalización.</p>
                         </div>
 
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Motivo / Hallazgos Evidenciados *</label>
+                            <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Motivo / Hallazgos Evidenciados *</label>
                             <textarea name="motivo_descripcion" rows="3" required placeholder="Describe detalladamente los hallazgos durante la inspección o fiscalización..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800"></textarea>
                         </div>
                     </div>
 
                     <div class="space-y-4">
-                        <div class="border-b border-slate-100 pb-2">
+                        <div class="border-b border-slate-100 pb-2" translate="no">
                             <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">2. Lapsos Administrativos y Evidencias</h4>
                         </div>
 
-                        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3" translate="no">
                             <div class="flex justify-between items-center">
                                 <label class="block font-bold text-slate-700 uppercase">Plazo Legal para Subsanar</label>
                                 <span class="text-[10px] text-slate-500 italic">LOPA Art. 85 / LOA</span>
@@ -330,7 +333,7 @@
                         </div>
 
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Adjuntar Acta / Fotos Evidencia</label>
+                            <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Adjuntar Acta / Fotos Evidencia</label>
                             <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-5 text-center bg-slate-50/50 hover:bg-emerald-50/30 transition-all cursor-pointer"
                                  @dragover.prevent="$el.classList.add('border-emerald-500', 'bg-emerald-50/50')"
                                  @dragleave.prevent="$el.classList.remove('border-emerald-500', 'bg-emerald-50/50')"
@@ -343,7 +346,7 @@
                                        accept=".pdf,.jpg,.png,.jpeg" 
                                        class="hidden">
 
-                                <div @click="$refs.fileInput.click()" class="space-y-1.5">
+                                <div @click="$refs.fileInput.click()" class="space-y-1.5" translate="no">
                                     <svg class="w-8 h-8 mx-auto text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                                     <p class="font-bold text-slate-700">Arrastra el archivo o haz clic para examinar</p>
                                     <p class="text-[10px] text-slate-400">PDF, JPG o PNG hasta 5MB</p>
@@ -361,7 +364,7 @@
 
                 </div>
 
-                <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 shrink-0">
+                <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 shrink-0" translate="no">
                     <button type="button" @click="modalNuevaSancion = false" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition cursor-pointer">
                         Cancelar
                     </button>
@@ -396,7 +399,7 @@
              class="relative bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-100 z-10 my-auto flex flex-col max-h-[90vh]">
             
             <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center shrink-0">
-                <div>
+                <div translate="no">
                     <h3 class="font-bold text-slate-800 text-base">Evaluación y Resolución de Sanción (Presencial)</h3>
                     <p class="text-xs text-slate-500 font-mono" x-text="sancionSeleccionada?.codigo_expediente"></p>
                 </div>
@@ -412,29 +415,29 @@
                 @csrf
                 @method('PATCH')
 
-                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 flex items-start gap-2.5">
+                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 flex items-start gap-2.5" translate="no">
                     <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span>El representante legal ha acudido de forma presencial a las instalaciones de la Dirección para la consignación de recaudos y la subsanación de la infracción. Registre el dictamen y las observaciones de cierre.</span>
                 </div>
 
                 <div class="space-y-4 pt-2">
-                    <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">Decisión Administrativa y Levantamiento</h4>
+                    <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]" translate="no">Decisión Administrativa y Levantamiento</h4>
 
                     <div>
-                        <label class="block font-bold text-slate-700 uppercase mb-1">Dictamen Final del Director *</label>
-                        <select name="estatus" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                            <option value="SUBSANADA">SUBSANADA (Aprobada subsanación presencial y retirada la sanción)</option>
-                            <option value="DESESTIMADA">DESESTIMADA (Anulada por improcedencia)</option>
+                        <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Dictamen Final del Director *</label>
+                        <select name="estatus" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500" translate="no">
+                            <option value="SUBSANADA" translate="no">SUBSANADA (Aprobada subsanación presencial y retirada la sanción)</option>
+                            <option value="DESESTIMADA" translate="no">DESESTIMADA (Anulada por improcedencia)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block font-bold text-slate-700 uppercase mb-1">Observaciones / Justificación de Cierre *</label>
+                        <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Observaciones / Justificación de Cierre *</label>
                         <textarea name="observaciones_resolucion" rows="3" required placeholder="Ingresa los motivos, acuerdos alcanzados o descripción de la revisión presencial para el retiro del expediente..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800"></textarea>
                     </div>
 
                     <div>
-                        <label class="block font-bold text-slate-700 uppercase mb-1">Adjuntar Acta Oficial de Cierre / Resolución (Opcional)</label>
+                        <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Adjuntar Acta Oficial de Cierre / Resolución (Opcional)</label>
                         <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-4 text-center bg-slate-50/50 hover:bg-emerald-50/30 transition-all cursor-pointer"
                              @dragover.prevent="$el.classList.add('border-emerald-500', 'bg-emerald-50/50')"
                              @dragleave.prevent="$el.classList.remove('border-emerald-500', 'bg-emerald-50/50')"
@@ -447,7 +450,7 @@
                                    accept=".pdf,.jpg,.png,.jpeg" 
                                    class="hidden">
 
-                            <div @click="$refs.resolucionFileInput.click()" class="space-y-1">
+                            <div @click="$refs.resolucionFileInput.click()" class="space-y-1" translate="no">
                                 <svg class="w-7 h-7 mx-auto text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                                 <p class="font-bold text-slate-700 text-xs">Arrastra el archivo de resolución o haz clic para examinar</p>
                                 <p class="text-[10px] text-slate-400">PDF, JPG o PNG hasta 5MB</p>
@@ -463,7 +466,7 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 shrink-0">
+                <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 shrink-0" translate="no">
                     <button type="button" @click="modalResolver = false" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition cursor-pointer">
                         Cancelar
                     </button>
@@ -491,7 +494,7 @@ function sancionManager() {
         tipoInfraccionManual: '',
         baseLegal: 'Art. 45 de la Ordenanza Municipal de Manejo de Residuos y Desechos Sólidos',
         gravedad: 'LEVE',
-        unidadesTributarias: 20, // Valor base inicial estimado, editable libremente
+        unidadesTributarias: 20,
         fechaLimite: '',
         fileName: '',
         fileResolucionName: '',
@@ -516,3 +519,35 @@ function sancionManager() {
                 this.baseLegal = '';
             }
             this.actualizarUnidadesTributarias();
+        },
+
+        actualizarUnidadesTributarias() {
+            const valores = {
+                'LEVE': 20,
+                'GRAVE': 50,
+                'MUY_GRAVE': 100
+            };
+            this.unidadesTributarias = valores[this.gravedad] || 20;
+        },
+
+        setPlazoDays(days) {
+            const hoy = new Date();
+            hoy.setDate(hoy.getDate() + days);
+            this.fechaLimite = hoy.toISOString().split('T')[0];
+        },
+
+        handleFiles(files) {
+            if (files.length > 0) {
+                this.fileName = files[0].name;
+            }
+        },
+
+        handleResolucionFile(files) {
+            if (files.length > 0) {
+                this.fileResolucionName = files[0].name;
+            }
+        }
+    };
+}
+</script>
+</x-layouts.app>

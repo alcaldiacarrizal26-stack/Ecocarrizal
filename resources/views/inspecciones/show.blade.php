@@ -58,7 +58,7 @@
             <div class="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl">
                 <div>
                     <span class="text-xs text-slate-400 block uppercase font-bold">Inspector Responsable</span>
-                    <p class="font-semibold text-slate-800">{{ $inspeccion->inspector->user->nombre ?? 'N/A' }} {{ $inspeccion->inspector->user->apellido ?? '' }}</p>
+                    <p class="font-semibold text-slate-800">{{ $inspeccion->inspector->nombre ?? 'N/A' }} {{ $inspeccion->inspector->apellido ?? '' }}</p>
                     <p class="text-xs text-slate-500">Credencial: {{ $inspeccion->inspector->codigo_credencial ?? 'S/C' }}</p>
                 </div>
                 <div>
@@ -116,7 +116,7 @@
             <!-- Área de Firmas -->
             <div class="pt-16 grid grid-cols-2 gap-8 text-center text-xs text-slate-500">
                 <div class="border-t border-slate-300 pt-2">
-                    <p class="font-bold text-slate-700">{{ $inspeccion->inspector->user->nombre ?? '' }} {{ $inspeccion->inspector->user->apellido ?? '' }}</p>
+                    <p class="font-bold text-slate-700">{{ $inspeccion->inspector->nombre ?? '' }} {{ $inspeccion->inspector->apellido ?? '' }}</p>
                     <p>Firma del Inspector Ambiental / Fiscalizador</p>
                 </div>
                 <div class="border-t border-slate-300 pt-2">

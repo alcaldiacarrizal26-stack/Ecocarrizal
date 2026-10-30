@@ -96,7 +96,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('codigo', 20)->unique();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
+            $table->foreignId('inspector_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->string('tipo_contaminacion');
             $table->string('otro_tipo_contaminacion')->nullable();
@@ -136,7 +136,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('codigo_expediente')->unique();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->onDelete('set null');
+            $table->foreignId('inspector_id')->nullable()->constrained('users')->onDelete('set null');
 
             $table->string('comuna');
             $table->string('sector');
@@ -222,7 +222,7 @@ return new class extends Migration
             $table->string('codigo_orden', 30)->unique(); 
             
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
-            $table->foreignId('inspector_id')->nullable()->constrained('inspectores')->nullOnDelete();
+            $table->foreignId('inspector_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('director_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->string('tipo_inspeccion', 30)->default('ORDINARIA'); 
@@ -404,7 +404,7 @@ return new class extends Migration
             $table->foreignUuid('denuncia_id')->nullable()->constrained('denuncias')->nullOnDelete();
             $table->foreignUuid('orden_inspeccion_id')->nullable()->constrained('ordenes_inspeccion')->nullOnDelete();
             
-            $table->foreignId('inspector_id')->constrained('inspectores')->cascadeOnDelete();
+            $table->foreignId('inspector_id')->constrained('users')->cascadeOnDelete();
             $table->foreignUuid('empresa_id')->nullable()->constrained('empresas')->nullOnDelete();
 
             $table->timestampTz('fecha_visita');

@@ -347,7 +347,11 @@
                 </div>
             </div>
         @else
-            <form action="{{ route('director.residuos.empresas.evaluar', $empresa->id) }}" method="POST" class="space-y-4">
+            <form action="{{ route('director.residuos.empresas.evaluar', $empresa->id) }}" 
+                  method="POST" 
+                  class="space-y-4"
+                  x-data="{ submitting: false, accion: '' }"
+                  @submit="if(submitting) { $event.preventDefault(); } else { submitting = true; }">
                 @csrf
                 <div>
                     <label for="observaciones_fiscalia" class="block text-xs font-bold text-slate-700 mb-1">Observaciones / Dictamen Técnico</label>
@@ -358,16 +362,25 @@
 
                 <div class="flex flex-wrap items-center justify-end gap-2.5 pt-2">
                     <button type="submit" name="estatus" value="OBSERVADO" 
+                            @click="accion = 'OBSERVADO'"
+                            :disabled="submitting"
+                            :class="submitting ? 'opacity-50 cursor-not-allowed' : ''"
                             class="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-xs rounded-xl transition cursor-pointer">
-                        Marcar Observado
+                        <span x-text="submitting && accion === 'OBSERVADO' ? 'Procesando...' : 'Marcar Observado'"></span>
                     </button>
                     <button type="submit" name="estatus" value="RECHAZADO" 
+                            @click="accion = 'RECHAZADO'"
+                            :disabled="submitting"
+                            :class="submitting ? 'opacity-50 cursor-not-allowed' : ''"
                             class="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl transition cursor-pointer">
-                        Rechazar Solicitud
+                        <span x-text="submitting && accion === 'RECHAZADO' ? 'Procesando...' : 'Rechazar Solicitud'"></span>
                     </button>
                     <button type="submit" name="estatus" value="APROBADO" 
+                            @click="accion = 'APROBADO'"
+                            :disabled="submitting"
+                            :class="submitting ? 'opacity-50 cursor-not-allowed' : ''"
                             class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer">
-                        Aprobar Expediente
+                        <span x-text="submitting && accion === 'APROBADO' ? 'Procesando...' : 'Aprobar Expediente'"></span>
                     </button>
                 </div>
             </form>

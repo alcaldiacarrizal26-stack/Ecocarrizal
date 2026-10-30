@@ -26,55 +26,35 @@
         </div>
     </div>
 
-    <!-- Tarjetas de Estadísticas (Stats Cards Modernas con Gradientes y Elevación) -->
+    <!-- Tarjetas de Estadísticas (Sin logos, solo texto y cifras) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
         <!-- Pendientes / Por Revisar -->
-        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 flex items-center justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <div class="space-y-1">
-                <p class="text-[11px] font-extrabold text-amber-600 uppercase tracking-widest">Por Revisar</p>
-                <h3 class="text-3xl font-black text-slate-900">{{ $stats['pendientes'] ?? 0 }}</h3>
-                <span class="text-[10px] text-slate-400 font-medium block">Expedientes en cola</span>
-            </div>
-            <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center text-xl shadow-inner">
-                ⏳
-            </div>
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 flex flex-col justify-center transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+            <p class="text-[11px] font-extrabold text-amber-600 uppercase tracking-widest mb-1">Por Revisar</p>
+            <h3 class="text-3xl font-black text-slate-900 mb-0.5">{{ $stats['pendientes'] ?? 0 }}</h3>
+            <span class="text-[10px] text-slate-400 font-medium">Expedientes en cola</span>
         </div>
 
         <!-- Aprobadas -->
-        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 flex items-center justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <div class="space-y-1">
-                <p class="text-[11px] font-extrabold text-emerald-600 uppercase tracking-widest">Aprobadas</p>
-                <h3 class="text-3xl font-black text-slate-900">{{ $stats['aprobadas'] ?? 0 }}</h3>
-                <span class="text-[10px] text-slate-400 font-medium block">Comercios validados</span>
-            </div>
-            <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center text-xl shadow-inner">
-                ✓
-            </div>
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 flex flex-col justify-center transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+            <p class="text-[11px] font-extrabold text-emerald-600 uppercase tracking-widest mb-1">Aprobadas</p>
+            <h3 class="text-3xl font-black text-slate-900 mb-0.5">{{ $stats['aprobadas'] ?? 0 }}</h3>
+            <span class="text-[10px] text-slate-400 font-medium">Comercios validados</span>
         </div>
 
         <!-- Rechazadas -->
-        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 flex items-center justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <div class="space-y-1">
-                <p class="text-[11px] font-extrabold text-rose-600 uppercase tracking-widest">Rechazadas</p>
-                <h3 class="text-3xl font-black text-slate-900">{{ $stats['rechazadas'] ?? 0 }}</h3>
-                <span class="text-[10px] text-slate-400 font-medium block">Con observaciones</span>
-            </div>
-            <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center justify-center text-xl shadow-inner">
-                ✕
-            </div>
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 flex flex-col justify-center transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+            <p class="text-[11px] font-extrabold text-rose-600 uppercase tracking-widest mb-1">Rechazadas</p>
+            <h3 class="text-3xl font-black text-slate-900 mb-0.5">{{ $stats['rechazadas'] ?? 0 }}</h3>
+            <span class="text-[10px] text-slate-400 font-medium">Con observaciones</span>
         </div>
 
         <!-- Total Histórico -->
-        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 flex items-center justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <div class="space-y-1">
-                <p class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Total Histórico</p>
-                <h3 class="text-3xl font-black text-slate-900">{{ $stats['total'] ?? 0 }}</h3>
-                <span class="text-[10px] text-slate-400 font-medium block">Registros globales</span>
-            </div>
-            <div class="w-14 h-14 rounded-2xl bg-slate-50 text-slate-600 border border-slate-200/60 flex items-center justify-center text-xl shadow-inner">
-                ∑
-            </div>
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 flex flex-col justify-center transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+            <p class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-1">Total Histórico</p>
+            <h3 class="text-3xl font-black text-slate-900 mb-0.5">{{ $stats['total'] ?? 0 }}</h3>
+            <span class="text-[10px] text-slate-400 font-medium">Registros globales</span>
         </div>
     </div>
 
@@ -126,10 +106,10 @@
                                 </span>
                             </td>
                             <td class="p-4.5 pr-6 text-center">
-                                <button @click="openModal('{{ $empresa->id }}')" class="px-4 py-2 bg-[#0d5238] hover:bg-[#073825] text-white rounded-xl font-bold transition-all shadow-md shadow-emerald-900/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 mx-auto">
+                                <a href="{{ route('director.residuos.empresas.show', $empresa->id) }}" class="px-4 py-2 bg-[#0d5238] hover:bg-[#073825] text-white rounded-xl font-bold transition-all shadow-md shadow-emerald-900/10 cursor-pointer text-xs inline-flex items-center justify-center gap-1.5 mx-auto">
                                     <span>Revisar Expediente</span>
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                                </button>
+                                </a>
                             </td>
                         </tr>
                     @empty

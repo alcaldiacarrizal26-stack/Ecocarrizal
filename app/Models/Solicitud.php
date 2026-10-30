@@ -51,7 +51,7 @@ class Solicitud extends Model
 
     public function inspector(): BelongsTo
     {
-        return $this->belongsTo(Inspector::class, 'inspector_id');
+        return $this->belongsTo(User::class, 'inspector_id');
     }
 
     public function recaudos(): HasMany

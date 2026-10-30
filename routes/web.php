@@ -73,8 +73,7 @@ Route::get('/email/verify-notice', function () {
     $correoPendiente = session('correo_pendiente');
     
     if (!$correoPendiente) {
-        $ultimoUsuario = \App\Models\User::whereNull('email_verified_at')->latest()->first();
-        $correoPendiente = $ultimoUsuario ? $ultimoUsuario->correo : '';
+        $ultimoUsuario = \App\Models\User::whereNull('email_verified_at')->latest()->first();$correoPendiente = $ultimoUsuario ? $ultimoUsuario->correo : '';
     }
 
     return view('auth.verify-notice', ['correoPendiente' => $correoPendiente]);
@@ -82,7 +81,7 @@ Route::get('/email/verify-notice', function () {
 
 Route::post('/email/update-notice', [\App\Http\Controllers\AuthController::class, 'updatePendingEmail'])->name('verification.update-email');
 
-Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
+Route::get('/email/verify/{id}/{hash}', function (Request $request, $id,$hash) {
     $user = User::findOrFail($id);
 
     // Validar que el hash coincida con el correo del usuario
@@ -91,8 +90,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     }
 
     // Verificar si ya estaba verificado para evitar duplicar la fecha
-    if (!$user->hasVerifiedEmail()) {
-        $user->markEmailAsVerified();
+    if (!$user->hasVerifiedEmail()) {$user->markEmailAsVerified();
     }
 
     return redirect()->route('login')->with('success', '¡Correo electrónico verificado exitosamente! Ya puedes iniciar sesión.');
@@ -297,7 +295,7 @@ Route::middleware(['auth', 'role:alcaldesa,admin'])->prefix('alcaldesa')->name('
 // -------------------------------------------------------------
 // Módulo Compartido de Inspecciones (Directores, Inspectores y Admins)
 // -------------------------------------------------------------
-Route::middleware(['auth', 'role:director,inspector,admin'])->group(function () {
+Route::middleware(['auth', 'role:director,director_ambiente,director_residuos,inspector,admin'])->group(function () {
     Route::get('/inspecciones', [InspeccionController::class, 'index'])->name('inspecciones.index');
 
     Route::middleware(['throttle:10,1'])->group(function () {
@@ -316,15 +314,13 @@ Route::middleware(['auth', 'role:director,inspector,admin'])->group(function () 
 Route::middleware(['auth', 'role:director,admin'])->group(function () {
     Route::get('/api/inspectores/disponibles', function (\Illuminate\Http\Request $request) {
         try {
-            $funcionarios = \App\Models\User::whereHas('role', function ($q) {
-                    $q->whereIn('nombre', ['director', 'inspector']);
+            $funcionarios = \App\Models\User::whereHas('role', function ($q) {$q->whereIn('nombre', ['director', 'inspector']);
                 })
                 ->where('is_active', true)
                 ->with(['role', 'direccion', 'inspector'])
                 ->get();
 
-            $resultado = $funcionarios->map(function ($user) {
-                $nombreCompleto = trim(($user->nombre ?? '') . ' ' . ($user->apellido ?? ''));
+            $resultado =$funcionarios->map(function ($user) {$nombreCompleto = trim(($user->nombre ?? '') . ' ' . ($user->apellido ?? ''));
                 $rolNombre = ucfirst($user->role->nombre ?? 'Funcionario');
 
                 return [

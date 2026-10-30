@@ -72,6 +72,6 @@ class Denuncia extends Model
 
     public function inspector()
     {
-        return $this->belongsTo(Inspector::class, 'inspector_id');
+        return $this->belongsTo(User::class, 'inspector_id');
     }
 }

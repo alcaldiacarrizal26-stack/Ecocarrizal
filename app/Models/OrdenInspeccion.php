@@ -46,7 +46,7 @@ class OrdenInspeccion extends Model
     // Relación con Inspector
     public function inspector()
     {
-        return $this->belongsTo(Inspector::class);
+        return $this->belongsTo(User::class, 'inspector_id');
     }
 
     // Relación con Director (Usuario)

@@ -38,7 +38,7 @@ class SolicitudController extends Controller
 
         $solicitudes = $query->latest()->paginate(10)->withQueryString();
 
-        // 3. Obtener funcionarios activos con perfil de inspector
+        // 3. Obtener funcionarios activos con perfil de inspector o director
         $funcionarios = User::whereHas('role', function ($q) {
                 $q->whereIn('nombre', ['director', 'inspector']);
             })
@@ -54,23 +54,28 @@ class SolicitudController extends Controller
         $solicitud = Solicitud::findOrFail($id);
 
         if (!in_array($solicitud->estado, ['pendiente', 'inspector_asignado'])) {
-            return redirect()->back()->with('error', 'Solo se pueden asignar o reasignar inspectores a solicitudes pendientes o con inspector asignado.');
+            return redirect()->back()->with('error', 'Solo se pueden asignar funcionarios a solicitudes pendientes o con inspector asignado.');
         }
 
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => [
+                'required', 
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    $valido = User::where('id', $value)
+                        ->where('is_active', true)
+                        ->whereHas('role', function ($q) {
+                            $q->whereIn('nombre', ['director', 'inspector']);
+                        })->exists();
+
+                    if (!$valido) {
+                        $fail('El funcionario seleccionado debe ser obligatoriamente un Director o un Inspector activo.');
+                    }
+                },
+            ],
         ]);
 
-        $funcionario = User::with('inspector')->findOrFail($request->user_id);
-
-        if (!$funcionario->inspector) {
-            return redirect()->back()->with('error', 'El usuario seleccionado no cuenta con un perfil de inspector.');
-        }
-
-        $solicitud->inspector_id = $funcionario->inspector->id;
-        
-        // --- CAMBIO AQUÍ ---
-        // Cambiamos 'fecha_asignacion' por el nombre de la columna en BD: 'fecha_asignacion_inspector'
+        $solicitud->inspector_id               = $request->user_id;
         $solicitud->fecha_asignacion_inspector = now();
 
         if ($solicitud->estado === 'pendiente') {
@@ -79,7 +84,7 @@ class SolicitudController extends Controller
 
         $solicitud->save();
 
-        return redirect()->back()->with('success', 'Inspector asignado correctamente.');
+        return redirect()->back()->with('success', 'Funcionario asignado correctamente.');
     }
 
     public function show(string $id)

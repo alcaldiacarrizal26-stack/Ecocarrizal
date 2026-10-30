@@ -9,6 +9,7 @@ use App\Models\Sancion;
 use App\Models\Inspeccion;
 use App\Models\OrdenInspeccion;
 use App\Models\Inspector;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -67,6 +68,14 @@ class EmpresaController extends Controller
             'observaciones_fiscalia.required_if' => 'Es obligatorio indicar el motivo u observación cuando el veredicto es Rechazado u Observado.',
         ]);
 
+        // Doble verificación atómica por si ocurrieron peticiones simultáneas concurrentes
+        $empresa->refresh();
+        if (in_array(strtoupper($empresa->estatus), ['APROBADO', 'RECHAZADO'])) {
+            return redirect()
+                ->back()
+                ->withErrors(['error' => 'El expediente ya ha sido procesado previamente por otro medio.']);
+        }
+
         $empresa->update([
             'estatus' => $validated['estatus'],
             'observaciones_fiscalia' => $validated['observaciones_fiscalia'] ?? $empresa->observaciones_fiscalia,
@@ -98,6 +107,7 @@ class EmpresaController extends Controller
         $validated = $request->validate([
             'tipo_infraccion'          => 'required|string|max:255',
             'gravedad'                  => 'required|in:LEVE,GRAVE,MUY_GRAVE',
+            'unidades_tributarias'      => 'required|numeric|min:0', // <--- 1. Añadir validación del monto en U.T.
             'motivo_descripcion'        => 'required|string',
             'base_legal'                => 'nullable|string',
             'fecha_incidencia'          => 'required|date',
@@ -127,6 +137,7 @@ class EmpresaController extends Controller
             'inspeccion_id'            => $validated['inspeccion_id'] ?? null,
             'tipo_infraccion'          => $validated['tipo_infraccion'],
             'gravedad'                 => $validated['gravedad'],
+            'unidades_tributarias'     => $validated['unidades_tributarias'], // <--- 2. Guardar el valor recolectado del input
             'motivo_descripcion'       => $validated['motivo_descripcion'],
             'base_legal'               => $validated['base_legal'] ?? 'Ordenanza Municipal de Manejo de Residuos y Desechos Sólidos',
             'fecha_incidencia'         => $validated['fecha_incidencia'],
@@ -180,7 +191,7 @@ class EmpresaController extends Controller
 
     public function inspecciones($empresaId)
     {
-        $empresa = Empresa::with(['ordenesInspeccion.inspector.user', 'ordenesInspeccion.inspeccion'])->findOrFail($empresaId);
+        $empresa = Empresa::with(['ordenesInspeccion.inspector', 'ordenesInspeccion.inspeccion'])->findOrFail($empresaId);
         
         $inspectoresDisponibles = Inspector::where('disponible', true)->with('user')->get()->map(function($insp) {
             return (object)[
@@ -199,20 +210,24 @@ class EmpresaController extends Controller
             'tipo_inspeccion'       => 'required|in:ORDINARIA,DE_OFICIO',
             'base_legal_inspeccion' => 'required|string',
             'fecha_visita'          => 'required|date',
-            'inspector_id'          => 'required', 
+            'inspector_id'          => [
+                'required', 
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    $valido = User::where('id', $value)
+                        ->where('is_active', true)
+                        ->whereHas('role', function ($q) {
+                            $q->whereIn('nombre', ['director', 'inspector']);
+                        })->exists();
+
+                    if (!$valido) {
+                        $fail('El funcionario seleccionado debe ser obligatoriamente un Director o un Inspector activo.');
+                    }
+                },
+            ],
             'observaciones_campo'   => 'required|string',
             'orden_adjunta'         => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
-
-        $inspector = Inspector::where('id', $request->inspector_id)
-            ->orWhere('user_id', $request->inspector_id)
-            ->first();
-
-        if (!$inspector) {
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['inspector_id' => 'El funcionario seleccionado no es un inspector registrado válido.']);
-        }
 
         $path = null;
         if ($request->hasFile('orden_adjunta')) {
@@ -223,7 +238,7 @@ class EmpresaController extends Controller
             'id'                        => Str::uuid(),
             'codigo_orden'              => 'ORD-RES-' . date('Y') . '-' . strtoupper(Str::random(5)),
             'empresa_id'                => $empresaId,
-            'inspector_id'              => $inspector->id,
+            'inspector_id'              => $request->inspector_id, // Guarda directamente el ID del usuario
             'director_id'               => auth()->id(),
             'tipo_inspeccion'           => $request->tipo_inspeccion,
             'base_legal_inspeccion'     => $request->base_legal_inspeccion,
@@ -234,7 +249,7 @@ class EmpresaController extends Controller
             'fecha_asignacion_inspector'=> now(),
         ]);
 
-        return redirect()->back()->with('success', 'Orden de inspección ambiental emitida y asignada exitosamente.');
+        return redirect()->back()->with('success', 'Orden de inspección emitida y asignada exitosamente al funcionario.');
     }
 
     public function eliminarInspeccion($id)

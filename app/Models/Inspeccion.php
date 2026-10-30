@@ -40,7 +40,7 @@ class Inspeccion extends Model
 
     public function inspector(): BelongsTo
     {
-        return $this->belongsTo(Inspector::class);
+        return $this->belongsTo(User::class, 'inspector_id');
     }
 
     public function solicitud(): BelongsTo

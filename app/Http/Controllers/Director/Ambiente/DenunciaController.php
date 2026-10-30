@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Director\Ambiente;
 use App\Http\Controllers\Controller;
 use App\Models\Denuncia;
 use App\Models\User;
+use App\Models\Inspector;
 use Illuminate\Http\Request;
 
 class DenunciaController extends Controller
@@ -21,7 +22,7 @@ class DenunciaController extends Controller
 
         $denuncias = $query->latest()->paginate(10);
 
-        // Obtener funcionarios activos con sus relaciones
+        // Obtener funcionarios activos con sus relaciones (Inspectores y Directores)
         $funcionarios = User::whereHas('role', function ($q) {
                 $q->whereIn('nombre', ['director', 'inspector']);
             })
@@ -47,12 +48,10 @@ class DenunciaController extends Controller
     }
 
     /**
-     * Asignar un inspector o director a la denuncia y actualizar el estatus y la fecha de asignación.
+     * Asignar un inspector o director a la denuncia.
      */
     public function asignar(Request $request, Denuncia $denuncia)
     {
-        // Vulnerabilidad corregida: Validar también que el ID recibido pertenezca estrictamente 
-        // a un usuario con rol de director o inspector activo para evitar asignaciones maliciosas.
         $request->validate([
             'user_id' => [
                 'required', 
@@ -65,26 +64,13 @@ class DenunciaController extends Controller
                         })->exists();
 
                     if (!$valido) {
-                        $fail('El usuario seleccionado no es un funcionario válido o activo para asignación.');
+                        $fail('El funcionario seleccionado debe ser obligatoriamente un Director o un Inspector activo.');
                     }
                 },
             ],
         ]);
 
-        $funcionario = User::with('inspector')->findOrFail($request->user_id);
-
-        $inspector = $funcionario->inspector;
-
-        if (!$inspector) {
-            $inspector = \App\Models\Inspector::create([
-                'user_id'           => $funcionario->id,
-                'codigo_credencial' => 'DIR-' . str_pad($funcionario->id, 4, '0', STR_PAD_LEFT),
-                'especialidad'      => 'Dirección y Supervisión',
-                'estatus'           => 'activo'
-            ]);
-        }
-
-        $denuncia->inspector_id               = $inspector->id;
+        $denuncia->inspector_id               = $request->user_id;
         $denuncia->estatus                    = 'inspector_asignado';
         $denuncia->fecha_asignacion_inspector = now();
         $denuncia->save();
