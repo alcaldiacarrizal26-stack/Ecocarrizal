@@ -126,7 +126,7 @@
                         <option value="inspector_asignado">Inspector Asignado</option>
                         <option value="en_revision">En Inspección</option>
                         <option value="atendido">Atendido</option>
-                        <option value="desestimado">Desestimado</option>
+                        <option value="desestimado">Desestimado / Rechazado</option>
                     </select>
                 </div>
             </div>
@@ -166,9 +166,9 @@
                                         class="hover:bg-slate-50/50"
                                     >
                                         <td class="p-4 font-bold text-slate-800">
-                                            {{ $denuncia->tipo_contaminacion === 'Otro' ? $denuncia->otro_tipo_contaminacion :$denuncia->tipo_contaminacion }}
+                                            {{ $denuncia->tipo_contaminacion === 'Otro' ? $denuncia->otro_tipo_contaminacion : $denuncia->tipo_contaminacion }}
                                         </td>
-                                        <td class="p-4">{{ $denuncia->comuna }} — {{$denuncia->sector }}</td>
+                                        <td class="p-4">{{ $denuncia->comuna }} — {{ $denuncia->sector }}</td>
                                         <td class="p-4">
                                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase
                                                 @if($denuncia->nivel_gravedad === 'alta') bg-rose-100 text-rose-700
@@ -185,6 +185,7 @@
                                                 @elseif($denuncia->estatus === 'inspector_asignado') bg-indigo-50 text-indigo-700 border-indigo-200
                                                 @elseif($denuncia->estatus === 'en_revision') bg-blue-50 text-blue-700 border-blue-200
                                                 @elseif($denuncia->estatus === 'atendido') bg-emerald-50 text-emerald-700 border-emerald-200
+                                                @elseif(in_array($denuncia->estatus, ['desestimado', 'rechazado'])) bg-rose-50 text-rose-700 border-rose-200
                                                 @else bg-slate-100 text-slate-600 border-slate-200 @endif"
                                             >
                                                 {{ str_replace('_', ' ', $denuncia->estatus) }}
@@ -235,7 +236,7 @@
                                     'bg-indigo-50 text-indigo-700 border border-indigo-200': selectedDenuncia?.estatus === 'inspector_asignado',
                                     'bg-blue-50 text-blue-700 border border-blue-200': selectedDenuncia?.estatus === 'en_revision',
                                     'bg-emerald-50 text-emerald-700 border border-emerald-200': selectedDenuncia?.estatus === 'atendido',
-                                    'bg-slate-100 text-slate-600 border border-slate-200': selectedDenuncia?.estatus === 'desestimado'
+                                    'bg-rose-50 text-rose-700 border border-rose-200': selectedDenuncia?.estatus === 'desestimado' || selectedDenuncia?.estatus === 'rechazado'
                                 }"
                                 x-text="selectedDenuncia?.estatus ? selectedDenuncia.estatus.replace('_', ' ') : ''"
                             ></span>

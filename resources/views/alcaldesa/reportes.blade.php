@@ -11,13 +11,6 @@
                 <h1 class="text-2xl font-bold text-slate-800">Panel Integral de Gestión y Control Municipal</h1>
                 <p class="text-xs text-slate-500 mt-1">Indicadores consolidados en tiempo real: Ambiente, Manejo de Residuos y Poder Popular.</p>
             </div>
-
-            <div>
-                <button type="button" onclick="window.print()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                    Imprimir Resumen
-                </button>
-            </div>
         </div>
 
         <!-- Bloque 1: Métricas Globales por Área -->

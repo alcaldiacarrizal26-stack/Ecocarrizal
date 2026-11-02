@@ -93,11 +93,9 @@ class ReporteController extends Controller
      */
     public function residuos(Request $request)
     {
-        // Por defecto, si no se selecciona nada, establecemos la semana actual (Lunes a Domingo)
         $fechaInicio = $request->input('fecha_inicio', now()->startOfWeek()->toDateString());
         $fechaFin = $request->input('fecha_fin', now()->endOfWeek()->toDateString());
 
-        // Consultas para el Directorio de Empresas
         $query = \App\Models\Empresa::with(['user', 'perfilAmbiental', 'documentosExpediente']);
 
         if ($request->filled('buscar')) {
@@ -128,7 +126,6 @@ class ReporteController extends Controller
         $totalEmpresas = \App\Models\Empresa::count();
         $comunasDisponibles = \App\Models\Empresa::whereNotNull('comuna')->distinct()->pluck('comuna');
 
-        // Consultas y paginación para el Balance de Declaraciones de Residuos
         $declaracionesQuery = \App\Models\DeclaracionResiduo::with(['empresa.perfilAmbiental'])
             ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
@@ -138,7 +135,6 @@ class ReporteController extends Controller
 
         $declaraciones = $declaracionesQuery->latest()->paginate(10, ['*'], 'declaraciones_page')->withQueryString();
 
-        // Totales de toneladas filtrados estrictamente por el rango semanal de declaraciones
         $totalesPorCategoria = [
             'comunes' => (clone $declaracionesQuery)->sum('toneladas_comunes'),
             'reciclables' => (clone $declaracionesQuery)->sum('toneladas_reciclables'),
@@ -240,18 +236,16 @@ class ReporteController extends Controller
         
         $resueltos = $registrosGenerales->filter(function($item) use ($tipoRegistro) {
             $estatusCampo = $tipoRegistro === 'solicitud' ? ($item->estado ?? '') : ($item->estatus ?? '');
-            return in_array(strtolower($estatusCampo), ['cerrado', 'aprobado', 'resuelto', 'completado']);
+            return in_array(strtolower($estatusCampo), ['cerrado', 'aprobado', 'resuelto', 'completado', 'atendido']);
         })->count();
         $sinResolver = $totalReg - $resueltos;
 
         $maxMotivo = $motivosPrincipales->max('total') ?: 1;
 
-        // Título dinámico para el informe
         $tituloInforme = $tipoRegistro === 'solicitud' 
             ? 'Informe Ejecutivo: Solicitudes Ambientales y Permisología' 
             : 'Informe Ejecutivo: Priorización del Poder Popular - Denuncias';
 
-        // Gráfico 1: Estatus de Registros (Dona)
         $chartEstatusConfig = [
             'type' => 'doughnut',
             'data' => [
@@ -406,7 +400,6 @@ class ReporteController extends Controller
         $totalManejadoras = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'MANEJADOR'))->count();
         $totalNoAplica = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'NO_APLICA'))->count();
 
-        // Filtrar estrictamente las declaraciones en el rango de fechas recibido
         $totalesPorCategoria = [
             'comunes' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_comunes'),
             'reciclables' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_reciclables'),
@@ -468,7 +461,6 @@ class ReporteController extends Controller
 
     public function exportarAmbientePdf(Request $request)
     {
-        // Validar que existan las fechas del filtro; si no, bloquear o retornar error
         if (!$request->filled('fecha_inicio') || !$request->filled('fecha_fin')) {
             return back()->with('error', 'Debe seleccionar un rango de fechas válido para generar el informe de Gestión Ambiental.');
         }
@@ -476,15 +468,12 @@ class ReporteController extends Controller
         $fechaInicio = $request->input('fecha_inicio');
         $fechaFin = $request->input('fecha_fin');
 
-        // Query base filtrado por el rango de fechas
         $query = Solicitud::with(['inspecciones', 'inspector.user', 'recaudos'])
             ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
         $solicitudes = $query->get();
         $totalTramites = $solicitudes->count();
 
-        // 1. Desglose por Tipos de Trámite y sus Estatus
-        // Y conteo de trámites sin fecha de cierre o sin inspector asignado
         $tramitesSinCierre = $solicitudes->filter(fn($s) => is_null($s->fecha_cierre))->count();
         $tramitesSinInspector = $solicitudes->filter(fn($s) => is_null($s->inspector_id))->count();
 
@@ -499,7 +488,6 @@ class ReporteController extends Controller
             ];
         }
 
-        // 2. Desglose por Comuna (cantidad por tipo de trámite y total)
         $resumenPorComuna = [];
         $agrupadasPorComuna = $solicitudes->groupBy('comuna');
 
@@ -512,7 +500,12 @@ class ReporteController extends Controller
             ];
         }
 
-        // 3. Compensaciones Ambientales (a deber / pendientes vs concretadas / completadas)
+        // Métricas de Denuncias en el mismo período para enriquecer el balance ambiental
+        $denunciasQuery = Denuncia::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+        $totalDenuncias = $denunciasQuery->count();
+        $denunciasRechazadas = (clone $denunciasQuery)->whereIn('estatus', ['rechazado', 'desestimado'])->count();
+        $denunciasAtendidas = (clone $denunciasQuery)->where('estatus', 'atendido')->count();
+
         $compensacionesQuery = Compensacion::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
         $compensacionesADeber = (clone $compensacionesQuery)->where('estatus', 'PENDIENTE')->count();
         $compensacionesConcretadas = (clone $compensacionesQuery)->where('estatus', 'COMPLETADO')->count();
@@ -528,7 +521,10 @@ class ReporteController extends Controller
             'resumenPorComuna',
             'compensacionesADeber',
             'compensacionesConcretadas',
-            'totalCompensaciones'
+            'totalCompensaciones',
+            'totalDenuncias',
+            'denunciasRechazadas',
+            'denunciasAtendidas'
         ));
     }
 }

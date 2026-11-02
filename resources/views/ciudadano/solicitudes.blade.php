@@ -148,7 +148,6 @@
                 const tramite = this.tiposTramites[this.selectedTramiteKey];
                 if (!tramite) return false;
                 
-                // La cédula es el único requisito inicial estricto para registrar la solicitud
                 if (!this.archivosSubidos['cedula']) return false;
 
                 return true;
@@ -579,7 +578,7 @@
                             </div>
                             <div>
                                 <span class="text-slate-400 font-semibold block text-[10px] uppercase">Estatus Actual:</span>
-                                <span class="font-bold inline-block mt-0.5 text-indigo-700 capitalize" x-text="solicitudSeleccionada.estado || 'Pendiente'"></span>
+                                <span class="font-bold inline-block mt-0.5 capitalize" :class="solicitudSeleccionada.estado === 'rechazado' ? 'text-rose-700' : 'text-indigo-700'" x-text="solicitudSeleccionada.estado || 'Pendiente'"></span>
                             </div>
                             <div class="sm:col-span-2">
                                 <span class="text-slate-400 font-semibold block text-[10px] uppercase">Exposición de Motivos:</span>
@@ -607,6 +606,14 @@
                                 </span>
                             </div>
                         </div>
+
+                        {{-- Motivo de Rechazo / Observaciones si aplica --}}
+                        <template x-if="solicitudSeleccionada.estado === 'rechazado' && (solicitudSeleccionada.observaciones || solicitudSeleccionada.motivo_rechazo)">
+                            <div class="p-4 bg-rose-50 rounded-2xl border border-rose-200 space-y-1">
+                                <span class="block text-[10px] uppercase font-bold text-rose-700">Motivo de Rechazo / Observaciones</span>
+                                <p class="text-xs text-rose-900 font-medium" x-text="solicitudSeleccionada.observaciones || solicitudSeleccionada.motivo_rechazo"></p>
+                            </div>
+                        </template>
 
                         <!-- Requisitos Consignados -->
                         <div class="space-y-2">
@@ -638,7 +645,7 @@
                         <div class="space-y-3 pt-2 border-t border-slate-100" x-data="{ infoTimer: obtenerTiempoRestante(solicitudSeleccionada.fecha_limite_documentos) }">
                             <div class="flex items-center justify-between">
                                 <h4 class="text-xs font-bold text-slate-800 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     <span>Documentos Pendientes (<span x-text="requisitosPendientesModal.length"></span>)</span>
                                 </h4>
                             </div>
@@ -671,7 +678,7 @@
                                 </div>
                             </template>
 
-                            <template x-if="requisitosPendientesModal.length > 0">
+                            <template x-if="requisitosPendientesModal.length > 0 && solicitudSeleccionada.estado !== 'rechazado'">
                                 <form :action="'/ciudadano/solicitudes/' + solicitudSeleccionada.id + '/pendientes'" method="POST" enctype="multipart/form-data" class="space-y-3">
                                     @csrf
                                     @method('PUT')

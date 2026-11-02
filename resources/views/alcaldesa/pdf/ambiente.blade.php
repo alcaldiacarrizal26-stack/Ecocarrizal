@@ -16,8 +16,8 @@
         table.data-table td { font-size: 10px; }
         .text-center { text-align: center; }
         .font-mono { font-family: monospace; }
-        .grid-2 { width: 100%; margin-bottom: 12px; }
-        .grid-2 td { width: 50%; vertical-align: top; border: none; padding: 0 4px 0 0; }
+        .grid-3 { width: 100%; margin-bottom: 12px; }
+        .grid-3 td { width: 33.33%; vertical-align: top; border: none; padding: 0 4px 0 0; }
         .card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; }
         .footer { margin-top: 20px; text-align: center; font-size: 8px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 6px; }
         @media print { .no-print { display: none !important; } }
@@ -38,18 +38,24 @@
     </div>
 
     <!-- TARJETAS DE INDICADORES GENERALES -->
-    <table class="grid-2">
+    <table class="grid-3">
         <tr>
             <td>
                 <div class="card">
-                    <p style="margin:0; font-size:9px; font-weight:bold; color:#64748b; text-transform:uppercase;">Trámites sin Fecha de Cierre</p>
-                    <p style="margin:4px 0 0 0; font-size:18px; font-weight:900; color:#d97706;" class="font-mono">{{ $tramitesSinCierre }}</p>
+                    <p style="margin:0; font-size:9px; font-weight:bold; color:#64748b; text-transform:uppercase;">Trámites sin Cierre</p>
+                    <p style="margin:4px 0 0 0; font-size:16px; font-weight:900; color:#d97706;" class="font-mono">{{ $tramitesSinCierre }}</p>
                 </div>
             </td>
             <td>
                 <div class="card">
-                    <p style="margin:0; font-size:9px; font-weight:bold; color:#64748b; text-transform:uppercase;">Trámites sin Inspector Asignado</p>
-                    <p style="margin:4px 0 0 0; font-size:18px; font-weight:900; color:#dc2626;" class="font-mono">{{ $tramitesSinInspector }}</p>
+                    <p style="margin:0; font-size:9px; font-weight:bold; color:#64748b; text-transform:uppercase;">Sin Inspector</p>
+                    <p style="margin:4px 0 0 0; font-size:16px; font-weight:900; color:#dc2626;" class="font-mono">{{ $tramitesSinInspector }}</p>
+                </div>
+            </td>
+            <td>
+                <div class="card">
+                    <p style="margin:0; font-size:9px; font-weight:bold; color:#64748b; text-transform:uppercase;">Denuncias Rechazadas</p>
+                    <p style="margin:4px 0 0 0; font-size:16px; font-weight:900; color:#e11d48;" class="font-mono">{{ $denunciasRechazadas }} / {{ $totalDenuncias }}</p>
                 </div>
             </td>
         </tr>

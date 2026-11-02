@@ -90,6 +90,7 @@
                         <option value="en_revision" {{ request('estado') === 'en_revision' ? 'selected' : '' }}>En Revisión</option>
                         <option value="aprobado" {{ request('estado') === 'aprobado' ? 'selected' : '' }}>Aprobado</option>
                         <option value="rechazado" {{ request('estado') === 'rechazado' ? 'selected' : '' }}>Rechazado</option>
+                        <option value="incompleta" {{ request('estado') === 'incompleta' ? 'selected' : '' }}>Incompleta</option>
                     </select>
                 </div>
 
@@ -158,8 +159,12 @@
                                     @endif
                                 </td>
                                 <td class="py-3.5 px-4">
-                                    <span class="px-2.5 py-1 text-[10px] font-bold rounded-md uppercase bg-slate-100 text-slate-700">
-                                        {{ $solicitud->estado }}
+                                    <span class="px-2.5 py-1 text-[10px] font-bold rounded-md uppercase 
+                                        @if($solicitud->estado === 'aprobado') bg-emerald-50 text-emerald-700
+                                        @elseif($solicitud->estado === 'rechazado') bg-rose-50 text-rose-700
+                                        @else bg-slate-100 text-slate-700 @endif"
+                                    >
+                                        {{ str_replace('_', ' ', $solicitud->estado) }}
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-4 text-right">
