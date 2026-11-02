@@ -8,15 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('sessions', function (Blueprint $table) {
-            $table->string('user_id', 36)->nullable()->change();
+        Schema::create('roles', function (Blueprint $table) {
+            $table->id('id_roles');
+            $table->string('nombre')->unique();
+            $table->text('descripcion')->nullable();
+            $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::table('sessions', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->change();
-        });
+        Schema::dropIfExists('roles');
     }
 };

@@ -141,10 +141,10 @@
                         @php
                             $inspectorData = [
                                 'id' => $inspector->id,
-                                'nombre' => trim(($inspector->user->nombre ?? '') . ' ' . ($inspector->user->apellido ?? '')),
-                                'cedula' => $inspector->user->cedula ?? 'N/A',
-                                'correo' => $inspector->user->correo ?? $inspector->user->email ?? 'N/A',
-                                'telefono' => $inspector->user->telefono ?? 'Sin Registrar',
+                                'nombre' => trim(($inspector->nombre ?? '') . ' ' . ($inspector->apellido ?? '')),
+                                'cedula' => $inspector->cedula ?? 'N/A',
+                                'correo' => $inspector->correo ?? $inspector->email ?? 'N/A',
+                                'telefono' => $inspector->telefono ?? 'Sin Registrar',
                                 'credencial' => $inspector->codigo_credencial,
                                 'especialidad' => $inspector->especialidad ?? 'General',
                                 'disponible' => (bool) $inspector->disponible,
@@ -161,8 +161,8 @@
                         @endphp
                             <tr class="hover:bg-slate-50/80 transition-colors">
                                 <td class="px-6 py-4 font-mono font-bold text-emerald-700">{{ $inspector->codigo_credencial }}</td>
-                                <td class="px-6 py-4 font-medium text-slate-900">{{ $inspector->user->nombre }} {{ $inspector->user->apellido }}</td>
-                                <td class="px-6 py-4 text-slate-700 font-medium whitespace-nowrap">{{ $inspector->user->cedula }}</td>
+                                <td class="px-6 py-4 font-medium text-slate-900">{{ $inspector->nombre }} {{ $inspector->apellido }}</td>
+                                <td class="px-6 py-4 text-slate-700 font-medium whitespace-nowrap">{{ $inspector->cedula }}</td>
                                 <td class="px-6 py-4 text-xs font-semibold text-slate-600">
                                     {{ $inspector->direccion->nombre_direc ?? 'General' }}
                                 </td>

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Solicitud;
 use App\Models\User;
 use App\Models\Inspector;
+use App\Models\Notificacion;
 use Illuminate\Support\Facades\DB;
 
 class SolicitudController extends Controller
@@ -51,7 +52,7 @@ class SolicitudController extends Controller
 
     public function asignarInspector(Request $request, string $id)
     {
-        $solicitud = Solicitud::findOrFail($id);
+        $solicitud = Solicitud::with('solicitante')->findOrFail($id);
 
         if (!in_array($solicitud->estado, ['pendiente', 'inspector_asignado'])) {
             return redirect()->back()->with('error', 'Solo se pueden asignar funcionarios a solicitudes pendientes o con inspector asignado.');
@@ -84,6 +85,17 @@ class SolicitudController extends Controller
 
         $solicitud->save();
 
+        // Notificar al ciudadano solicitante sobre la asignación del funcionario
+        if ($solicitud->user_id) {
+            Notificacion::create([
+                'user_id'  => $solicitud->user_id,
+                'titulo'   => 'Solicitud en Inspección',
+                'mensaje'  => 'Se ha asignado un funcionario inspector a tu solicitud ambiental para su revisión en campo.',
+                'tipo'     => 'info',
+                'link_url' => '#', // Puedes ajustar la ruta al detalle de la solicitud del ciudadano si la tienes
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Funcionario asignado correctamente.');
     }
 
@@ -96,5 +108,38 @@ class SolicitudController extends Controller
     public function export(Request $request)
     {
         return back()->with('success', 'Listado de solicitudes exportado exitosamente.');
+    }
+
+    public function rechazar(Request $request, string $id)
+    {
+        $solicitud = Solicitud::with('solicitante')->findOrFail($id);
+
+        if (in_array($solicitud->estado, ['aprobada', 'rechazada'])) {
+            return redirect()->back()->with('error', 'Esta solicitud ya se encuentra procesada.');
+        }
+
+        $request->validate([
+            'motivo_rechazo' => 'required|string|max:500',
+        ], [
+            'motivo_rechazo.required' => 'El motivo del rechazo es obligatorio.',
+        ]);
+
+        $solicitud->estado        = 'rechazada';
+        $solicitud->observaciones = $request->motivo_rechazo;
+        $solicitud->fecha_cierre  = now();
+        $solicitud->save();
+
+        // Notificar al ciudadano
+        if ($solicitud->user_id) {
+            Notificacion::create([
+                'user_id'  => $solicitud->user_id,
+                'titulo'   => 'Solicitud de Trámite Rechazada',
+                'mensaje'  => 'Tu solicitud de trámite ambiental ha sido rechazada. Motivo: ' . $request->motivo_rechazo,
+                'tipo'     => 'danger',
+                'link_url' => '#',
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'La solicitud ha sido rechazada exitosamente.');
     }
 }

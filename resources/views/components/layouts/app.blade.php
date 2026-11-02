@@ -39,6 +39,65 @@
                 </span>
             </div>
 
+            <!-- Área del Perfil, Notificaciones y Desplegable -->
+            <div class="flex items-center gap-3">
+                
+                <!-- Componente de Notificaciones -->
+                <div class="relative" x-data="{ notifOpen: false }">
+                    <button 
+                        @click="notifOpen = !notifOpen" 
+                        type="button"
+                        class="relative p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        
+                        <!-- Indicador visual si hay notificaciones sin leer -->
+                        @if(auth()->user()->notificaciones()->whereNull('leido_at')->count() > 0)
+                            <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
+                        @endif
+                    </button>
+
+                    <!-- Desplegable de Notificaciones -->
+                    <div 
+                        x-show="notifOpen"
+                        @click.outside="notifOpen = false"
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 text-xs"
+                    >
+                        <div class="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                            <span class="font-bold text-slate-800">Notificaciones Recientes</span>
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                                {{ auth()->user()->notificaciones()->whereNull('leido_at')->count() }} nuevas
+                            </span>
+                        </div>
+
+                        <div class="max-h-72 overflow-y-auto divide-y divide-slate-50">
+                            @forelse(auth()->user()->notificaciones()->latest()->take(5)->get() as $notif)
+                                <a 
+                                    href="{{ $notif->link_url ?? '#' }}" 
+                                    class="block px-4 py-3 hover:bg-slate-50 transition-colors {{ is_null($notif->leido_at) ? 'bg-emerald-50/40' : '' }}"
+                                >
+                                    <p class="font-bold text-slate-900">{{ $notif->titulo }}</p>
+                                    <p class="text-slate-500 mt-0.5 leading-relaxed truncate">{{ $notif->mensaje }}</p>
+                                    <span class="text-[9px] text-slate-400 mt-1 block">{{ $notif->created_at->diffForHumans() }}</span>
+                                </a>
+                            @empty
+                                <div class="px-4 py-8 text-center text-slate-400 font-medium">
+                                    No tienes notificaciones registradas.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
             <!-- Área del Perfil y Desplegable -->
             <div class="relative" @click.outside="profileMenuOpen = false">
                 <button 

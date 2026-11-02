@@ -5,7 +5,6 @@
         $rolAmbiental = $perfil?->rol_ambiental ?? 'GENERADOR';
         $modalidadManejadora = strtoupper(trim($perfil?->modalidad_manejadora ?? 'PROPIA'));
         
-        // Verificamos si es manejo propio o si está vacío
         $esManejoPropio = ($modalidadManejadora === 'PROPIA' || $modalidadManejadora === 'INTERNA' || empty($perfil?->manejadora_contratada));
 
         $razonSocialEmpresa = $empresa->razon_social ?? $empresa->nombre_comercial ?? '';
@@ -14,7 +13,6 @@
         $datosIniciales = [
             'rol_ambiental' => $rolAmbiental,
             'es_manejo_propio' => $esManejoPropio,
-            // Si es manejo propio, asignamos los datos de la misma empresa de inmediato
             'manejadora_nombre' => $esManejoPropio ? $razonSocialEmpresa : ($perfil?->manejadora_contratada ?? ''),
             'manejadora_rif'    => $esManejoPropio ? $rifEmpresa : ($perfil?->manejadora_rif ?? ''),
             'razon_social_empresa' => $razonSocialEmpresa,
@@ -67,8 +65,6 @@
             @csrf
 
             <input type="hidden" name="rol_declarante" value="{{ $rolAmbiental }}">
-            <!-- Frecuencia fija obligatoria SEMANAL -->
-            <input type="hidden" name="frecuencia" value="SEMANAL">
 
             <!-- Sección 1: Carga Dinámica del Formulario según Rol -->
             @if ($rolAmbiental === 'MANEJADOR')
@@ -266,8 +262,8 @@
     function declaracionResiduos(datosIniciales = {}) {
         return {
             rol_ambiental: datosIniciales.rol_ambiental || 'GENERADOR',
-            frecuencia: 'SEMANAL',
-            // Evaluamos de forma estricta si arranca como propio o externo
+            fechaInicio: '',
+            fechaFin: '',
             es_manejo_propio: (datosIniciales.es_manejo_propio === true || datosIniciales.es_manejo_propio === 'propio') ? 'propio' : 'externo',
             
             manejadora_nombre: datosIniciales.manejadora_nombre || '',
@@ -280,6 +276,9 @@
             hoja_seguimiento_numero: '',
             vehiculo_placa: '',
             destino_final_nombre: '',
+
+            // Variables para el control del RIF segmentado del Generador
+            rifGeneradorInput: { tipo: 'J', numero: '', digito: '' },
 
             anexosNombres: [],
 
@@ -310,6 +309,26 @@
             init() {
                 if (this.es_manejo_propio === 'propio') {
                     this.sincronizarAutogestion();
+                }
+            },
+
+            formatGeneradorRif() {
+                this.rifGeneradorInput.numero = this.rifGeneradorInput.numero.replace(/\D/g, '');
+                this.rifGeneradorInput.digito = this.rifGeneradorInput.digito.replace(/\D/g, '');
+                if (this.rifGeneradorInput.numero || this.rifGeneradorInput.digito) {
+                    this.generador_origen_rif = `${this.rifGeneradorInput.tipo}-${this.rifGeneradorInput.numero}-${this.rifGeneradorInput.digito}`;
+                } else {
+                    this.generador_origen_rif = '';
+                }
+            },
+
+            formatPlaca() {
+                if (this.vehiculo_placa) {
+                    // Remueve todo lo que no sea letra o número, pasa a mayúsculas y limita estrictamente a 7 caracteres (estándar INTT)
+                    this.vehiculo_placa = this.vehiculo_placa
+                        .replace(/[^a-zA-Z0-9]/g, '')
+                        .toUpperCase()
+                        .substring(0, 7);
                 }
             },
 

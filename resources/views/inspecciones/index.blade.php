@@ -129,7 +129,7 @@
                             </td>
                             <td class="px-4 py-3 text-xs">
                                 @if($item->inspector &&$item->inspector->user)
-                                    <span class="font-medium text-slate-700">{{ $item->inspector->user->nombre }} {{$item->inspector->user->apellido }}</span>
+                                    <span class="font-medium text-slate-700">{{ $item->inspector->nombre }} {{$item->inspector->user->apellido }}</span>
                                 @else
                                     <span class="text-amber-600 font-semibold">Sin asignar</span>
                                 @endif
@@ -214,7 +214,7 @@
                                 {{ $inspeccion->ordenInspeccion->empresa->razon_social ?? $inspeccion->empresa->razon_social ?? 'Trámite / Denuncia General' }}
                             </td>
                             <td class="px-4 py-3">
-                                {{ $inspeccion->inspector->user->nombre ?? 'N/A' }} {{ $inspeccion->inspector->user->apellido ?? '' }}
+                                {{ $inspeccion->inspector->nombre ?? 'N/A' }} {{ $inspeccion->inspector->apellido ?? '' }}
                             </td>
                             <td class="px-4 py-3">
                                 @php

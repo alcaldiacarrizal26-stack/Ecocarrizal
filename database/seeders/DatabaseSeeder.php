@@ -150,7 +150,6 @@ class DatabaseSeeder extends Seeder
                     'codigo_credencial' => 'INS-2026-001',
                     'created_at' => now(),
                     'updated_at' => now(),
-                    // Eliminado 'email_verified_at' de aquí porque no existe en la tabla inspectores
                 ]
             );
         }

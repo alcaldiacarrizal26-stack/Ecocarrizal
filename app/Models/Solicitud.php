@@ -28,6 +28,7 @@ class Solicitud extends Model
         'datos_especificos',
         'tipo_tramite',
         'estado',
+        'observaciones',
         'fecha_limite_documentos',
         'fecha_asignacion_inspector', // <-- Agregado
         'fecha_inicio_inspeccion',

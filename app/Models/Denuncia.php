@@ -32,6 +32,7 @@ class Denuncia extends Model
         'descripcion',
         'evidencias',
         'estatus',
+        'observaciones',
         'fecha_asignacion_inspector', // <-- Agregado
         'fecha_inicio_inspeccion',
         'fecha_cierre',

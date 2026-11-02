@@ -4,14 +4,13 @@
     x-data="{ 
         modalOpen: false, 
         modalAsignarOpen: false, 
+        modalRechazarSolicitudOpen: false,
         solicitudActual: null,
 
         tiposTramites: {
             'inspeccion': {
                 nombre: 'Solicitud de Inspección TÉCNICA',
-                requisitosObligatorios: [
-                    { key: 'cedula', label: 'Copia de la Cédula de Identidad' }
-                ],
+                requisitosObligatorios: [{ key: 'cedula', label: 'Copia de la Cédula de Identidad' }],
                 requisitosCondicionales: [],
                 requisitosOpcionales: []
             },
@@ -85,7 +84,6 @@
             return datos || {};
         },
 
-        // Helper para evaluar booleanos desde JSON
         evaluarBool(valor) {
             if (typeof valor === 'boolean') return valor;
             if (typeof valor === 'number') return valor === 1;
@@ -111,10 +109,6 @@
             return reqConfig ? reqConfig.label : (recaudo.nombre_archivo || recaudo.tipo_recaudo);
         },
 
-        // REGLA DEL PUNTO 1: Permite reasignación SOLAMENTE en:
-        // - 'pendiente' (A la espera de asignación)
-        // - 'inspector_asignado' (Asignado pero aún no ha iniciado la inspección)
-        // - 'requiere_reinspeccion' (Pendiente para reinspeccionar)
         puedeReasignar(estado) {
             return ['pendiente', 'inspector_asignado', 'requiere_reinspeccion'].includes(estado);
         }
@@ -157,7 +151,7 @@
             <p class="text-sm text-slate-500">Evaluación de expediente, validación de recaudos y asignación técnica</p>
         </div>
 
-        <a href="{{ route('director.ambiente.solicitudes.exportar') }}" class="inline-flex items-center justify-center px-4 py-2 bg-slate-800 text-white text-xs font-medium rounded-xl hover:bg-slate-700 transition shadow-sm">
+        <a href="{{ route('director.ambiente.solicitudes.exportar') }}" class="inline-flex items-center justify-center px-4 py-2 bg-slate-800 text-white text-xs font-medium rounded-xl hover:bg-slate-700 transition self-start md:self-auto shadow-sm">
             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
             Exportar Listado
         </a>
@@ -308,7 +302,7 @@
                                 @if($solicitud->inspector && $solicitud->inspector->user)
                                     <div class="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-md w-fit font-medium">
                                         <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                        <span>{{ $solicitud->inspector->user->nombre }} {{ $solicitud->inspector->user->apellido }}</span>
+                                        <span>{{ $solicitud->inspector->nombre }} {{ $solicitud->inspector->apellido }}</span>
                                     </div>
                                 @else
                                     <span class="text-xs text-gray-400 italic">Sin Asignar</span>
@@ -319,22 +313,35 @@
                                 {{ $solicitud->created_at ? $solicitud->created_at->format('d/m/Y h:i A') : 'N/A' }}
                             </td>
                             
-                            <!-- Acciones en la tabla -->
-                            <td class="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                            <!-- ACCIONES CON SOLO ICONOS Y TOOLTIPS -->
+                            <td class="px-6 py-4 text-right whitespace-nowrap space-x-1">
                                 <template x-if="puedeReasignar('{{ $solicitud->estado }}')">
                                     <button 
+                                        type="button"
+                                        title="{{ $solicitud->inspector ? 'Reasignar Inspector' : 'Asignar Inspector' }}"
                                         @click="solicitudActual = {{ json_encode($solicitud->load(['solicitante', 'inspector.user', 'recaudos'])) }}; modalAsignarOpen = true"
-                                        class="text-indigo-600 hover:text-indigo-900 font-medium text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors inline-flex items-center"
+                                        class="p-2 text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                     >
-                                        {{ $solicitud->inspector ? 'Reasignar' : 'Asignar' }}
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                                     </button>
                                 </template>
 
                                 <button 
+                                    type="button"
+                                    title="Ver Detalles"
                                     @click="solicitudActual = {{ json_encode($solicitud->load(['solicitante', 'inspector.user', 'recaudos'])) }}; modalOpen = true"
-                                    class="text-emerald-600 hover:text-emerald-900 font-medium text-xs bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-md transition-colors inline-flex items-center"
+                                    class="p-2 text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                 >
-                                    Ver Detalles
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+
+                                <button 
+                                    type="button"
+                                    title="Rechazar Expediente"
+                                    @click="solicitudActual = {{ json_encode($solicitud) }}; modalRechazarSolicitudOpen = true"
+                                    class="p-2 text-rose-600 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                                 </button>
                             </td>
                         </tr>
@@ -361,12 +368,6 @@
         x-show="modalOpen" 
         x-cloak
         class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4"
-        x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
     >
         <div 
             @click.away="modalOpen = false"
@@ -396,7 +397,6 @@
                     </div>
                 </div>
 
-                <!-- ALERTA SI FALTA RECAUDOS -->
                 <template x-if="solicitudActual?.estado === 'incompleta'">
                     <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200 flex items-start gap-3">
                         <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -409,7 +409,6 @@
                     </div>
                 </template>
 
-                <!-- INSPECTOR ASIGNADO -->
                 <div class="bg-indigo-50/60 p-3 rounded-lg border border-indigo-100 flex items-center justify-between">
                     <div>
                         <span class="block text-xs text-indigo-600 uppercase font-bold">Inspector Técnico Asignado</span>
@@ -420,23 +419,19 @@
                     <span class="text-xs px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 capitalize font-medium" x-text="solicitudActual?.estado?.replace(/_/g, ' ') || 'Sin Estatus'"></span>
                 </div>
 
-                <!-- PUNTO 2: CONDICIONALES ESPECÍFICAS EVALUADAS CORRECTAMENTE -->
                 <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
                     <span class="block text-xs text-slate-500 uppercase font-bold">Condiciones Específicas del Expediente</span>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                        <!-- Condición 1: Propietario / Autorización -->
                         <div class="p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full" :class="evaluarBool(datosEspecificosModal?.aplica_autorizacion_propietario) ? 'bg-amber-500' : 'bg-emerald-500'"></span>
                             <span class="font-medium text-slate-700" x-text="evaluarBool(datosEspecificosModal?.aplica_autorizacion_propietario) ? 'Requiere Autorización de Propietario' : 'Es Propietario Directo'"></span>
                         </div>
 
-                        <!-- Condición 2: MINEC / Variables Ambientales -->
                         <div class="p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full" :class="evaluarBool(datosEspecificosModal?.aplica_variables_ambientales) ? 'bg-indigo-500' : 'bg-slate-300'"></span>
                             <span class="font-medium text-slate-700" x-text="evaluarBool(datosEspecificosModal?.aplica_variables_ambientales) ? 'Aplica MINEC / Zona Protectora' : 'No Aplica MINEC'"></span>
                         </div>
 
-                        <!-- Condición 3: Persona Jurídica vs Natural -->
                         <div class="p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full" :class="evaluarBool(datosEspecificosModal?.es_persona_juridica) ? 'bg-sky-500' : 'bg-slate-300'"></span>
                             <span class="font-medium text-slate-700" x-text="evaluarBool(datosEspecificosModal?.es_persona_juridica) ? 'Persona Jurídica (Empresa)' : 'Persona Natural'"></span>
@@ -467,7 +462,6 @@
                     </div>
                 </template>
 
-                <!-- RECAUDOS CONSIGNADOS CON TÍTULO / ETIQUETA DESCRIPTIVA -->
                 <template x-if="solicitudActual?.recaudos && solicitudActual.recaudos.length">
                     <div>
                         <span class="block text-xs text-gray-400 uppercase font-semibold mb-2">Recaudos Consignados</span>
@@ -491,12 +485,11 @@
                 </template>
             </div>
 
-            <!-- PIE DEL MODAL -->
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
                 <template x-if="puedeReasignar(solicitudActual?.estado)">
                     <button 
                         @click="modalOpen = false; modalAsignarOpen = true"
-                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors inline-flex items-center shadow-sm"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors inline-flex items-center shadow-sm cursor-pointer"
                     >
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                         <span x-text="solicitudActual?.inspector ? 'Reasignar Inspector' : 'Asignar Inspector'"></span>
@@ -507,7 +500,7 @@
                     <span class="text-xs text-slate-400 italic">Asignación no disponible para este estado</span>
                 </template>
 
-                <button @click="modalOpen = false" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium rounded-lg transition-colors">
+                <button @click="modalOpen = false" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium rounded-lg transition-colors cursor-pointer">
                     Cerrar
                 </button>
             </div>
@@ -519,12 +512,6 @@
         x-show="modalAsignarOpen" 
         x-cloak
         class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4"
-        x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
     >
         <div 
             @click.away="modalAsignarOpen = false"
@@ -570,12 +557,31 @@
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="modalAsignarOpen = false" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium rounded-lg transition-colors">
+                    <button type="button" @click="modalAsignarOpen = false" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium rounded-lg transition-colors cursor-pointer">
                         Cancelar
                     </button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm cursor-pointer">
                         Confirmar Asignación
                     </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL RECHAZAR SOLICITUD -->
+    <div x-show="modalRechazarSolicitudOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+        <div @click.away="modalRechazarSolicitudOpen = false" class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <h3 class="text-base font-bold text-gray-800">Rechazar Expediente: <span class="text-rose-600" x-text="solicitudActual?.codigo_expediente"></span></h3>
+            <form :action="'/director/ambiente/solicitudes/' + solicitudActual?.id + '/rechazar'" method="POST" class="space-y-3">
+                @csrf
+                @method('PUT')
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Motivo del Rechazo / Improcedencia <span class="text-rose-500">*</span></label>
+                    <textarea name="motivo_rechazo" rows="3" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-rose-500 focus:border-rose-500" placeholder="Indique la razón legal o técnica del rechazo..." required></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" @click="modalRechazarSolicitudOpen = false" class="px-3 py-1.5 bg-gray-200 text-gray-800 text-xs rounded-lg cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg cursor-pointer">Confirmar Rechazo</button>
                 </div>
             </form>
         </div>

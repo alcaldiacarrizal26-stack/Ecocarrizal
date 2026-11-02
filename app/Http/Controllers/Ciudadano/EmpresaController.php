@@ -51,14 +51,16 @@ class EmpresaController extends Controller
     public function create()
     {
         $user = auth()->user();
-        $empresa = $user->empresa;
+        
+        // Cargamos la empresa junto con su perfil ambiental y sus documentos previos
+        $empresa = $user->empresa()->with(['perfilAmbiental', 'documentosExpediente'])->first();
 
         // Si ya tiene una empresa aprobada o pendiente, redirigir al panel principal
         if ($empresa && !in_array($empresa->estatus, ['OBSERVADO', 'RECHAZADO'])) {
             return redirect()->route('ciudadano.empresas');
         }
 
-        // Si está observada o rechazada, se pasa a la vista para corregir
+        // Si está observada o rechazada, se pasa a la vista para corregir con toda su data
         return view('ciudadano.empresa.crear', compact('empresa'));
     }
 
@@ -264,6 +266,21 @@ class EmpresaController extends Controller
                             );
                         }
                     }
+                }
+
+                // NOTIFICAR AL DIRECTOR DE RESIDUOS SOBRE LA NUEVA EMPRESA
+                $directoresResiduos = \App\Models\User::whereHas('role', function ($q) {
+                    $q->whereIn('nombre', ['admin', 'director', 'director_residuos']);
+                })->get();
+
+                foreach ($directoresResiduos as $dir) {
+                    \App\Models\Notificacion::create([
+                        'user_id'  => $dir->id,
+                        'titulo'   => 'Nueva Empresa / Expediente Comercial',
+                        'mensaje'  => "Se ha registrado la empresa {$empresa->razon_social} (RIF: {$empresa->rif}) y espera validación.",
+                        'tipo'     => 'info',
+                        'link_url' => route('director.residuos.empresas.show', $empresa->id),
+                    ]);
                 }
 
                 if ($request->wantsJson()) {

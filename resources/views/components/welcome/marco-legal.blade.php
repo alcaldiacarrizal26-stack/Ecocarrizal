@@ -41,15 +41,6 @@
                             <span>PDF</span> 📥
                         </a>
                     </li>
-                    <li class="flex items-start justify-between gap-3">
-                        <div>
-                            <strong class="text-slate-700 block">Normativa RACDA (MINEC):</strong> 
-                            <span class="text-xs text-slate-500">Control de actividades capaces de degradar el ambiente y registros comerciales.</span>
-                        </div>
-                        <a href="{{ route('marco.legal.pdf', ['documento' => 'normativa_racda']) }}" target="_blank" class="shrink-0 p-2 bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                            <span>PDF</span> 📥
-                        </a>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -86,15 +77,6 @@
                             <span class="text-xs text-slate-500">Marco de multas y faltas ante vertidos ilegchos o contravenciones ambientales.</span>
                         </div>
                         <a href="{{ route('marco.legal.pdf', ['documento' => 'ordenanza_convivencia']) }}" target="_blank" class="shrink-0 p-2 bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                            <span>PDF</span> 📥
-                        </a>
-                    </li>
-                    <li class="flex items-start justify-between gap-3">
-                        <div>
-                            <strong class="text-slate-700 block">Decretos de Fiscalización y Control RACDA:</strong> 
-                            <span class="text-xs text-slate-500">Protocolos obligatorios para comercios, industrias y manejadores en el municipio.</span>
-                        </div>
-                        <a href="{{ route('marco.legal.pdf', ['documento' => 'decretos_fiscalizacion']) }}" target="_blank" class="shrink-0 p-2 bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1">
                             <span>PDF</span> 📥
                         </a>
                     </li>

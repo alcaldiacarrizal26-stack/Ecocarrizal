@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Denuncia;
 use App\Models\User;
 use App\Models\Inspector;
+use App\Models\Notificacion;
 use Illuminate\Http\Request;
 
 class DenunciaController extends Controller
@@ -75,6 +76,44 @@ class DenunciaController extends Controller
         $denuncia->fecha_asignacion_inspector = now();
         $denuncia->save();
 
+        // Notificar al ciudadano que creó la denuncia
+        if ($denuncia->user_id) {
+            Notificacion::create([
+                'user_id'  => $denuncia->user_id,
+                'titulo'   => 'Denuncia en Proceso de Verificación',
+                'mensaje'  => 'Tu denuncia ambiental ha sido asignada a un funcionario para su inspección y atención.',
+                'tipo'     => 'info',
+                'link_url' => '#',
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Funcionario asignado correctamente a la denuncia.');
+    }
+
+    public function rechazar(Request $request, Denuncia $denuncia)
+    {
+        $request->validate([
+            'motivo_rechazo' => 'required|string|max:500',
+        ], [
+            'motivo_rechazo.required' => 'El motivo del rechazo es obligatorio.',
+        ]);
+
+        $denuncia->estatus       = 'desestimado'; // O 'rechazada' según tu ENUM, el código actual usa desestimado
+        $denuncia->observaciones = $request->motivo_rechazo;
+        $denuncia->fecha_cierre  = now();
+        $denuncia->save();
+
+        // Notificar al ciudadano
+        if ($denuncia->user_id) {
+            Notificacion::create([
+                'user_id'  => $denuncia->user_id,
+                'titulo'   => 'Denuncia Ambiental Desestimada / Rechazada',
+                'mensaje'  => 'Tu denuncia ambiental ha sido rechazada por la Dirección de Ambiente. Motivo: ' . $request->motivo_rechazo,
+                'tipo'     => 'danger',
+                'link_url' => '#',
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'La denuncia ha sido rechazada correctamente.');
     }
 }

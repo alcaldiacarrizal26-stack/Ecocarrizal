@@ -379,16 +379,31 @@ class SolicitudController extends Controller
             $consignados = $solicitud->recaudos->pluck('tipo_recaudo')->toArray();
             $faltantes = array_diff($keysEsperadas, $consignados);
 
-            // ÚNICAMENTE pasa a 'pendiente' y elimina el plazo si ya NO queda ningún documento faltante (0 faltantes en total)
+            // SI YA NO QUEDAN FALTANTES, pasa a 'pendiente' y notifica al Director de Ambiente
             if (count($faltantes) === 0) {
                 $solicitud->estado = 'pendiente';
                 $solicitud->fecha_limite_documentos = null;
                 $solicitud->save();
+
+                // DISPARAR NOTIFICACIÓN GERENCIAL AL DIRECTOR DE AMBIENTE
+                $directoresAmbiente = \App\Models\User::whereHas('role', function ($q) {
+                    $q->whereIn('nombre', ['admin', 'director', 'director_ambiente']);
+                })->get();
+
+                foreach ($directoresAmbiente as $dir) {
+                    \App\Models\Notificacion::create([
+                        'user_id'  => $dir->id,
+                        'titulo'   => 'Documentación Completa de Solicitud',
+                        'mensaje'  => "El expediente {$solicitud->codigo_expediente} ha completado sus recaudos pendientes y está listo para revisión.",
+                        'tipo'     => 'info',
+                        'link_url' => route('director.ambiente.solicitudes'),
+                    ]);
+                }
             }
         });
 
         return redirect()
             ->route('ciudadano.solicitudes')
-            ->with('success', 'Documentos adjuntados exitosamente. El expediente ha sido actualizado.');
+            ->with('success', 'Documentos adjuntados exitosamente. El expediente ha sido actualizado y enviado a revisión.');
     }
 }

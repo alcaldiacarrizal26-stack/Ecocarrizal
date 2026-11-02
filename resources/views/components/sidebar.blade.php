@@ -214,7 +214,7 @@
                 </a>
             @endif
 
-            {{-- 4. MENÚ DIRECTOR OPERATIVO --}}
+            {{-- 4. MENÚ DIRECTOR OPERATIVO (Con Contadores por Cantidad) --}}
             @if($prefix === 'director')
                 <a href="{{ $dashboardRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 00-1 1m-6 0h6"/></svg>
@@ -239,17 +239,40 @@
                     <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
                         Gestión Ambiental
                     </div>
-                    <a href="{{ Route::has('director.ambiente.denuncias') ? route('director.ambiente.denuncias') : url('/director/ambiente/denuncias') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_denuncias' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <span>Reportes y Denuncias</span>
+                    <a href="{{ Route::has('director.ambiente.denuncias') ? route('director.ambiente.denuncias') : url('/director/ambiente/denuncias') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_denuncias' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            <span class="truncate">Reportes y Denuncias</span>
+                        </div>
+                        @if(isset($countDenuncias) && $countDenuncias > 0)
+                            <span class="shrink-0 px-2 py-0.5 text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-full">
+                                {{ $countDenuncias }}
+                            </span>
+                        @endif
                     </a>
-                    <a href="{{ Route::has('director.ambiente.solicitudes') ? route('director.ambiente.solicitudes') : url('/director/ambiente/solicitudes') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_solicitudes' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <span>Solicitudes y Trámites</span>
+                    
+                    <a href="{{ Route::has('director.ambiente.solicitudes') ? route('director.ambiente.solicitudes') : url('/director/ambiente/solicitudes') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_solicitudes' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span class="truncate">Solicitudes y Trámites</span>
+                        </div>
+                        @if(isset($countSolicitudes) && $countSolicitudes > 0)
+                            <span class="shrink-0 px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
+                                {{ $countSolicitudes }}
+                            </span>
+                        @endif
                     </a>
-                    <a href="{{ Route::has('director.ambiente.compensacion') ? route('director.ambiente.compensacion') : url('/director/ambiente/compensacion') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_compensacion' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-                        <span>Compensación Ambiental</span>
+                    
+                    <a href="{{ Route::has('director.ambiente.compensacion') ? route('director.ambiente.compensacion') : url('/director/ambiente/compensacion') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_compensacion' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                            <span class="truncate">Compensación Ambiental</span>
+                        </div>
+                        @if(isset($countCompensaciones) && $countCompensaciones > 0)
+                            <span class="shrink-0 px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">
+                                {{ $countCompensaciones }}
+                            </span>
+                        @endif
                     </a>
                 @endif
 
@@ -258,14 +281,28 @@
                     <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
                         Residuos Comerciales
                     </div>
-                    <a href="{{ Route::has('director.residuos.empresas.index') ? route('director.residuos.empresas.index') : url('/director/residuos/empresas') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'residuos_empresas' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/></svg>
-                        <span>Gestión de Empresas</span>
+                    <a href="{{ Route::has('director.residuos.empresas.index') ? route('director.residuos.empresas.index') : url('/director/residuos/empresas') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'residuos_empresas' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/></svg>
+                            <span class="truncate">Gestión de Empresas</span>
+                        </div>
+                        @if(isset($countEmpresas) && $countEmpresas > 0)
+                            <span class="shrink-0 px-2 py-0.5 text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full">
+                                {{ $countEmpresas }}
+                            </span>
+                        @endif
                     </a>
                     
-                    <a href="{{ Route::has('director.residuos.declaraciones.index') ? route('director.residuos.declaraciones.index') : url('/director/residuos/declaraciones') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'residuos_declaraciones' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <span>Revisión Declaraciones</span>
+                    <a href="{{ Route::has('director.residuos.declaraciones.index') ? route('director.residuos.declaraciones.index') : url('/director/residuos/declaraciones') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'residuos_declaraciones' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span class="truncate">Revisión Declaraciones</span>
+                        </div>
+                        @if(isset($countDeclaraciones) && $countDeclaraciones > 0)
+                            <span class="shrink-0 px-2 py-0.5 text-[10px] font-bold bg-mint/20 text-mint border border-mint/30 rounded-full">
+                                {{ $countDeclaraciones }}
+                            </span>
+                        @endif
                     </a>
                 @endif
             @endif

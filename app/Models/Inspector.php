@@ -59,6 +59,35 @@ class Inspector extends Model
     }
 
     // -------------------------------------------------------------
+    // Accessors para datos personales vía Relación User
+    // -------------------------------------------------------------
+
+    public function getNombreAttribute()
+    {
+        return $this->user->nombre ?? 'N/A';
+    }
+
+    public function getApellidoAttribute()
+    {
+        return $this->user->apellido ?? '';
+    }
+
+    public function getCedulaAttribute()
+    {
+        return $this->user->cedula ?? 'N/A';
+    }
+
+    public function getCorreoAttribute()
+    {
+        return $this->user->correo ?? $this->user->email ?? 'N/A';
+    }
+
+    public function getTelefonoAttribute()
+    {
+        return $this->user->telefono ?? 'Sin Registrar';
+    }
+
+    // -------------------------------------------------------------
     // Scopes y Helpers
     // -------------------------------------------------------------
 

@@ -1,5 +1,5 @@
 <x-layouts.app title="Gestión de Denuncias Ambientales" active="ambiente_denuncias">
-<div class="p-6 max-w-7xl mx-auto space-y-6" x-data="{ modalOpen: false, denunciaActual: null }">
+<div class="p-6 max-w-7xl mx-auto space-y-6" x-data="{ modalOpen: false, modalRechazarDenunciaOpen: false, denunciaActual: null }">
 
     <!-- ALERTAS DE NOTIFICACIÓN DE SESIÓN -->
     @if(session('success'))
@@ -167,7 +167,7 @@
                                 @if($denuncia->inspector && $denuncia->inspector->user)
                                     <div class="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-md w-fit font-medium">
                                         <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                        <span>{{ $denuncia->inspector->user->nombre ?? $denuncia->inspector->user->name }}</span>
+                                        <span>{{ $denuncia->inspector->nombre ?? $denuncia->inspector->name }}</span>
                                     </div>
                                 @else
                                     <span class="text-xs text-gray-400 italic">Sin Asignar</span>
@@ -177,25 +177,39 @@
                             <td class="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
                                 {{ $denuncia->created_at ? $denuncia->created_at->format('d/m/Y h:i A') : 'N/A' }}
                             </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                            
+                            <!-- ACCIONES CON SOLO ICONOS Y TOOLTIPS -->
+                            <td class="px-6 py-4 text-right whitespace-nowrap space-x-1">
                                 <button 
                                     type="button"
+                                    title="{{ $denuncia->inspector_id || $denuncia->inspector ? 'Reasignar Inspector' : 'Asignar Inspector' }}"
                                     onclick="abrirModalInspector({
                                         actionUrl: '{{ route('director.ambiente.denuncias.asignar', $denuncia->id) }}',
                                         method: 'PUT',
                                         titulo: 'Asignar Inspector a la Denuncia {{ $denuncia->codigo }}',
                                         subtitulo: 'Sector: {{ $denuncia->sector }}'
                                     })"
-                                    class="text-indigo-600 hover:text-indigo-900 font-medium text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors inline-flex items-center"
+                                    class="p-2 text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                 >
-                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
-                                    {{ $denuncia->inspector_id || $denuncia->inspector ? 'Reasignar' : 'Asignar Inspector' }}
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                                 </button>
+
                                 <button 
+                                    type="button"
+                                    title="Ver Detalle"
                                     @click="denunciaActual = {{ json_encode($denuncia->load(['inspector.user'])) }}; modalOpen = true"
-                                    class="text-emerald-600 hover:text-emerald-900 font-medium text-xs bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-md transition-colors inline-flex items-center"
+                                    class="p-2 text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                 >
-                                    Ver Detalle
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+
+                                <button 
+                                    type="button"
+                                    title="Rechazar Denuncia"
+                                    @click="denunciaActual = {{ json_encode($denuncia) }}; modalRechazarDenunciaOpen = true"
+                                    class="p-2 text-rose-600 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                                 </button>
                             </td>
                         </tr>
@@ -223,12 +237,6 @@
         x-show="modalOpen" 
         x-cloak
         class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4"
-        x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
     >
         <div 
             @click.away="modalOpen = false"
@@ -345,6 +353,25 @@
 
     <!-- COMPONENTE REUTILIZABLE NORMALIZADO PARA ASIGNACIÓN DE INSPECTORES -->
     <x-modal-asignar-inspector />
+
+    <!-- MODAL RECHAZAR DENUNCIA -->
+    <div x-show="modalRechazarDenunciaOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+        <div @click.away="modalRechazarDenunciaOpen = false" class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <h3 class="text-base font-bold text-gray-800">Rechazar Denuncia: <span class="text-rose-600" x-text="denunciaActual?.codigo"></span></h3>
+            <form :action="'/director/ambiente/denuncias/' + denunciaActual?.id + '/rechazar'" method="POST" class="space-y-3">
+                @csrf
+                @method('PUT')
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Motivo del Rechazo <span class="text-rose-500">*</span></label>
+                    <textarea name="motivo_rechazo" rows="3" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-rose-500 focus:border-rose-500" placeholder="Indique la justificación técnica..." required></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" @click="modalRechazarDenunciaOpen = false" class="px-3 py-1.5 bg-gray-200 text-gray-800 text-xs rounded-lg cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg cursor-pointer">Confirmar Rechazo</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 </div>
 </x-layouts.app>

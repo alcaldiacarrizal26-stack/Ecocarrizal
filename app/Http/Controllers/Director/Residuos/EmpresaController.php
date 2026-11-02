@@ -10,6 +10,7 @@ use App\Models\Inspeccion;
 use App\Models\OrdenInspeccion;
 use App\Models\Inspector;
 use App\Models\User;
+use App\Models\Notificacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -61,14 +62,27 @@ class EmpresaController extends Controller
                 ->withErrors(['error' => 'No es posible modificar el veredicto de una empresa cuyo expediente ya fue APROBADO o RECHAZADO.']);
         }
 
+        // Capturamos la acción del botón y la inyectamos como estatus si no viene definido
+        if (!$request->filled('estatus') && $request->filled('accion')) {
+            $accion = strtoupper(trim($request->input('accion')));
+            $estatusMapeado = match($accion) {
+                'APROBAR', 'APROBADO' => 'APROBADO',
+                'RECHAZAR', 'RECHAZADO' => 'RECHAZADO',
+                'OBSERVADO', 'OBSERVAR' => 'OBSERVADO',
+                default => $accion
+            };
+            $request->merge(['estatus' => $estatusMapeado]);
+        }
+
         $validated = $request->validate([
             'estatus' => 'required|in:APROBADO,RECHAZADO,OBSERVADO',
             'observaciones_fiscalia' => 'required_if:estatus,RECHAZADO,OBSERVADO|nullable|string|max:1000',
+            'observaciones' => 'nullable|string|max:1000',
         ], [
+            'estatus.required' => 'El campo estatus o veredicto es obligatorio.',
             'observaciones_fiscalia.required_if' => 'Es obligatorio indicar el motivo u observación cuando el veredicto es Rechazado u Observado.',
         ]);
 
-        // Doble verificación atómica por si ocurrieron peticiones simultáneas concurrentes
         $empresa->refresh();
         if (in_array(strtoupper($empresa->estatus), ['APROBADO', 'RECHAZADO'])) {
             return redirect()
@@ -76,10 +90,31 @@ class EmpresaController extends Controller
                 ->withErrors(['error' => 'El expediente ya ha sido procesado previamente por otro medio.']);
         }
 
+        $observacionesFinal = $validated['observaciones_fiscalia'] ?? $validated['observaciones'] ?? $empresa->observaciones_fiscalia;
+
         $empresa->update([
             'estatus' => $validated['estatus'],
-            'observaciones_fiscalia' => $validated['observaciones_fiscalia'] ?? $empresa->observaciones_fiscalia,
+            'observaciones_fiscalia' => $observacionesFinal,
         ]);
+
+        // Notificar al ciudadano sobre el veredicto de su expediente comercial
+        if ($empresa->user_id) {
+            $veredicto = $validated['estatus'];
+            $mensajeNotif = match($veredicto) {
+                'APROBADO' => '¡Felicitaciones! Tu expediente comercial y perfil ambiental han sido APROBADOS.',
+                'OBSERVADO' => 'Tu expediente comercial presenta observaciones de la fiscalía ambiental. Ingresa para corregir.',
+                'RECHAZADO' => 'Tu expediente comercial ha sido rechazado formalmente. Revisa las observaciones.',
+                default => 'El estatus de tu expediente comercial ha cambiado.'
+            };
+
+            Notificacion::create([
+                'user_id'  => $empresa->user_id,
+                'titulo'   => 'Veredicto de Expediente Comercial',
+                'mensaje'  => $mensajeNotif,
+                'tipo'     => $veredicto === 'APROBADO' ? 'success' : 'warning',
+                'link_url' => route('ciudadano.empresas'),
+            ]);
+        }
 
         return redirect()
             ->route('director.residuos.empresas.show', $empresa->id)
@@ -107,7 +142,7 @@ class EmpresaController extends Controller
         $validated = $request->validate([
             'tipo_infraccion'          => 'required|string|max:255',
             'gravedad'                  => 'required|in:LEVE,GRAVE,MUY_GRAVE',
-            'unidades_tributarias'      => 'required|numeric|min:0', // <--- 1. Añadir validación del monto en U.T.
+            'unidades_tributarias'      => 'required|numeric|min:0',
             'motivo_descripcion'        => 'required|string',
             'base_legal'                => 'nullable|string',
             'fecha_incidencia'          => 'required|date',
@@ -137,7 +172,7 @@ class EmpresaController extends Controller
             'inspeccion_id'            => $validated['inspeccion_id'] ?? null,
             'tipo_infraccion'          => $validated['tipo_infraccion'],
             'gravedad'                 => $validated['gravedad'],
-            'unidades_tributarias'     => $validated['unidades_tributarias'], // <--- 2. Guardar el valor recolectado del input
+            'unidades_tributarias'     => $validated['unidades_tributarias'],
             'motivo_descripcion'       => $validated['motivo_descripcion'],
             'base_legal'               => $validated['base_legal'] ?? 'Ordenanza Municipal de Manejo de Residuos y Desechos Sólidos',
             'fecha_incidencia'         => $validated['fecha_incidencia'],
@@ -146,6 +181,17 @@ class EmpresaController extends Controller
             'evidencias_fiscalia'      => $rutasEvidencia,
             'estatus'                  => 'NOTIFICADA',
         ]);
+
+        // Notificar al representante legal de la empresa sobre la sanción aperturada
+        if ($empresa->user_id) {
+            Notificacion::create([
+                'user_id'  => $empresa->user_id,
+                'titulo'   => 'Procedimiento Sancionatorio Aperturado',
+                'mensaje'  => "Se ha emitido la sanción {$codigo} asociada a su establecimiento. Revise los detalles y plazos de subsanación.",
+                'tipo'     => 'danger',
+                'link_url' => '#',
+            ]);
+        }
 
         return redirect()->route('director.residuos.empresas.sanciones.index', $empresa->id)
             ->with('success', "Procedimiento sancionatorio {$codigo} aperturado y notificado correctamente.");
@@ -169,11 +215,22 @@ class EmpresaController extends Controller
         ];
 
         if ($request->hasFile('evidencia_resolucion')) {
-            // Opcional si deseas almacenar la ruta de resolución en bitácora o campo adicional
             $request->file('evidencia_resolucion')->store("sanciones/resoluciones/{$sancion->id}", 'public');
         }
 
         $sancion->update($data);
+
+        // Notificar al ciudadano sobre la resolución de su sanción
+        $sancion->load('empresa');
+        if ($sancion->empresa && $sancion->empresa->user_id) {
+            Notificacion::create([
+                'user_id'  => $sancion->empresa->user_id,
+                'titulo'   => 'Resolución de Procedimiento Sancionatorio',
+                'mensaje'  => "Su expediente sancionatorio {$sancion->codigo_expediente} ha sido actualizado a: {$request->estatus}.",
+                'tipo'     => 'success',
+                'link_url' => '#',
+            ]);
+        }
 
         return redirect()->back()->with('success', 'El procedimiento sancionatorio ha sido resuelto y actualizado exitosamente.');
     }
@@ -238,7 +295,7 @@ class EmpresaController extends Controller
             'id'                        => Str::uuid(),
             'codigo_orden'              => 'ORD-RES-' . date('Y') . '-' . strtoupper(Str::random(5)),
             'empresa_id'                => $empresaId,
-            'inspector_id'              => $request->inspector_id, // Guarda directamente el ID del usuario
+            'inspector_id'              => $request->inspector_id,
             'director_id'               => auth()->id(),
             'tipo_inspeccion'           => $request->tipo_inspeccion,
             'base_legal_inspeccion'     => $request->base_legal_inspeccion,
@@ -248,6 +305,18 @@ class EmpresaController extends Controller
             'fecha_visita_programada'   => $request->fecha_visita,
             'fecha_asignacion_inspector'=> now(),
         ]);
+
+        // Notificar al dueño de la empresa que tiene programada una visita de inspección
+        $empresa = Empresa::find($empresaId);
+        if ($empresa && $empresa->user_id) {
+            Notificacion::create([
+                'user_id'  => $empresa->user_id,
+                'titulo'   => 'Nueva Orden de Inspección Programada',
+                'mensaje'  => "Se ha emitido una orden de inspección para su establecimiento programada para la fecha: {$request->fecha_visita}.",
+                'tipo'     => 'warning',
+                'link_url' => '#',
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Orden de inspección emitida y asignada exitosamente al funcionario.');
     }

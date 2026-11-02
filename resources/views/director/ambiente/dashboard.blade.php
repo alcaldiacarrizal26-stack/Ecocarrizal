@@ -165,10 +165,10 @@
                     <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                         <div class="flex items-center gap-3">
                             <div class="h-9 w-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
-                                {{ substr($inspector->user->nombre ?? 'I', 0, 1) }}{{ substr($inspector->user->apellido ?? 'A', 0, 1) }}
+                                {{ substr($inspector->nombre ?? 'I', 0, 1) }}{{ substr($inspector->apellido ?? 'A', 0, 1) }}
                             </div>
                             <div>
-                                <h4 class="text-xs font-semibold text-slate-900">{{ $inspector->user->nombre }} {{ $inspector->user->apellido }}</h4>
+                                <h4 class="text-xs font-semibold text-slate-900">{{ $inspector->nombre }} {{ $inspector->apellido }}</h4>
                                 <p class="text-[11px] text-slate-500">{{ $inspector->especialidad ?? 'General' }}</p>
                             </div>
                         </div>

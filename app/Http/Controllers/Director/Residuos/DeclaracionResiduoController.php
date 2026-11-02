@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Director\Residuos;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeclaracionResiduo;
+use App\Models\Notificacion;
 use Illuminate\Http\Request;
 
 class DeclaracionResiduoController extends Controller
@@ -29,7 +30,8 @@ class DeclaracionResiduoController extends Controller
 
         $declaraciones = $query->paginate(15);
 
-        return view('director.residuos.empresas.declaraciones', compact('declaraciones'));
+        // Apunta a la nueva carpeta declaracion: director.residuos.declaraciones.index
+        return view('director.residuos.declaraciones.index', compact('declaraciones'));
     }
 
     /**
@@ -43,17 +45,41 @@ class DeclaracionResiduoController extends Controller
     }
 
     /**
-     * Evalúa o actualiza el estatus de una declaración.
+     * Evalúa o actualiza el estatus de una declaración (Aprobado / Rechazado).
      */
     public function updateEstatus(Request $request, DeclaracionResiduo $declaracion)
     {
         $validated = $request->validate([
-            'estatus'       => 'required|in:PRESENTADA,EN_REVISION,APROBADA,OBSERVADA,RECHAZADA',
-            'observaciones' => 'nullable|string|max:500',
+            'estatus'          => 'required|in:APROBADA,RECHAZADA',
+            'motivo_rechazo'   => 'required_if:estatus,RECHAZADA|nullable|string|max:500',
+        ], [
+            'estatus.required' => 'Debe seleccionar un veredicto.',
+            'motivo_rechazo.required_if' => 'El motivo del rechazo es obligatorio para rechazar la declaración.',
         ]);
 
-        $declaracion->update($validated);
+        $data = [
+            'estatus'        => $validated['estatus'],
+            'observaciones'  => $validated['estatus'] === 'RECHAZADA' ? $validated['motivo_rechazo'] : null,
+        ];
 
-        return back()->with('success', 'Estatus de la declaración actualizado correctamente.');
+        $declaracion->update($data);
+
+        // Notificar al usuario propietario de la declaración sobre el cambio de estatus
+        if ($declaracion->user_id) {
+            $esAprobado = $validated['estatus'] === 'APROBADA';
+            $mensajeNotif = $esAprobado 
+                ? "Tu declaración para el período {$declaracion->periodo} ha sido APROBADA exitosamente." 
+                : "Tu declaración para el período {$declaracion->periodo} ha sido RECHAZADA. Motivo: " . $validated['motivo_rechazo'];
+
+            Notificacion::create([
+                'user_id'  => $declaracion->user_id,
+                'titulo'   => 'Evaluación de Declaración de Residuos',
+                'mensaje'  => $mensajeNotif,
+                'tipo'     => $esAprobado ? 'success' : 'danger',
+                'link_url' => '#',
+            ]);
+        }
+
+        return back()->with('success', 'El veredicto de la declaración ha sido registrado correctamente.');
     }
 }

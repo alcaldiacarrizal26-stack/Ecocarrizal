@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Ciudadano;
 use App\Http\Controllers\Controller;
 use App\Models\DeclaracionResiduo;
 use App\Models\Empresa;
+use App\Models\Notificacion;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -13,17 +15,13 @@ use Illuminate\Support\Facades\Storage;
 
 class DeclaracionResiduoController extends Controller
 {
-    /**
-     * Muestra el historial de declaraciones de la empresa del usuario.
-     */
     public function index()
     {
         $user = Auth::user();
-        
         $empresa = Empresa::where('user_id', $user->id)->first();
 
         if (!$empresa) {
-            return redirect()->route('ciudadano.empresas.crear')
+            return redirect()->route('ciudadano.empresas.create')
                 ->with('warning', 'Debes registrar una empresa antes de realizar declaraciones de residuos.');
         }
 
@@ -35,9 +33,6 @@ class DeclaracionResiduoController extends Controller
         return view('ciudadano.empresa.declaraciones', compact('empresa', 'declaraciones'));
     }
 
-    /**
-     * Formulario / Modal para crear una nueva declaración.
-     */
     public function create()
     {
         $user = Auth::user();
@@ -46,9 +41,6 @@ class DeclaracionResiduoController extends Controller
         return view('ciudadano.empresa.declarar', compact('empresa'));
     }
 
-    /**
-     * Guarda la declaración mensual/trimestral/anual con sus detalles en BD.
-     */
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -57,14 +49,38 @@ class DeclaracionResiduoController extends Controller
         $rolDeclarante = $request->input('rol_declarante', 'GENERADOR');
         $isNoAplica = $rolDeclarante === 'NO_APLICA';
 
-        // 1. Reglas de Validación Flexibles según el Rol
         $rules = [
             'rol_declarante'          => 'required|in:GENERADOR,MANEJADOR,NO_APLICA',
             'periodo'                 => 'required|string|max:20',
-            'frecuencia'              => 'required', 
-            'fecha_inicio_periodo'    => 'required|date',
-            'fecha_fin_periodo'       => $isNoAplica ? 'nullable|date' : 'required|date',
-            
+            'fecha_inicio_periodo'    => [
+                'required',
+                'date',
+                function ($attribute, $value, $fail) {
+                    if ($value && \Carbon\Carbon::parse($value)->dayOfWeekIso !== 1) {
+                        $fail('La fecha de inicio del período debe ser obligatoriamente un día Lunes.');
+                    }
+                },
+            ],
+            'fecha_fin_periodo'       => [
+                $isNoAplica ? 'nullable' : 'required',
+                'date',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($value) {
+                        $carbonFin = \Carbon\Carbon::parse($value)->startOfDay();
+                        if ($carbonFin->dayOfWeekIso !== 7) {
+                            $fail('La fecha de fin del período debe ser obligatoriamente un día Domingo.');
+                        }
+                        if ($request->filled('fecha_inicio_periodo')) {
+                            $carbonInicio = \Carbon\Carbon::parse($request->input('fecha_inicio_periodo'))->startOfDay();
+                            $domingoEsperado = $carbonInicio->copy()->addDays(6);
+
+                            if (!$carbonFin->equalTo($domingoEsperado)) {
+                                $fail('El rango de la declaración semanal debe comprender exactamente desde el lunes hasta el domingo de la misma semana.');
+                            }
+                        }
+                    }
+                },
+            ],
             'manejadora_rif'          => 'nullable|string|max:255',
             'manejadora_nombre'       => 'nullable|string|max:255',
             'generador_origen_nombre' => 'nullable|string|max:255',
@@ -73,7 +89,6 @@ class DeclaracionResiduoController extends Controller
             'vehiculo_placa'          => 'nullable|string|max:20',
             'destino_final_nombre'    => 'nullable|string|max:255',
             'declaracion_jurada'      => $isNoAplica ? 'required|accepted' : 'nullable',
-
             'manifiestos'             => 'nullable|array',
             'manifiestos.*'           => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
@@ -96,15 +111,14 @@ class DeclaracionResiduoController extends Controller
         }
 
         $validated = $validator->validated();
-
-        // BLINDAJE CONTRA RACE CONDITION: Candado atómico por empresa y período para evitar envíos duplicados simultáneos
-        $lockKey = 'declaracion_store_lock_' . $empresa->id . '_' . md5($validated['periodo'] . $validated['frecuencia']);
+        $lockKey = 'declaracion_store_lock_' . $empresa->id . '_' . md5($validated['periodo'] . $validated['fecha_inicio_periodo']);
 
         return Cache::lock($lockKey, 5)->get(function () use ($request, $validated, $empresa, $user, $isNoAplica, $rolDeclarante) {
             $archivosProcesados = [];
+            $declaracionId = null;
 
             try {
-                DB::transaction(function () use ($request, $validated, $empresa, $user, $isNoAplica, $rolDeclarante, &$archivosProcesados) {
+                DB::transaction(function () use ($request, $validated, $empresa, $user, $isNoAplica, $rolDeclarante, &$archivosProcesados, &$declaracionId) {
                     
                     $archivosGuardados = [];
                     if ($request->hasFile('manifiestos')) {
@@ -167,13 +181,11 @@ class DeclaracionResiduoController extends Controller
                         'user_id'                 => $user->id,
                         'rol_declarante'          => $rolDeclarante,
                         'periodo'                 => $validated['periodo'],
-                        'frecuencia'              => strtoupper($validated['frecuencia']),
                         'fecha_inicio_periodo'    => $validated['fecha_inicio_periodo'],
                         'fecha_fin_periodo'       => $validated['fecha_fin_periodo'] ?? $validated['fecha_inicio_periodo'],
                         'toneladas_comunes'       => $tonComunes,
                         'toneladas_reciclables'   => $tonReciclables,
                         'toneladas_peligrosas'    => $tonPeligrosas,
-                        
                         'manejadora_rif'          => $validated['manejadora_rif'] ?? null,
                         'manejadora_nombre'       => $validated['manejadora_nombre'] ?? null,
                         'generador_origen_nombre' => $validated['generador_origen_nombre'] ?? null,
@@ -181,15 +193,31 @@ class DeclaracionResiduoController extends Controller
                         'hoja_seguimiento_numero' => $validated['hoja_seguimiento_numero'] ?? null,
                         'vehiculo_placa'          => $validated['vehiculo_placa'] ?? null,
                         'destino_final_nombre'    => $validated['destino_final_nombre'] ?? null,
-                        
                         'manifiestos_archivos'    => $archivosGuardados,
                         'estatus'                 => 'PRESENTADA',
                     ]);
+
+                    $declaracionId = $declaracion->id;
 
                     if (!empty($detallesAInsertar)) {
                         $declaracion->detalles()->createMany($detallesAInsertar);
                     }
                 });
+
+                // NOTIFICAR AL DIRECTOR DE RESIDUOS O ADMINS
+                $directoresResiduos = User::whereHas('role', function ($q) {
+                    $q->whereIn('nombre', ['admin', 'director', 'director_residuos']);
+                })->get();
+
+                foreach ($directoresResiduos as $dir) {
+                    Notificacion::create([
+                        'user_id'  => $dir->id,
+                        'titulo'   => 'Nueva Declaración de Residuos',
+                        'mensaje'  => "La empresa {$empresa->razon_social} ha presentado una nueva declaración para el período {$validated['periodo']}.",
+                        'tipo'     => 'info',
+                        'link_url' => route('director.residuos.declaraciones.show', $declaracionId),
+                    ]);
+                }
 
             } catch (\Throwable $e) {
                 foreach ($archivosProcesados as $path) {

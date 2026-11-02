@@ -115,6 +115,23 @@ Route::middleware(['auth'])->group(function () {
         ->where('path', '.*')
         ->name('sanciones.evidencia.ver');
 
+    // Visor Seguro para Archivos Privados de Declaraciones (Disco Private)
+    Route::get('/storage-view/{path}', function ($path) {
+        $path = urldecode($path);
+        $path = ltrim(str_replace(['..', '//'], '', $path), '/');
+        
+        // Verificamos si existe en el disco private o local
+        if (!\Illuminate\Support\Facades\Storage::disk('private')->exists($path)) {
+            // Intentamos respaldo en public por si acaso
+            if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                abort(404, 'El archivo o manifiesto solicitado no existe en el almacenamiento.');
+            }
+            return response()->file(storage_path('app/public/' . $path));
+        }
+
+        return response()->file(storage_path('app/private/' . $path));
+    })->where('path', '.*')->name('storage.view');
+
     // Soporte Técnico General
     Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
     Route::post('/soporte', [SoporteController::class, 'store'])->name('soporte.store');
@@ -184,6 +201,7 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
         Route::get('/solicitudes/exportar', [AmbienteSolicitudController::class, 'export'])->middleware('throttle:15,1')->name('solicitudes.exportar');
         Route::put('/solicitudes/{solicitud}/asignar', [AmbienteSolicitudController::class, 'asignarInspector'])->name('solicitudes.asignar');
         Route::get('/solicitudes/{solicitud}', [AmbienteSolicitudController::class, 'show'])->name('solicitudes.show');
+        Route::put('/solicitudes/{solicitud}/rechazar', [AmbienteSolicitudController::class, 'rechazar'])->name('director.ambiente.solicitudes.rechazar');
 
         // Denuncias / Reportes
         Route::get('/denuncias', [AmbienteDenunciaController::class, 'index'])->name('denuncias');
@@ -191,6 +209,7 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
         Route::get('/denuncias/{id}', [AmbienteDenunciaController::class, 'show'])->name('denuncias.show');
         Route::post('/denuncias/{id}/asignar', [AmbienteDenunciaController::class, 'asignarInspector'])->name('denuncias.asignar');
         Route::put('/denuncias/{denuncia}/asignar', [AmbienteDenunciaController::class, 'asignar'])->name('denuncias.asignar');
+        Route::put('/denuncias/{denuncia}/rechazar', [AmbienteDenunciaController::class, 'rechazar'])->name('director.ambiente.denuncias.rechazar');
 
         // Compensación Ambiental
         Route::get('/compensacion', [AmbienteCompensacionController::class, 'index'])->name('compensacion');
@@ -203,11 +222,10 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
     Route::prefix('residuos')->name('residuos.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'dashboardResiduos'])->name('dashboard');
         
-        // Módulo Autónomo de Declaraciones de Residuos
         Route::prefix('declaraciones')->name('declaraciones.')->group(function () {
             Route::get('/', [ResiduosDeclaracionResiduoController::class, 'index'])->name('index');
             Route::get('/{declaracion}', [ResiduosDeclaracionResiduoController::class, 'show'])->name('show');
-            Route::patch('/{declaracion}/estatus', [ResiduosDeclaracionResiduoController::class, 'updateEstatus'])->name('updateEstatus');
+            Route::match(['put', 'patch'], '/{declaracion}', [ResiduosDeclaracionResiduoController::class, 'updateEstatus'])->name('update');
         });
 
         // Módulo de Gestión de Empresas

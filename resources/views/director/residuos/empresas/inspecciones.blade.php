@@ -141,7 +141,7 @@
                     <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-2">
                         <div>
                             <span class="text-slate-400 font-bold uppercase text-[10px] block">Inspector Asignado</span>
-                            <span class="font-bold text-slate-800">{{ $orden->inspector->user->nombre ?? 'N/A' }} {{ $orden->inspector->user->apellido ?? '' }}</span>
+                            <span class="font-bold text-slate-800">{{ $orden->inspector->nombre ?? 'N/A' }} {{ $orden->inspector->apellido ?? '' }}</span>
                         </div>
 
                         <!-- Veredicto / Acta Asociada si ya fue atendida -->

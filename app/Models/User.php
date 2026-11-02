@@ -155,4 +155,9 @@ class User extends Authenticatable implements CanResetPasswordContract
                     ->subject('Recuperación de Contraseña - Alcaldía de Carrizal');
         });
     }
+
+    public function notificaciones()
+    {
+        return $this->hasMany(Notificacion::class, 'user_id', 'id');
+    }
 }

@@ -52,7 +52,7 @@ class DeclaracionResiduo extends Model
         return $this->belongsTo(Empresa::class, 'empresa_id');
     }
 
-    public function usuario()
+    public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }

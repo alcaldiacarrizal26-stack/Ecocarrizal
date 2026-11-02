@@ -42,26 +42,23 @@ class CompensacionController extends Controller
 
         $userId = Auth::id();
 
-        // BLINDAJE CONTRA RACE CONDITION CON POSTGRESQL ADVISORY LOCK
-        return DB::transaction(function () use ($request, $userId) {
+        return DB::transaction(function () use ($request,$userId) {
             DB::statement('SELECT pg_advisory_xact_lock(?)', [crc32('compensacion_abono_' . $request->compensacion_id)]);
 
-            $compensacion = Compensacion::where('id', $request->compensacion_id)
+            $compensacion = Compensacion::where('id',$request->compensacion_id)
                 ->where('user_id', $userId)
                 ->firstOrFail();
 
-            // Validar que no entregue más de la deuda restante
-            $pendiente = $compensacion->cantidad_asignada - $compensacion->cantidad_entregada;
-            if ($request->cantidad > $pendiente) {
+            $pendiente = $compensacion->cantidad_asignada -$compensacion->cantidad_entregada;
+            if ($request->cantidad >$pendiente) {
                 return redirect()->back()->withErrors([
                     'cantidad' => "La cantidad ingresada ({$request->cantidad}) supera la cantidad pendiente ({$pendiente})."
                 ]);
             }
 
-            // Guardar archivo
-            $path = $request->file('comprobante')->store('compensaciones/comprobantes', 'public');
+            $path =$request->file('comprobante')->store('compensaciones/comprobantes', 'public');
 
-            // Registrar entrega/abono
+            // 1. Registrar entrega / abono
             EntregaCompensacion::create([
                 'compensacion_id'       => $compensacion->id,
                 'user_id'               => $userId,
@@ -71,6 +68,23 @@ class CompensacionController extends Controller
                 'observacion_ciudadano' => $request->observacion,
                 'estatus'               => 'PENDIENTE',
             ]);
+
+            // 2. SUMAR Y ACTUALIZAR el total entregado en la compensación principal del ciudadano
+            $compensacion->increment('cantidad_entregada',$request->cantidad);
+
+            // 3. Notificar a la Dirección de Ambiente
+            $directoresAmbiente = \App\Models\User::whereHas('role', function ($q) {$q->whereIn('nombre', ['admin', 'director', 'director_ambiente']);
+            })->get();
+
+            foreach ($directoresAmbiente as$dir) {
+                \App\Models\Notificacion::create([
+                    'user_id'  => $dir->id,
+                    'titulo'   => 'Nuevo Abono de Compensación',
+                    'mensaje'  => "Se ha registrado un abono de {$request->cantidad} ejemplares ({$request->tipo_especie}) pendiente de verificación.",
+                    'tipo'     => 'success',
+                    'link_url' => route('director.ambiente.compensacion'),
+                ]);
+            }
 
             return redirect()->back()->with('success', 'Abono de compensación registrado exitosamente. En espera de verificación por la Dirección de Ambiente.');
         });
@@ -87,22 +101,35 @@ class CompensacionController extends Controller
 
         $userId = Auth::id();
 
-        return DB::transaction(function () use ($request, $userId) {
-            // Guardar archivo de comprobante
-            $path = $request->file('comprobante')->store('compensaciones/donaciones', 'public');
+        return DB::transaction(function () use ($request,$userId) {
+            $path =$request->file('comprobante')->store('compensaciones/donaciones', 'public');
 
-            // Registrar la compensación como donación voluntaria en estado PENDIENTE de revisión
-            Compensacion::create([
+            // Registrar donación como compensación independiente
+            $donacion = Compensacion::create([
                 'user_id'              => $userId,
                 'codigo_resolucion'    => 'DONACION-' . date('Y') . '-' . strtoupper(uniqid()),
                 'tipo_tramite'         => 'DONACION',
                 'especie_requerida'    => $request->tipo_especie,
                 'cantidad_asignada'    => $request->cantidad,
-                'cantidad_entregada'   => $request->cantidad,
+                'cantidad_entregada'   => $request->cantidad, // Al ser donación voluntaria se equipara al entregarse
                 'comprobante_path'     => $path,
                 'observacion'          => $request->observaciones,
                 'estatus'              => 'PENDIENTE', 
             ]);
+
+            // Notificar a la Dirección de Ambiente
+            $directoresAmbiente = \App\Models\User::whereHas('role', function ($q) {$q->whereIn('nombre', ['admin', 'director', 'director_ambiente']);
+            })->get();
+
+            foreach ($directoresAmbiente as$dir) {
+                \App\Models\Notificacion::create([
+                    'user_id'  => $dir->id,
+                    'titulo'   => 'Nueva Donación Voluntaria',
+                    'mensaje'  => "Se ha registrado una donación voluntaria de {$request->cantidad} ejemplares de {$request->tipo_especie}.",
+                    'tipo'     => 'success',
+                    'link_url' => route('director.ambiente.compensacion'),
+                ]);
+            }
 
             return redirect()->back()->with('success', 'Donación voluntaria registrada exitosamente. Queda pendiente de verificación y aprobación por la Dirección de Ambiente.');
         });

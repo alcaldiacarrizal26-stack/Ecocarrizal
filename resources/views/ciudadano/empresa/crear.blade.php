@@ -375,18 +375,22 @@
                     <!-- Evaluación de Módulos Específicos -->
                     <div class="pt-2 border-t border-gray-200/60">
                         <span class="block text-[11px] font-bold text-gray-700 uppercase mb-2">Módulos de Impacto Operativo</span>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
                             <label class="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 cursor-pointer">
                                 <input type="checkbox" x-model="form.perfil.genera_efluentes" class="rounded text-[#0d5238]">
                                 <span class="font-medium text-gray-700">Genera Efluentes Líquidos</span>
                             </label>
                             <label class="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 cursor-pointer">
                                 <input type="checkbox" x-model="form.perfil.genera_emisiones" class="rounded text-[#0d5238]">
-                                <span class="font-medium text-gray-700">Emisiones / Chimeneas / Calderas</span>
+                                <span class="font-medium text-gray-700">Emisiones / Chimeneas</span>
                             </label>
                             <label class="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 cursor-pointer">
                                 <input type="checkbox" x-model="form.perfil.genera_peligrosos" class="rounded text-[#0d5238]">
                                 <span class="font-medium text-gray-700">Desechos Peligrosos / Químicos</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 cursor-pointer">
+                                <input type="checkbox" x-model="form.perfil.usa_pozo_agua" class="rounded text-[#0d5238]">
+                                <span class="font-medium text-gray-700">Uso de Pozo de Agua</span>
                             </label>
                         </div>
                     </div>
@@ -868,8 +872,26 @@ function vincularEmpresaForm(territorios, empresaExistente) {
         territoriosData: territorios || {},
         sectoresDisponibles: [],
         files: {},
-        fechasEmision: {},
-        fechasVencimiento: {},
+        fechasEmision: {
+            doc_renma: '',
+            doc_no_objecion: '',
+            doc_racda: '',
+            doc_poliza: '',
+            doc_efluentes: '',
+            doc_emisiones: '',
+            doc_plan_desechos: '',
+            doc_plan_emergencia: ''
+        },
+        fechasVencimiento: {
+            doc_renma: '',
+            doc_no_objecion: '',
+            doc_racda: '',
+            doc_poliza: '',
+            doc_efluentes: '',
+            doc_emisiones: '',
+            doc_plan_desechos: '',
+            doc_plan_emergencia: ''
+        },
         esVitalicio: {
             doc_renma: false,
             doc_no_objecion: false,
@@ -921,6 +943,8 @@ function vincularEmpresaForm(territorios, empresaExistente) {
                 genera_efluentes: false,
                 genera_emisiones: false,
                 genera_peligrosos: false,
+                genera_ruidos: false,
+                usa_pozo_agua: false,
                 actividades_manejador: [],
                 sustancias_manejadas: '',
                 residuos_tipos: []
@@ -978,12 +1002,49 @@ function vincularEmpresaForm(territorios, empresaExistente) {
             this.form.numero_cuenta_patente = data.numero_cuenta_patente || '';
             this.patenteInput.correlativo = data.numero_cuenta_patente ? data.numero_cuenta_patente.replace('CZ-AE-', '') : '';
 
+            // Precarga del Bloque 2: Perfil Ambiental
             if (data.perfil_ambiental) {
-                this.form.perfil.rol_ambiental = data.perfil_ambiental.rol_ambiental || 'GENERADOR';
-                this.form.perfil.subtipo_generador = data.perfil_ambiental.subtipo_generador || 'PEQUENO';
-                this.form.perfil.genera_efluentes = !!data.perfil_ambiental.genera_efluentes;
-                this.form.perfil.genera_emisiones = !!data.perfil_ambiental.genera_emisiones;
-                this.form.perfil.genera_peligrosos = !!data.perfil_ambiental.genera_peligrosos;
+                const p = data.perfil_ambiental;
+                this.form.perfil.rol_ambiental = p.rol_ambiental || 'GENERADOR';
+                this.form.perfil.subtipo_generador = p.subtipo_generador || 'PEQUENO';
+                this.form.perfil.genera_efluentes = !!p.genera_efluentes;
+                this.form.perfil.genera_emisiones = !!p.genera_emisiones;
+                this.form.perfil.genera_peligrosos = !!p.genera_peligrosos;
+                this.form.perfil.genera_ruidos = !!p.genera_ruidos;
+                this.form.perfil.usa_pozo_agua = !!p.usa_pozo_agua;
+                this.form.perfil.modalidad_manejadora = p.modalidad_manejadora || 'EXTERNA';
+                this.form.perfil.manejadora_nombre = p.manejadora_nombre || p.manejadora_contratada || '';
+                this.form.perfil.manejadora_rif = p.manejadora_rif || '';
+                this.form.perfil.manejadora_racda = p.manejadora_racda || '';
+                this.form.perfil.modalidad_atencion_manejador = p.modalidad_atencion_manejador || 'MULTICLIENTE';
+                this.form.perfil.generador_exclusivo_nombre = p.generador_exclusivo_nombre || '';
+                this.form.perfil.sustancias_manejadas = p.sustancias_manejadas || '';
+                this.form.perfil.actividades_manejador = p.actividades_manejador || [];
+                this.form.perfil.residuos_tipos = p.residuos_tipos || [];
+
+                // Extraer correlativo RACDA si existe
+                if (p.numero_racda) {
+                    const cleanRacda = p.numero_racda.replace(/^(RACDA-[GM]-)/i, '');
+                    this.racdaInput.correlativo = cleanRacda;
+                }
+            }
+
+            // Precarga del Bloque 3: Fechas y Vigencias de Documentos del Expediente
+            if (data.documentos_expediente && Array.isArray(data.documentos_expediente)) {
+                data.documentos_expediente.forEach(doc => {
+                    // Mapeo inverso del código (ej: REGISTRO_RENMA o doc_renma)
+                    const key = doc.codigo_requisito ? doc.codigo_requisito.toLowerCase() : '';
+                    
+                    if (this.fechasEmision.hasOwnProperty(key)) {
+                        this.fechasEmision[key] = doc.fecha_emision ? doc.fecha_emision.substring(0, 10) : '';
+                    }
+                    if (this.fechasVencimiento.hasOwnProperty(key)) {
+                        this.fechasVencimiento[key] = doc.fecha_vencimiento ? doc.fecha_vencimiento.substring(0, 10) : '';
+                    }
+                    if (this.esVitalicio.hasOwnProperty(key)) {
+                        this.esVitalicio[key] = !!doc.es_vitalicio;
+                    }
+                });
             }
         },
 
@@ -1099,6 +1160,22 @@ function vincularEmpresaForm(territorios, empresaExistente) {
                 }
                 if (!this.form.comuna || !this.form.sector || !this.form.calle_avenida || !this.form.edificio_galpon_local) {
                     this.showModal('Por favor complete todos los datos de ubicación territorial.');
+                    return;
+                }
+            }
+
+            // Validación estricta para impedir avanzar al envío si faltan documentos clave en el Paso 3
+            if (this.step === 3) {
+                if (!this.files.doc_renma) {
+                    this.showModal('El registro RENMA es un recaudo obligatorio. Por favor adjunte el archivo PDF o imagen.');
+                    return;
+                }
+                if (this.form.perfil.rol_ambiental !== 'NO_APLICA' && !this.files.doc_racda) {
+                    this.showModal('El certificado RACDA es obligatorio para empresas Generadoras o Manejadoras.');
+                    return;
+                }
+                if (this.form.perfil.rol_ambiental === 'MANEJADOR' && !this.files.doc_poliza) {
+                    this.showModal('La Póliza de Seguro de Responsabilidad Ambiental es obligatoria para empresas Manejadoras.');
                     return;
                 }
             }
