@@ -15,7 +15,7 @@ class DenunciaController extends Controller
     {
         $filtroEstatus = $request->get('estatus', 'todos');
 
-        $query = Denuncia::with(['user', 'inspector.user']);
+        $query = Denuncia::with(['user', 'inspector']);
 
         if ($filtroEstatus !== 'todos') {
             $query->where('estatus', $filtroEstatus);

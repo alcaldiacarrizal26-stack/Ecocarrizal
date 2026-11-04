@@ -44,6 +44,27 @@ use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\UsuarioController;
 
 // -------------------------------------------------------------
+// Rutas Públicas para Validación de Documentos (Sin Autenticación)
+// -------------------------------------------------------------
+
+Route::get('/validar-expediente/{codigo}', function ($codigo) {
+    $solicitud = \App\Models\Solicitud::with(['usuario', 'recaudos', 'inspector.user'])
+        ->where('codigo_expediente', $codigo)
+        ->first();
+
+    return view('public.validar-expediente', compact('solicitud', 'codigo'));
+})->name('validar.expediente');
+
+// Ruta Pública para validar la autenticidad del Acta de Inspección por QR
+Route::get('/validar-acta/{codigo}', function ($codigo) {
+    $inspeccion = \App\Models\Inspeccion::with(['inspector.inspector', 'ordenInspeccion.empresa', 'empresa'])
+        ->where('codigo_acta', $codigo)
+        ->first();
+
+    return view('public.validar-acta', compact('inspeccion', 'codigo'));
+})->name('validar.acta');
+
+// -------------------------------------------------------------
 // Rutas Públicas (Autenticación por Vistas Dedicadas)
 // -------------------------------------------------------------
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -151,6 +172,7 @@ Route::middleware(['auth', 'role:ciudadano'])->prefix('ciudadano')->name('ciudad
         Route::post('/denuncias', [DenunciaController::class, 'store'])->name('denuncias.store');
         Route::post('/solicitudes', [SolicitudController::class, 'store'])->name('solicitudes.store');
         Route::put('/solicitudes/{tramite}/pendientes', [SolicitudController::class, 'subirPendientes'])->name('solicitudes.pendientes');
+        Route::get('/solicitudes/{id}/pdf', [\App\Http\Controllers\Ciudadano\SolicitudController::class, 'descargarComprobante'])->name('solicitudes.pdf');
         Route::post('/empresas', [CiudadanoEmpresaController::class, 'store'])->name('empresas.store');
         Route::put('/compensacion/{compensacion}', [CompensacionController::class, 'store'])->name('compensacion.store');
         Route::post('/compensacion/donar', [CompensacionController::class, 'donar'])->name('compensacion.donar');
@@ -324,6 +346,7 @@ Route::middleware(['auth', 'role:director,director_ambiente,director_residuos,in
 
     Route::get('/inspecciones/{id}/evaluar', [InspeccionController::class, 'edit'])->name('inspecciones.evaluar');
     Route::get('/inspecciones/{id}', [InspeccionController::class, 'show'])->name('inspecciones.show');
+    Route::get('/inspecciones/{id}/pdf', [InspeccionController::class, 'descargarPdf'])->name('inspecciones.pdf');
 });
 
 // -------------------------------------------------------------

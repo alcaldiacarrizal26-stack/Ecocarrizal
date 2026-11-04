@@ -30,8 +30,8 @@ class SolicitudController extends Controller
             'rechazada'          => $rawStats['rechazada'] ?? 0,
         ];
 
-        // 2. Consulta de solicitudes filtradas y paginadas
-        $query = Solicitud::with(['solicitante', 'inspector.user', 'recaudos']);
+        // 2. Consulta de solicitudes filtradas y paginadas (Cambiado 'solicitante' por 'usuario')
+        $query = Solicitud::with(['usuario', 'inspector', 'recaudos']);
 
         if ($request->filled('estado') && $request->estado !== 'todos') {
             $query->where('estado', $request->estado);
@@ -44,7 +44,7 @@ class SolicitudController extends Controller
                 $q->whereIn('nombre', ['director', 'inspector']);
             })
             ->where('is_active', true)
-            ->with(['role', 'direccion', 'inspector.user'])
+            ->with(['role', 'direccion', 'inspector'])
             ->get();
 
         return view('director.ambiente.solicitudes', compact('solicitudes', 'stats', 'funcionarios'));
@@ -52,7 +52,7 @@ class SolicitudController extends Controller
 
     public function asignarInspector(Request $request, string $id)
     {
-        $solicitud = Solicitud::with('solicitante')->findOrFail($id);
+        $solicitud = Solicitud::with('usuario')->findOrFail($id);
 
         if (!in_array($solicitud->estado, ['pendiente', 'inspector_asignado'])) {
             return redirect()->back()->with('error', 'Solo se pueden asignar funcionarios a solicitudes pendientes o con inspector asignado.');
@@ -92,7 +92,7 @@ class SolicitudController extends Controller
                 'titulo'   => 'Solicitud en Inspección',
                 'mensaje'  => 'Se ha asignado un funcionario inspector a tu solicitud ambiental para su revisión en campo.',
                 'tipo'     => 'info',
-                'link_url' => '#', // Puedes ajustar la ruta al detalle de la solicitud del ciudadano si la tienes
+                'link_url' => '#',
             ]);
         }
 
@@ -101,7 +101,7 @@ class SolicitudController extends Controller
 
     public function show(string $id)
     {
-        $solicitud = Solicitud::with(['solicitante', 'inspector', 'recaudos'])->findOrFail($id);
+        $solicitud = Solicitud::with(['usuario', 'inspector', 'recaudos'])->findOrFail($id);
         return view('director.ambiente.solicitudes_show', compact('solicitud'));
     }
 
@@ -112,10 +112,11 @@ class SolicitudController extends Controller
 
     public function rechazar(Request $request, string $id)
     {
-        $solicitud = Solicitud::with('solicitante')->findOrFail($id);
+        $solicitud = Solicitud::with('usuario')->findOrFail($id);
 
-        if (in_array($solicitud->estado, ['aprobada', 'rechazada'])) {
-            return redirect()->back()->with('error', 'Esta solicitud ya se encuentra procesada.');
+        // REGLA: Cualquier cosa que no sea 'pendiente' no se puede rechazar
+        if ($solicitud->estado !== 'pendiente') {
+            return redirect()->back()->with('error', 'Solo se pueden rechazar solicitudes que se encuentren en estatus pendiente.');
         }
 
         $request->validate([

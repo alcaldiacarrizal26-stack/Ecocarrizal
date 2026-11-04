@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class SolicitudController extends Controller
 {
@@ -405,5 +406,29 @@ class SolicitudController extends Controller
         return redirect()
             ->route('ciudadano.solicitudes')
             ->with('success', 'Documentos adjuntados exitosamente. El expediente ha sido actualizado y enviado a revisión.');
+    }
+
+    /**
+     * Generar Comprobante Oficial de Solicitud en PDF.
+     */
+    public function descargarComprobante($id)
+    {
+        $solicitud = Solicitud::with(['usuario', 'recaudos', 'inspector.user']) // <--- Cambiado de 'user' a 'usuario'
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
+
+        // Bloqueo: Solo se puede generar si NO está en estatus 'incompleta'
+        if ($solicitud->estado === 'incompleta') {
+            return redirect()->back()->with('error', 'No se puede generar el documento oficial mientras la solicitud tenga recaudos pendientes.');
+        }
+
+        $urlVerificacion = route('validar.expediente', ['codigo' => $solicitud->codigo_expediente]);
+
+        $qrCode = base64_encode(QrCode::format('svg')
+            ->size(120)
+            ->errorCorrection('H')
+            ->generate($urlVerificacion));
+
+        return view('ciudadano.pdf.comprobante-solicitud', compact('solicitud', 'qrCode', 'urlVerificacion'));
     }
 }

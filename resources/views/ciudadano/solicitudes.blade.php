@@ -712,6 +712,35 @@
                             </template>
                         </div>
 
+                    {{-- SECCIÓN DE ACCIONES / IMPRESIÓN DE COMPROBANTE OFICIAL CON QR --}}
+                    <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-[11px] text-slate-400 italic">
+                            * El comprobante oficial incluye código QR de autenticidad municipal.
+                        </span>
+
+                        <template x-if="solicitudSeleccionada.estado !== 'incompleta'">
+                            <button 
+                                type="button"
+                                @click="imprimirSolicitudPdf('/ciudadano/solicitudes/' + solicitudSeleccionada.id + '/pdf')" 
+                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer border-0"
+                            >
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span>Imprimir Comprobante Oficial (QR)</span>
+                            </button>
+                        </template>
+                        
+                        <template x-if="solicitudSeleccionada.estado === 'incompleta'">
+                            <button 
+                                disabled 
+                                title="Debe consignar los documentos pendientes para desbloquear el comprobante oficial."
+                                class="px-4 py-2 bg-slate-100 text-slate-400 font-bold text-xs rounded-xl cursor-not-allowed inline-flex items-center gap-1.5"
+                            >
+                                <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                <span>PDF Bloqueado (Documentación Incompleta)</span>
+                            </button>
+                        </template>
+                    </div>
+
                     </div>
                 </template>
 
@@ -719,4 +748,22 @@
         </div>
 
     </div>
+
+<!-- Iframe oculto para impresión nativa sin abrir pestañas nuevas -->
+    <iframe id="pdfSolicitudFrame" style="display: none;"></iframe>
+    <script>
+        function imprimirSolicitudPdf(url) {
+            const frame = document.getElementById('pdfSolicitudFrame');
+            frame.src = url;
+            frame.onload = function() {
+                try {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                } catch (e) {
+                    // Fallback por seguridad si el navegador bloquea el iframe directo
+                    window.open(url, '_blank');
+                }
+            };
+        }
+    </script>
 </x-layouts.app>

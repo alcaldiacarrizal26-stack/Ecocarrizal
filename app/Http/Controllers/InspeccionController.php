@@ -298,8 +298,26 @@ class InspeccionController extends Controller
 
     public function show($id)
     {
-        $inspeccion = Inspeccion::with(['solicitud', 'denuncia', 'ordenInspeccion.empresa', 'empresa', 'inspector'])->findOrFail($id);
+        $inspeccion = Inspeccion::with(['inspector.inspector', 'ordenInspeccion.empresa', 'empresa'])
+            ->findOrFail($id);
 
         return view('inspecciones.show', compact('inspeccion'));
+    }
+
+    public function descargarPdf($id)
+    {
+        $inspeccion = Inspeccion::with(['inspector.inspector', 'ordenInspeccion.empresa', 'empresa'])
+            ->findOrFail($id);
+
+        // URL para el código QR de validación pública
+        $urlVerificacion = route('validar.acta', ['codigo' => $inspeccion->codigo_acta]);
+
+        // Generar QR en formato SVG codificado en base64
+        $qrCode = base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
+            ->size(110)
+            ->errorCorrection('H')
+            ->generate($urlVerificacion));
+
+        return view('inspecciones.pdf', compact('inspeccion', 'qrCode', 'urlVerificacion'));
     }
 }

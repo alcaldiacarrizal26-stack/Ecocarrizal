@@ -299,7 +299,7 @@
 
                             <!-- Inspector Asignado -->
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @if($solicitud->inspector && $solicitud->inspector->user)
+                                @if($solicitud->inspector)
                                     <div class="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-md w-fit font-medium">
                                         <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                         <span>{{ $solicitud->inspector->nombre }} {{ $solicitud->inspector->apellido }}</span>
@@ -312,14 +312,14 @@
                             <td class="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
                                 {{ $solicitud->created_at ? $solicitud->created_at->format('d/m/Y h:i A') : 'N/A' }}
                             </td>
-                            
-                            <!-- ACCIONES CON SOLO ICONOS Y TOOLTIPS -->
+
+                            <!-- ACCIONES CON RESTRICCIÓN DE RECHAZO SOLO PARA PENDIENTES -->
                             <td class="px-6 py-4 text-right whitespace-nowrap space-x-1">
                                 <template x-if="puedeReasignar('{{ $solicitud->estado }}')">
                                     <button 
                                         type="button"
                                         title="{{ $solicitud->inspector ? 'Reasignar Inspector' : 'Asignar Inspector' }}"
-                                        @click="solicitudActual = {{ json_encode($solicitud->load(['solicitante', 'inspector.user', 'recaudos'])) }}; modalAsignarOpen = true"
+                                        @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos'])) }}; modalAsignarOpen = true"
                                         class="p-2 text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                     >
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
@@ -329,20 +329,23 @@
                                 <button 
                                     type="button"
                                     title="Ver Detalles"
-                                    @click="solicitudActual = {{ json_encode($solicitud->load(['solicitante', 'inspector.user', 'recaudos'])) }}; modalOpen = true"
+                                    @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos'])) }}; modalOpen = true"
                                     class="p-2 text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                 </button>
 
-                                <button 
-                                    type="button"
-                                    title="Rechazar Expediente"
-                                    @click="solicitudActual = {{ json_encode($solicitud) }}; modalRechazarSolicitudOpen = true"
-                                    class="p-2 text-rose-600 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
-                                </button>
+                                <!-- BOTÓN DE RECHAZO SOLO SI EL ESTADO ES 'pendiente' -->
+                                <template x-if="'{{ $solicitud->estado }}' === 'pendiente'">
+                                    <button 
+                                        type="button"
+                                        title="Rechazar Expediente"
+                                        @click="solicitudActual = {{ json_encode($solicitud) }}; modalRechazarSolicitudOpen = true"
+                                        class="p-2 text-rose-600 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                    </button>
+                                </template>
                             </td>
                         </tr>
                     @empty
@@ -413,7 +416,7 @@
                     <div>
                         <span class="block text-xs text-indigo-600 uppercase font-bold">Inspector Técnico Asignado</span>
                         <span class="text-sm font-medium text-indigo-950" 
-                              x-text="solicitudActual?.inspector?.user ? (solicitudActual.inspector.user.nombre + ' ' + (solicitudActual.inspector.user.apellido || '')).trim() : 'Ninguno (Sin asignar)'">
+                              x-text="solicitudActual?.inspector ? (solicitudActual.inspector.nombre + ' ' + (solicitudActual.inspector.apellido || '')).trim() : 'Ninguno (Sin asignar)'">
                         </span>
                     </div>
                     <span class="text-xs px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 capitalize font-medium" x-text="solicitudActual?.estado?.replace(/_/g, ' ') || 'Sin Estatus'"></span>
@@ -535,7 +538,7 @@
                     <div class="flex justify-between">
                         <span>Inspector Actual:</span>
                         <strong class="text-indigo-600" 
-                                x-text="solicitudActual?.inspector?.user ? (solicitudActual.inspector.user.nombre + ' ' + (solicitudActual.inspector.user.apellido || '')).trim() : 'Ninguno (Sin asignar)'">
+                                x-text="solicitudActual?.inspector ? (solicitudActual.inspector.nombre + ' ' + (solicitudActual.inspector.apellido || '')).trim() : 'Ninguno (Sin asignar)'">
                         </strong>
                     </div>
                 </div>
