@@ -10,12 +10,15 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip
 
+# Instalar Composer oficial dentro del contenedor
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Configurar directorio de trabajo y Apache para apuntar a /public
+# Configurar Apache para apuntar a la carpeta public de Laravel
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
 RUN a2enmod rewrite
 
@@ -23,4 +26,8 @@ COPY . /var/www/html
 
 WORKDIR /var/www/html
 
+# Instalar las dependencias de Laravel
+RUN composer install --no-dev --optimize-autoloader
+
+# Asignar permisos a storage y cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
