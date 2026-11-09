@@ -128,8 +128,11 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-xs">
-                                @if($item->inspector &&$item->inspector->user)
-                                    <span class="font-medium text-slate-700">{{ $item->inspector->nombre }} {{$item->inspector->user->apellido }}</span>
+                                @if($item->inspector)
+                                    <span class="font-medium text-slate-700">
+                                        {{ $item->inspector->nombre ?? $item->inspector->user->nombre ?? $item->inspector->name ?? 'Funcionario' }} 
+                                        {{ $item->inspector->apellido ?? $item->inspector->user->apellido ?? '' }}
+                                    </span>
                                 @else
                                     <span class="text-amber-600 font-semibold">Sin asignar</span>
                                 @endif
