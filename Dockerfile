@@ -1,4 +1,3 @@
-Dockerfile
 FROM php:8.4-apache
 
 # Instalar dependencias del sistema y librerías de PostgreSQL
