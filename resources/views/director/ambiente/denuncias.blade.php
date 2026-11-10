@@ -86,26 +86,35 @@
         </div>
     </div>
 
-    <!-- Barra de Filtro Manual -->
+    <!-- Barra de Filtro Manual Adaptativa -->
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <form method="GET" action="{{ route('director.ambiente.denuncias') }}" class="flex items-center gap-3">
-            <label for="filtro_estatus" class="text-xs font-semibold text-slate-500 whitespace-nowrap">Filtrar por estatus:</label>
-            <select 
-                id="filtro_estatus"
-                name="estatus"
-                class="bg-white border border-slate-200 text-slate-800 text-xs rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block p-2 font-medium cursor-pointer"
-            >
-                <option value="todos" {{ ($filtroEstatus ?? request('estatus')) == 'todos' || !request('estatus') ? 'selected' : '' }}>Todos los estatus</option>
-                <option value="pendiente" {{ ($filtroEstatus ?? request('estatus')) == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                <option value="inspector_asignado" {{ ($filtroEstatus ?? request('estatus')) == 'inspector_asignado' ? 'selected' : '' }}>Inspector Asignado</option>
-                <option value="en_revision" {{ ($filtroEstatus ?? request('estatus')) == 'en_revision' ? 'selected' : '' }}>En Revisión</option>
-                <option value="atendido" {{ ($filtroEstatus ?? request('estatus')) == 'atendido' ? 'selected' : '' }}>Atendido</option>
-                <option value="desestimado" {{ ($filtroEstatus ?? request('estatus')) == 'desestimado' ? 'selected' : '' }}>Desestimado</option>
-            </select>
+        <form method="GET" action="{{ route('director.ambiente.denuncias') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div class="flex items-center justify-between sm:justify-start gap-2 flex-1">
+                <label for="filtro_estatus" class="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Filtrar por estatus:</label>
+                <select 
+                    id="filtro_estatus"
+                    name="estatus"
+                    class="bg-slate-50/50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 block p-2.5 font-medium cursor-pointer w-full sm:w-auto"
+                >
+                    <option value="todos" {{ ($filtroEstatus ?? request('estatus')) == 'todos' || !request('estatus') ? 'selected' : '' }}>Todos los estatus</option>
+                    <option value="pendiente" {{ ($filtroEstatus ?? request('estatus')) == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+                    <option value="inspector_asignado" {{ ($filtroEstatus ?? request('estatus')) == 'inspector_asignado' ? 'selected' : '' }}>Inspector Asignado</option>
+                    <option value="en_revision" {{ ($filtroEstatus ?? request('estatus')) == 'en_revision' ? 'selected' : '' }}>En Revisión</option>
+                    <option value="atendido" {{ ($filtroEstatus ?? request('estatus')) == 'atendido' ? 'selected' : '' }}>Atendido</option>
+                    <option value="desestimado" {{ ($filtroEstatus ?? request('estatus')) == 'desestimado' ? 'selected' : '' }}>Desestimado</option>
+                </select>
+            </div>
 
-            <button type="submit" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-xl transition shadow-sm">
-                Filtrar
-            </button>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer text-center">
+                    Filtrar Resultados
+                </button>
+                @if(request('estatus') && request('estatus') !== 'todos')
+                    <a href="{{ route('director.ambiente.denuncias') }}" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition text-center">
+                        Limpiar
+                    </a>
+                @endif
+            </div>
         </form>
     </div>
 

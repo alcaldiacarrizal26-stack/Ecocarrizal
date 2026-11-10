@@ -101,27 +101,27 @@ class CompensacionController extends Controller
 
         $userId = Auth::id();
 
-        return DB::transaction(function () use ($request,$userId) {
-            $path =$request->file('comprobante')->store('compensaciones/donaciones', 'public');
+        return DB::transaction(function () use ($request, $userId) {
+            $path = $request->file('comprobante')->store('compensaciones/donaciones', 'public');
 
-            // Registrar donación como compensación independiente
+            // Registrar donación como compensación independiente (sin solicitud_id)
             $donacion = Compensacion::create([
                 'user_id'              => $userId,
+                'solicitud_id'         => null, // <-- Ahora es nulo para donaciones libres
                 'codigo_resolucion'    => 'DONACION-' . date('Y') . '-' . strtoupper(uniqid()),
-                'tipo_tramite'         => 'DONACION',
                 'especie_requerida'    => $request->tipo_especie,
                 'cantidad_asignada'    => $request->cantidad,
-                'cantidad_entregada'   => $request->cantidad, // Al ser donación voluntaria se equipara al entregarse
-                'comprobante_path'     => $path,
-                'observacion'          => $request->observaciones,
+                'cantidad_entregada'   => $request->cantidad,
+                'observaciones'        => $request->observaciones,
                 'estatus'              => 'PENDIENTE', 
             ]);
 
             // Notificar a la Dirección de Ambiente
-            $directoresAmbiente = \App\Models\User::whereHas('role', function ($q) {$q->whereIn('nombre', ['admin', 'director', 'director_ambiente']);
+            $directoresAmbiente = \App\Models\User::whereHas('role', function ($q) {
+                $q->whereIn('nombre', ['admin', 'director', 'director_ambiente']);
             })->get();
 
-            foreach ($directoresAmbiente as$dir) {
+            foreach ($directoresAmbiente as $dir) {
                 \App\Models\Notificacion::create([
                     'user_id'  => $dir->id,
                     'titulo'   => 'Nueva Donación Voluntaria',
@@ -131,7 +131,7 @@ class CompensacionController extends Controller
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Donación voluntaria registrada exitosamente. Queda pendiente de verificación y aprobación por la Dirección de Ambiente.');
+            return redirect()->back()->with('success', 'Donación voluntaria registrada exitosamente. Queda pendiente de verificación por la Dirección de Ambiente.');
         });
     }
 }

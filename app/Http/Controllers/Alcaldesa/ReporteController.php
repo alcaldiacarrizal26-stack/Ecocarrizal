@@ -54,7 +54,7 @@ class ReporteController extends Controller
      */
     public function ambiente(Request $request)
     {
-        $query = Solicitud::with(['usuario', 'inspector.user', 'recaudos']);
+        $query = Solicitud::with(['usuario', 'inspector', 'recaudos']);
 
         if ($request->filled('tipo_tramite')) {
             $query->where('tipo_tramite', $request->tipo_tramite);
@@ -160,7 +160,7 @@ class ReporteController extends Controller
         $tipoRegistro = $request->input('tipo', 'denuncia');
         
         if ($tipoRegistro === 'solicitud') {
-            $query = Solicitud::with(['usuario', 'inspector.user', 'recaudos']);
+            $query = Solicitud::with(['usuario', 'inspector', 'recaudos']);
             
             if ($request->filled('codigo')) {
                 $query->where('codigo_expediente', 'ilike', '%' . $request->codigo . '%');
@@ -178,7 +178,7 @@ class ReporteController extends Controller
             $registros = $query->latest()->paginate(15)->withQueryString();
             $comunasList = Solicitud::select('comuna')->distinct()->pluck('comuna');
         } else {
-            $query = Denuncia::with(['user', 'inspector.user']);
+            $query = Denuncia::with(['user', 'inspector']);
             
             if ($request->filled('codigo')) {
                 $query->where('codigo', 'ilike', '%' . $request->codigo . '%');
@@ -468,7 +468,7 @@ class ReporteController extends Controller
         $fechaInicio = $request->input('fecha_inicio');
         $fechaFin = $request->input('fecha_fin');
 
-        $query = Solicitud::with(['inspecciones', 'inspector.user', 'recaudos'])
+        $query = Solicitud::with(['inspecciones', 'inspector', 'recaudos'])
             ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
         $solicitudes = $query->get();

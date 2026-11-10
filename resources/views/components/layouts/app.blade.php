@@ -11,7 +11,8 @@
     </style>
 </head>
 <body 
-    class="bg-slate-50 font-sans antialiased text-slate-800" 
+    class="bg-slate-50 font-sans antialiased text-slate-800"
+    :class="{ 'overflow-hidden lg:overflow-auto': sidebarOpen }" 
     x-data="{ sidebarOpen: false, profileMenuOpen: false, confirmLogout: false }"
 >
 
@@ -70,7 +71,7 @@
                         x-transition:leave="transition ease-in duration-100"
                         x-transition:leave-start="opacity-100 scale-100"
                         x-transition:leave-end="opacity-0 scale-95"
-                        class="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 text-xs"
+                        class="fixed right-4 top-[4.5rem] w-80 max-w-[calc(100vw-2rem)] origin-top-right sm:absolute sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:origin-top-right bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 text-xs"
                     >
                         <div class="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
                             <span class="font-bold text-slate-800">Notificaciones Recientes</span>
@@ -131,7 +132,7 @@
                     x-transition:leave="transition ease-in duration-100"
                     x-transition:leave-start="opacity-100 scale-100"
                     x-transition:leave-end="opacity-0 scale-95"
-                    class="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 space-y-1"
+                    class="fixed right-4 top-[4.5rem] w-72 max-w-[calc(100vw-2rem)] origin-top-right sm:absolute sm:right-0 sm:top-auto sm:mt-2 sm:w-72 sm:origin-top-right bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 space-y-1"
                 >
                     <!-- Cabecera del desplegable -->
                     <div class="px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">

@@ -56,81 +56,82 @@
         </form>
 
         <!-- Tabla de Registros -->
-        <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-            <table class="w-full text-left text-sm text-slate-600">
-                <thead class="bg-slate-100 text-xs uppercase text-slate-600 border-b border-slate-200 font-bold tracking-wider">
-                    <tr>
-                        <th class="px-6 py-4">Fecha y Hora</th>
-                        <th class="px-6 py-4">Usuario</th>
-                        <th class="px-6 py-4">Nivel / Módulo</th>
-                        <th class="px-6 py-4">Descripción</th>
-                        <th class="px-6 py-4 text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-xs">
-                    @forelse($bitacoras as $log)
-                        <tr class="hover:bg-slate-50/80 transition-colors align-middle">
-                            <td class="px-6 py-4 font-mono text-slate-500 whitespace-nowrap">
-                                {{ $log->created_at?->format('d/m/Y H:i:s') }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-slate-800">{{ $log->user->nombre ?? 'Sistema' }} {{ $log->user->apellido ?? '' }}</div>
-                                <span class="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">
-                                    {{ $log->user->role->nombre ?? 'N/A' }}
-                                </span>
-                            </td>
-                            <!-- Nivel y Módulo con separación adecuada y mejor presentación -->
-                            <td class="px-6 py-4">
-                                <div class="flex flex-col gap-1.5 items-start">
-                                    @php
-                                        $badgeColor = match($log->nivel) {
-                                            'critical' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                            'danger' => 'bg-orange-50 text-orange-700 border-orange-200',
-                                            'warning' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                            default => 'bg-blue-50 text-blue-700 border-blue-200',
-                                        };
-                                    @endphp
-                                    <span class="px-2.5 py-0.5 rounded-md font-mono font-bold text-[10px] border uppercase shadow-2xs {{ $badgeColor }}">
-                                        {{ $log->nivel }}
-                                    </span>
-                                    <span class="px-2.5 py-0.5 rounded-md font-mono font-bold text-[10px] bg-slate-100 text-slate-700 border border-slate-200 uppercase shadow-2xs">
-                                        {{ $log->modulo }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-slate-700 font-medium max-w-md">
-                                <div class="font-bold uppercase text-[10px] text-indigo-600 mb-0.5 tracking-wider">{{ $log->tipo_evento }}</div>
-                                {{ $log->descripcion }}
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                @if($log->valores_anteriores || $log->valores_nuevos)
-                                    <button type="button" @click="eventoSeleccionado = @js($log); modalOpen = true" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer inline-flex items-center gap-1.5">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                        <span>Ver Cambios</span>
-                                    </button>
-                                @else
-                                    <span class="text-slate-400 italic">Sin cambios</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600 min-w-[800px]">
+                    <thead class="bg-slate-100 text-xs uppercase text-slate-600 border-b border-slate-200 font-bold tracking-wider">
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-sm">
-                                @if(!request()->filled('fecha_desde'))
-                                    Por favor, selecciona un rango de fechas y aplica los filtros para consultar la bitácora.
-                                @else
-                                    No se encontraron registros de auditoría en el rango de fechas seleccionado.
-                                @endif
-                            </td>
+                            <th class="px-6 py-4">Fecha y Hora</th>
+                            <th class="px-6 py-4">Usuario</th>
+                            <th class="px-6 py-4">Nivel / Módulo</th>
+                            <th class="px-6 py-4">Descripción</th>
+                            <th class="px-6 py-4 text-right">Acciones</th>
                         </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-xs">
+                        @forelse($bitacoras as $log)
+                            <tr class="hover:bg-slate-50/85 transition-colors align-middle">
+                                <td class="px-6 py-4 font-mono text-slate-500 whitespace-nowrap">
+                                    {{ $log->created_at?->format('d/m/Y H:i:s') }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="font-bold text-slate-800">{{ $log->user->nombre ?? 'Sistema' }} {{ $log->user->apellido ?? '' }}</div>
+                                    <span class="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">
+                                        {{ $log->user->role->nombre ?? 'N/A' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col gap-1.5 items-start">
+                                        @php
+                                            $badgeColor = match($log->nivel) {
+                                                'critical' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                                'danger' => 'bg-orange-50 text-orange-700 border-orange-200',
+                                                'warning' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                                default => 'bg-blue-50 text-blue-700 border-blue-200',
+                                            };
+                                        @endphp
+                                        <span class="px-2.5 py-0.5 rounded-md font-mono font-bold text-[10px] border uppercase shadow-2xs {{ $badgeColor }}">
+                                            {{ $log->nivel }}
+                                        </span>
+                                        <span class="px-2.5 py-0.5 rounded-md font-mono font-bold text-[10px] bg-slate-100 text-slate-700 border border-slate-200 uppercase shadow-2xs">
+                                            {{ $log->modulo }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-slate-700 font-medium max-w-md">
+                                    <div class="font-bold uppercase text-[10px] text-indigo-600 mb-0.5 tracking-wider">{{ $log->tipo_evento }}</div>
+                                    {{ $log->descripcion }}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    @if($log->valores_anteriores || $log->valores_nuevos)
+                                        <button type="button" @click="eventoSeleccionado = @js($log); modalOpen = true" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer inline-flex items-center gap-1.5">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            <span>Ver Cambios</span>
+                                        </button>
+                                    @else
+                                        <span class="text-slate-400 italic">Sin cambios</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-sm">
+                                    @if(!request()->filled('fecha_desde'))
+                                        Por favor, selecciona un rango de fechas y aplica los filtros para consultar la bitácora.
+                                    @else
+                                        No se encontraron registros de auditoría en el rango de fechas seleccionado.
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Paginación -->
         @if(method_exists($bitacoras, 'hasPages') && $bitacoras->hasPages())
-            <div class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+            <div class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
                 {{ $bitacoras->links() }}
             </div>
         @endif

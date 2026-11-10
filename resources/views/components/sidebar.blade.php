@@ -1,14 +1,13 @@
 @props(['active' => null])
 
 @php
+    // ... (Todo tu bloque PHP se mantiene exactamente igual) ...
     $user = auth()->user();
     $rol = strtolower($user->role->nombre ?? $user->role ?? 'ciudadano'); 
     $direccionId = (int) ($user->direccion_id ?? 0);
 
-    // Relación 1:1 con la empresa para el ciudadano
     $empresa = $user->empresa ?? null;
 
-    // Mapeo de prefijos según el rol
     $prefix = match(true) {
         in_array($rol, ['admin', 'administrador']) => 'admin',
         in_array($rol, ['alcaldesa']) => 'alcaldesa',
@@ -17,13 +16,11 @@
         default => 'ciudadano',
     };
 
-    // Determinación estricta de visibilidad de áreas
     $esAdmin = in_array($rol, ['admin', 'administrador']);
     
     $verAmbiente = !$esAdmin && ($rol === 'director_ambiente' || ($rol === 'director' && $direccionId === 1));
     $verResiduos = !$esAdmin && ($rol === 'director_residuos' || ($rol === 'director' && $direccionId === 2));
 
-    // Ruta del Dashboard dinámico según el rol correspondiente
     $dashboardRoute = match(true) {
         $prefix === 'admin' => Route::has('admin.dashboard') ? route('admin.dashboard') : url('/admin/dashboard'),
         $prefix === 'alcaldesa' => Route::has('alcaldesa.reportes') ? route('alcaldesa.reportes') : url('/alcaldesa/reportes'),
@@ -33,7 +30,6 @@
         default => Route::has('ciudadano.dashboard') ? route('ciudadano.dashboard') : url('/ciudadano/dashboard'),
     };
 
-    // Detección inteligente del Ítem Activo
     $currentActive = $active;
 
     if (is_null($currentActive) || $currentActive === '') {
@@ -79,40 +75,35 @@
     $soporteRoute = Route::has("{$prefix}.soporte") ? route("{$prefix}.soporte") : (Route::has('soporte') ? route('soporte') : url('/soporte'));
 @endphp
 
-<!-- Overlay para pantallas móviles -->
+<!-- Overlay para pantallas móviles (Simplificado para evitar bugs al cambiar de pestaña) -->
 <div 
     x-show="sidebarOpen" 
     x-cloak
     @click="sidebarOpen = false" 
-    x-transition:enter="transition-opacity ease-linear duration-300"
-    x-transition:enter-start="opacity-0"
-    x-transition:enter-end="opacity-100"
-    x-transition:leave="transition-opacity ease-linear duration-300"
-    x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
+    x-transition.opacity.duration.300ms
     class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden"
 ></div>
 
 <!-- Sidebar Principal -->
 <aside 
+    @keydown.escape.window="sidebarOpen = false"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-    class="fixed top-0 left-0 z-50 h-screen w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0"
+    class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 will-change-transform"
 >
-    <div class="overflow-y-auto">
-        <!-- Header / Identificación institucional -->
-        <div class="p-5 flex items-center gap-3 border-b border-slate-800">
-            <!-- Contenedor horizontal limpio sin el cuadro forzado -->
-            <div class="flex items-center justify-center shrink-0">
-                <img src="{{ asset('images/carrizal_logo.png') }}" alt="Carrizal Logo" class="h-8 w-auto object-contain">
-            </div>
-            <div class="overflow-hidden">
-                <h2 class="text-sm font-bold text-white tracking-wide truncate">Ecosocialismo</h2>
-                <p class="text-[10px] text-mint font-semibold tracking-wider uppercase truncate">Carrizal Digital</p>
-            </div>
+    <!-- 1. Header / Identificación institucional (Fijo arriba) -->
+    <div class="p-5 flex items-center gap-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center justify-center shrink-0">
+            <img src="{{ asset('images/carrizal_logo.png') }}" alt="Carrizal Logo" class="h-8 w-auto object-contain">
         </div>
+        <div class="overflow-hidden">
+            <h2 class="text-sm font-bold text-white tracking-wide truncate">Ecosocialismo</h2>
+            <p class="text-[10px] text-mint font-semibold tracking-wider uppercase truncate">Carrizal Digital</p>
+        </div>
+    </div>
 
-        <!-- Navegación por Roles -->
-        <nav class="px-3 py-4 space-y-1.5 font-medium text-sm">
+    <!-- 2. Navegación por Roles (Área intermedia con Scroll independiente) -->
+    <div class="flex-1 overflow-y-auto min-h-0 py-4 px-3">
+        <nav class="space-y-1.5 font-medium text-sm">
 
             {{-- 1. MENÚ CIUDADANO --}}
             @if($prefix === 'ciudadano')
@@ -214,14 +205,13 @@
                 </a>
             @endif
 
-            {{-- 4. MENÚ DIRECTOR OPERATIVO (Con Contadores por Cantidad) --}}
+            {{-- 4. MENÚ DIRECTOR OPERATIVO --}}
             @if($prefix === 'director')
                 <a href="{{ $dashboardRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'inicio' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 00-1 1m-6 0h6"/></svg>
                     <span>Inicio Director</span>
                 </a>
 
-                {{-- Módulo Compartido de Inspectores para ambos Directores --}}
                 <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
                     Personal de Campo
                 </div>
@@ -276,7 +266,6 @@
                     </a>
                 @endif
 
-                {{-- Dirección de Residuos --}}
                 @if($verResiduos)
                     <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-mint uppercase tracking-wider opacity-80">
                         Residuos Comerciales
@@ -337,8 +326,8 @@
         </nav>
     </div>
 
-    <!-- Footer / Soporte Técnico -->
-    <div class="p-3 border-t border-slate-800 space-y-1 shrink-0">
+    <!-- 3. Footer / Soporte Técnico (Fijo y anclado al fondo real del sidebar) -->
+    <div class="p-3 border-t border-slate-800 shrink-0 bg-slate-900">
         <a href="{{ $soporteRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all font-medium text-sm {{ $currentActive === 'soporte' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636l3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
             <span>Soporte Técnico</span>

@@ -13,7 +13,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('codigo_resolucion', 30)->unique();
             
-            $table->foreignUuid('solicitud_id')->constrained('solicitudes')->cascadeOnDelete();
+            $table->foreignUuid('solicitud_id')->nullable()->constrained('solicitudes')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete();
 

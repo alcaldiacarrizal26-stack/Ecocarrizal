@@ -202,26 +202,36 @@
         </div>
     </div>
 
-    <!-- Barra de Filtro -->
+    <!-- Barra de Filtro Adaptativa para Solicitudes -->
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <form method="GET" action="{{ route('director.ambiente.solicitudes') }}" class="flex items-center gap-3">
-            <label for="filtro_estado" class="text-xs font-semibold text-slate-500 whitespace-nowrap">Filtrar por estado:</label>
-            <select id="filtro_estado" name="estado" class="bg-white border border-slate-200 text-slate-800 text-xs rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 block p-2 font-medium cursor-pointer">
-                <option value="todos" {{ request('estado') == 'todos' || !request('estado') ? 'selected' : '' }}>Todos los estados</option>
-                <option value="incompleta" {{ request('estado') == 'incompleta' ? 'selected' : '' }}>Documentación incompleta</option>
-                <option value="pendiente" {{ request('estado') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                <option value="inspector_asignado" {{ request('estado') == 'inspector_asignado' ? 'selected' : '' }}>Inspector asignado</option>
-                <option value="en_inspeccion" {{ request('estado') == 'en_inspeccion' ? 'selected' : '' }}>En inspección</option>
-                <option value="aprobada" {{ request('estado') == 'aprobada' ? 'selected' : '' }}>Aprobada</option>
-                <option value="rechazada" {{ request('estado') == 'rechazada' ? 'selected' : '' }}>Rechazada</option>
-            </select>
+        <form method="GET" action="{{ route('director.ambiente.solicitudes') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div class="flex items-center justify-between sm:justify-start gap-2 flex-1">
+                <label for="filtro_estado" class="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Filtrar por estado:</label>
+                <select 
+                    id="filtro_estado" 
+                    name="estado" 
+                    class="bg-slate-50/50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 block p-2.5 font-medium cursor-pointer w-full sm:w-auto"
+                >
+                    <option value="todos" {{ request('estado') == 'todos' || !request('estado') ? 'selected' : '' }}>Todos los estados</option>
+                    <option value="incompleta" {{ request('estado') == 'incompleta' ? 'selected' : '' }}>Documentación incompleta</option>
+                    <option value="pendiente" {{ request('estado') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+                    <option value="inspector_asignado" {{ request('estado') == 'inspector_asignado' ? 'selected' : '' }}>Inspector asignado</option>
+                    <option value="en_inspeccion" {{ request('estado') == 'en_inspeccion' ? 'selected' : '' }}>En inspección</option>
+                    <option value="aprobada" {{ request('estado') == 'aprobada' ? 'selected' : '' }}>Aprobada</option>
+                    <option value="rechazada" {{ request('estado') == 'rechazada' ? 'selected' : '' }}>Rechazada</option>
+                </select>
+            </div>
 
-            <button type="submit" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-xl transition shadow-sm">
-                Filtrar
-            </button>
-            @if(request('estado') && request('estado') !== 'todos')
-                <a href="{{ route('director.ambiente.solicitudes') }}" class="text-xs text-slate-500 hover:text-slate-800 underline">Limpiar filtro</a>
-            @endif
+            <div class="flex items-center gap-2">
+                <button type="submit" class="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer text-center">
+                    Filtrar Resultados
+                </button>
+                @if(request('estado') && request('estado') !== 'todos')
+                    <a href="{{ route('director.ambiente.solicitudes') }}" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition text-center">
+                        Limpiar
+                    </a>
+                @endif
+            </div>
         </form>
     </div>
 
