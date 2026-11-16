@@ -61,7 +61,7 @@ class DenunciaController extends Controller
         $validated = $request->validate([
             'tipo_contaminacion'      => 'required|string',
             'otro_tipo_contaminacion' => 'nullable|required_if:tipo_contaminacion,Otro|string|max:100',
-            'comuna'                  => 'required|string',
+            'comuna'                  => 'required|string|exists:territorios,name', // <--- Añadido exists en BD
             'sector'                  => 'required|string',
             'punto_referencia'        => 'required|string|max:255',
             'nivel_gravedad'          => ['required', Rule::in(['baja', 'media', 'alta'])],
@@ -70,6 +70,17 @@ class DenunciaController extends Controller
             'evidencias'              => 'required|array|min:1|max:5',
             'evidencias.*'            => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
+
+        $sectorValido = TerritorioService::verificarExistencia(
+            $validated['comuna'], 
+            $validated['sector']
+        );
+
+        if (!$sectorValido) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'El sector seleccionado no pertenece a la comuna indicada.');
+        }
 
         $rutasEvidencias = [];
         if ($request->hasFile('evidencias')) {

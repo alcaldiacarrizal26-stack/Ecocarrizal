@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Ciudadano;
 use App\Http\Controllers\Controller;
 use App\Models\Solicitud;
 use App\Models\SolicitudRecaudo;
+use App\Models\RecaudoCatalogo;
 use App\Services\TerritorioService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,180 +19,44 @@ class SolicitudController extends Controller
 {
     private function getTiposTramitesConfig(): array
     {
-        return [
-            'inspeccion' => [
-                'nombre' => 'Solicitud de Inspección TÉCNICA',
-                'descripcion' => 'Evaluación e inspección en sitio por parte del personal técnico ambiental.',
-                'plazoDias' => 0,
-                'requisitosObligatorios' => [
-                    ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'PDF o imagen legible']
-                ],
-                'requisitosCondicionales' => [],
-                'requisitosOpcionales' => []
-            ],
-            'poda_deshierbe' => [
-                'nombre' => 'Solicitud de Permiso para Poda o Deshierbe',
-                'descripcion' => 'Autorización técnica para labores de mantenimiento, fitosanitarias o poda de formación de vegetación.',
-                'plazoDias' => 31,
-                'requisitosObligatorios' => [
-                    ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
-                    ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar motivos y ramas a intervenir']
-                ],
-                'requisitosCondicionales' => [
-                    [
-                        'key' => 'autorizacion_propietario', 
-                        'label' => 'Autorización del Propietario', 
-                        'hint' => 'Requerido si no eres el propietario directo del inmueble/terreno',
-                        'flag_check' => 'aplica_autorizacion_propietario'
-                    ],
-                    [
-                        'key' => 'variables_ambientales', 
-                        'label' => 'Variables Ambientales (MINEC)', 
-                        'hint' => 'Requerido si el terreno se encuentra en Zona Protectora o requiere afectación vegetal ante el MINEC',
-                        'flag_check' => 'aplica_variables_ambientales'
-                    ],
-                    [
-                        'key' => 'registro_mercantil', 
-                        'label' => 'Copia del Registro Mercantil', 
-                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
-                        'flag_check' => 'es_persona_juridica'
-                    ],
-                    [
-                        'key' => 'rif_empresa', 
-                        'label' => 'Copia del RIF Vigente de la Empresa', 
-                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
-                        'flag_check' => 'es_persona_juridica'
-                    ]
-                ],
-                'requisitosOpcionales' => [
-                    ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
-                    ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
-                    ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
-                    ['key' => 'constancia_catastral', 'label' => 'Constancia Catastral Vigente', 'hint' => 'Catastro municipal']
+        // Carga los trámites y sus recaudos directamente desde la BD en formato compatible con las vistas
+        return \App\Models\TipoTramite::with('recaudos')->get()->mapWithKeys(function ($tramite) {
+            return [
+                $tramite->slug => [
+                    'nombre' => $tramite->nombre,
+                    'descripcion' => $tramite->descripcion,
+                    'plazoDias' => $tramite->plazo_dias,
+                    'requisitosObligatorios' => $tramite->recaudos->where('tipo_requisito', 'obligatorio')->values()->toArray(),
+                    'requisitosCondicionales' => $tramite->recaudos->where('tipo_requisito', 'condicional')->values()->toArray(),
+                    'requisitosOpcionales' => $tramite->recaudos->where('tipo_requisito', 'opcional')->values()->toArray(),
                 ]
-            ],
-            'tala' => [
-                'nombre' => 'Solicitud de Permiso para Tala de Árboles',
-                'descripcion' => 'Autorización técnica para el derribo/remoción de ejemplares arbóreos por riesgo, infraestructura o enfermedad.',
-                'plazoDias' => 31,
-                'requisitosObligatorios' => [
-                    ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
-                    ['key' => 'carta_explicativa', 'label' => 'Carta Justificativa de Tala', 'hint' => 'Detallar motivos de riesgo, daño a infraestructura o estado fitosanitario del árbol'],
-                    ['key' => 'carta_compromiso', 'label' => 'Carta de Compromiso de Compensación Ambiental', 'hint' => 'Compromiso firmado para la donación o reforestación de ejemplares']
-                ],
-                'requisitosCondicionales' => [
-                    [
-                        'key' => 'autorizacion_propietario', 
-                        'label' => 'Autorización del Propietario', 
-                        'hint' => 'Requerido si no eres el propietario directo del inmueble/terreno',
-                        'flag_check' => 'aplica_autorizacion_propietario'
-                    ],
-                    [
-                        'key' => 'variables_ambientales', 
-                        'label' => 'Variables Ambientales (MINEC)', 
-                        'hint' => 'Requerido si el terreno se encuentra en Zona Protectora o de resguardo hídrico',
-                        'flag_check' => 'aplica_variables_ambientales'
-                    ],
-                    [
-                        'key' => 'registro_mercantil', 
-                        'label' => 'Copia del Registro Mercantil', 
-                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
-                        'flag_check' => 'es_persona_juridica'
-                    ],
-                    [
-                        'key' => 'rif_empresa', 
-                        'label' => 'Copia del RIF Vigente de la Empresa', 
-                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
-                        'flag_check' => 'es_persona_juridica'
-                    ]
-                ],
-                'requisitosOpcionales' => [
-                    ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
-                    ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
-                    ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
-                    ['key' => 'constancia_catastral', 'label' => 'Constancia Catastral Vigente', 'hint' => 'Catastro municipal']
-                ]
-            ],
-            'desmalezamiento_conformacion' => [
-                'nombre' => 'Permiso de Desmalezamiento y Conformación de Terreno',
-                'descripcion' => 'Permisos para trabajos de limpieza profunda, acondicionamiento y movimiento menor de suelos.',
-                'plazoDias' => 31,
-                'requisitosObligatorios' => [
-                    ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
-                    ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar intervención de suelo']
-                ],
-                'requisitosCondicionales' => [
-                    [
-                        'key' => 'autorizacion_propietario', 
-                        'label' => 'Autorización del Propietario', 
-                        'hint' => 'Requerido si no eres el propietario directo del inmueble/terreno',
-                        'flag_check' => 'aplica_autorizacion_propietario'
-                    ],
-                    [
-                        'key' => 'variables_ambientales', 
-                        'label' => 'Variables Ambientales (MINEC)', 
-                        'hint' => 'Requerido si el terreno se encuentra en Zona Protectora o requiere afectación vegetal ante el MINEC',
-                        'flag_check' => 'aplica_variables_ambientales'
-                    ],
-                    [
-                        'key' => 'registro_mercantil', 
-                        'label' => 'Copia del Registro Mercantil', 
-                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
-                        'flag_check' => 'es_persona_juridica'
-                    ],
-                    [
-                        'key' => 'rif_empresa', 
-                        'label' => 'Copia del RIF Vigente de la Empresa', 
-                        'hint' => 'Requerido para Personas Jurídicas / Empresas',
-                        'flag_check' => 'es_persona_juridica'
-                    ]
-                ],
-                'requisitosOpcionales' => [
-                    ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
-                    ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
-                    ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
-                    ['key' => 'constancia_catastral', 'label' => 'Constancia Catastral Vigente', 'hint' => 'Catastro municipal'],
-                    ['key' => 'carta_compromiso', 'label' => 'Carta de Compromiso de Reposición', 'hint' => 'En caso de afectación a bienes públicos']
-                ]
-            ]
-        ];
+            ];
+        })->toArray();
     }
 
     private function getKeysEsperadasParaSolicitud(string $tipoTramite, array $datosEspecificos): array
     {
-        $configTramites = $this->getTiposTramitesConfig();
-        $configActual = $configTramites[$tipoTramite] ?? null;
-        if (!$configActual) {
-            return [];
-        }
+        $query = RecaudoCatalogo::where('tipo_tramite', $tipoTramite);
 
-        $keys = [];
+        // Filtrar según condiciones activas del trámite
+        $keysObligatoriasYOpcionales = RecaudoCatalogo::where('tipo_tramite', $tipoTramite)
+            ->whereIn('tipo_requisito', ['obligatorio', 'opcional'])
+            ->pluck('key')
+            ->toArray();
 
-        // 1. Obligatorios
-        foreach ($configActual['requisitosObligatorios'] as $req) {
-            $keys[] = $req['key'];
-        }
-
-        // 2. Condicionales activos
+        $keysCondicionales = [];
         if (!empty($datosEspecificos['aplica_autorizacion_propietario'])) {
-            $keys[] = 'autorizacion_propietario';
+            $keysCondicionales[] = 'autorizacion_propietario';
         }
         if (!empty($datosEspecificos['aplica_variables_ambientales'])) {
-            $keys[] = 'variables_ambientales';
+            $keysCondicionales[] = 'variables_ambientales';
         }
         if (!empty($datosEspecificos['es_persona_juridica'])) {
-            $keys[] = 'registro_mercantil';
-            $keys[] = 'rif_empresa';
+            $keysCondicionales[] = 'registro_mercantil';
+            $keysCondicionales[] = 'rif_empresa';
         }
 
-        // 3. Opcionales / Documentos Complementarios
-        if (!empty($configActual['requisitosOpcionales'])) {
-            foreach ($configActual['requisitosOpcionales'] as $req) {
-                $keys[] = $req['key'];
-            }
-        }
-
-        return array_unique($keys);
+        return array_unique(array_merge($keysObligatoriasYOpcionales, $keysCondicionales));
     }
 
     public function index()
@@ -218,24 +83,12 @@ class SolicitudController extends Controller
 
             return redirect()->back()
                 ->withInput()
-                ->with('error', "Has superado el límite de solicitudes permitidas. Por favor, espera {$minutes} minuto(s) antes de intentar registrar un nuevo trámite.");
-        }
-
-        $duplicateExists = Solicitud::where('user_id', $userId)
-            ->where('tipo_tramite', $request->input('tipo_tramite'))
-            ->where('motivo_descripcion', $request->input('motivo_solicitud'))
-            ->where('created_at', '>=', now()->subSeconds(60))
-            ->exists();
-
-        if ($duplicateExists) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Ya has enviado una solicitud con estas especificaciones recientemente. Revisa tu lista de trámites.');
+                ->with('error', "Has superado el límite de solicitudes permitidas. Por favor, espera {$minutes} minuto(s).");
         }
 
         $validated = $request->validate([
             'tipo_tramite'                     => 'required|string|in:inspeccion,poda_deshierbe,desmalezamiento_conformacion,tala',
-            'comuna'                           => 'required|string',
+            'comuna'                           => 'required|string|exists:territorios,name',
             'sector'                           => 'required|string',
             'direccion_exacta'                 => 'required|string|max:500',
             'motivo_solicitud'                 => 'required|string|max:1000',
@@ -245,6 +98,13 @@ class SolicitudController extends Controller
             'documentos'                       => 'nullable|array',
             'documentos.*'                     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
+
+        // Validación cruzada estricta mediante el Service
+        if (!TerritorioService::verificarExistencia($validated['comuna'], $validated['sector'])) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'El sector seleccionado no pertenece a la comuna indicada.');
+        }
 
         DB::transaction(function () use ($request, $validated, $userId) {
             $yearActual = Carbon::now()->year;
@@ -279,13 +139,8 @@ class SolicitudController extends Controller
 
             $faltantes = array_diff($keysEsperadas, $keysSubidas);
 
-            if (count($faltantes) > 0 && $plazoDias > 0) {
-                $estadoFinal = 'incompleta';
-                $fechaLimite = Carbon::now()->addDays($plazoDias);
-            } else {
-                $estadoFinal = 'pendiente';
-                $fechaLimite = null;
-            }
+            $estadoFinal = (count($faltantes) > 0 && $plazoDias > 0) ? 'incompleta' : 'pendiente';
+            $fechaLimite = (count($faltantes) > 0 && $plazoDias > 0) ? Carbon::now()->addDays($plazoDias) : null;
 
             $solicitud = Solicitud::create([
                 'id'                      => (string) Str::uuid(),
@@ -307,10 +162,16 @@ class SolicitudController extends Controller
                     $path = $file->store("solicitudes/{$solicitud->id}", 'public');
                     $extension = strtolower($file->getClientOriginalExtension());
 
+                    // Obtener la etiqueta oficial desde el catálogo de la BD
+                    $recaudoCatalogo = RecaudoCatalogo::where('tipo_tramite', $validated['tipo_tramite'])
+                        ->where('key', $key)
+                        ->first();
+
                     SolicitudRecaudo::create([
                         'id'                       => (string) Str::uuid(),
                         'solicitud_id'             => $solicitud->id,
                         'tipo_recaudo'             => $key,
+                        'valor'                    => $recaudoCatalogo->label ?? ucwords(str_replace('_', ' ', $key)),
                         'nombre_archivo'           => $file->getClientOriginalName(),
                         'bucket_path'              => $path,
                         'archivo_url'              => Storage::url($path),
@@ -337,7 +198,7 @@ class SolicitudController extends Controller
             $solicitud->save();
 
             return redirect()->route('ciudadano.solicitudes')
-                ->with('error', 'El plazo límite para consignar la documentación de este expediente ha expirado. La solicitud ha sido cancelada y debes crear una nueva.');
+                ->with('error', 'El plazo límite para consignar la documentación ha expirado.');
         }
 
         $request->validate([
@@ -352,6 +213,10 @@ class SolicitudController extends Controller
                         $path = $file->store("solicitudes/{$solicitud->id}", 'public');
                         $extension = strtolower($file->getClientOriginalExtension());
 
+                        $recaudoCatalogo = RecaudoCatalogo::where('tipo_tramite', $solicitud->tipo_tramite)
+                            ->where('key', $key)
+                            ->first();
+
                         SolicitudRecaudo::updateOrCreate(
                             [
                                 'solicitud_id' => $solicitud->id,
@@ -359,6 +224,7 @@ class SolicitudController extends Controller
                             ],
                             [
                                 'id'                       => (string) Str::uuid(),
+                                'valor'                    => $recaudoCatalogo->label ?? ucwords(str_replace('_', ' ', $key)),
                                 'nombre_archivo'           => $file->getClientOriginalName(),
                                 'bucket_path'              => $path,
                                 'archivo_url'              => Storage::url($path),
@@ -380,46 +246,26 @@ class SolicitudController extends Controller
             $consignados = $solicitud->recaudos->pluck('tipo_recaudo')->toArray();
             $faltantes = array_diff($keysEsperadas, $consignados);
 
-            // SI YA NO QUEDAN FALTANTES, pasa a 'pendiente' y notifica al Director de Ambiente
             if (count($faltantes) === 0) {
                 $solicitud->estado = 'pendiente';
                 $solicitud->fecha_limite_documentos = null;
                 $solicitud->save();
-
-                // DISPARAR NOTIFICACIÓN GERENCIAL AL DIRECTOR DE AMBIENTE
-                $directoresAmbiente = \App\Models\User::whereHas('role', function ($q) {
-                    $q->whereIn('nombre', ['admin', 'director', 'director_ambiente']);
-                })->get();
-
-                foreach ($directoresAmbiente as $dir) {
-                    \App\Models\Notificacion::create([
-                        'user_id'  => $dir->id,
-                        'titulo'   => 'Documentación Completa de Solicitud',
-                        'mensaje'  => "El expediente {$solicitud->codigo_expediente} ha completado sus recaudos pendientes y está listo para revisión.",
-                        'tipo'     => 'info',
-                        'link_url' => route('director.ambiente.solicitudes'),
-                    ]);
-                }
             }
         });
 
         return redirect()
             ->route('ciudadano.solicitudes')
-            ->with('success', 'Documentos adjuntados exitosamente. El expediente ha sido actualizado y enviado a revisión.');
+            ->with('success', 'Documentos adjuntados exitosamente.');
     }
 
-    /**
-     * Generar Comprobante Oficial de Solicitud en PDF.
-     */
     public function descargarComprobante($id)
     {
-        $solicitud = Solicitud::with(['usuario', 'recaudos', 'inspector.user']) // <--- Cambiado de 'user' a 'usuario'
+        $solicitud = Solicitud::with(['usuario', 'recaudos', 'inspector.user'])
             ->where('user_id', auth()->id())
             ->findOrFail($id);
 
-        // Bloqueo: Solo se puede generar si NO está en estatus 'incompleta'
         if ($solicitud->estado === 'incompleta') {
-            return redirect()->back()->with('error', 'No se puede generar el documento oficial mientras la solicitud tenga recaudos pendientes.');
+            return redirect()->back()->with('error', 'No se puede generar el documento mientras tenga recaudos pendientes.');
         }
 
         $urlVerificacion = route('validar.expediente', ['codigo' => $solicitud->codigo_expediente]);

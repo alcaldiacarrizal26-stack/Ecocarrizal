@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\Sancion;
 use App\Models\PerfilAmbiental;
 use App\Models\DocumentoExpediente;
+use App\Services\TerritorioService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -60,8 +61,11 @@ class EmpresaController extends Controller
             return redirect()->route('ciudadano.empresas');
         }
 
-        // Si está observada o rechazada, se pasa a la vista para corregir con toda su data
-        return view('ciudadano.empresa.crear', compact('empresa'));
+        // Obtener el catálogo dinámico de requisitos de empresas
+        $requisitosCatalogo = \App\Models\RequisitoEmpresaCatalogo::all();
+
+        // Si está observada o rechazada, se pasa a la vista con toda su data y el catálogo
+        return view('ciudadano.empresa.crear', compact('empresa', 'requisitosCatalogo'));
     }
 
     /**
@@ -110,7 +114,7 @@ class EmpresaController extends Controller
             'numero_cuenta_patente' => 'required|string',
             'correo_comercial'      => 'required|email',
             'telefono_comercial'    => 'required|string',
-            'comuna'                => 'required|string',
+            'comuna'                => 'required|string|exists:territorios,name', // <--- Añadido exists en BD
             'sector'                => 'required|string',
             'calle_avenida'         => 'required|string',
             'edificio_galpon_local' => 'required|string',
@@ -122,6 +126,16 @@ class EmpresaController extends Controller
             'fechas_vencimiento.*'  => 'nullable|date',
             'es_vitalicio'          => 'nullable|array',
         ]);
+
+        // Validación cruzada estricta: verificar que el sector pertenezca a la comuna indicada
+        if (!\App\Services\TerritorioService::verificarExistencia($request->input('comuna'), $request->input('sector'))) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'El sector seleccionado no pertenece a la comuna indicada.'], 422);
+            }
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'El sector seleccionado no pertenece a la comuna indicada.');
+        }
 
         // BLINDAJE CONTRA RACE CONDITION: Candado atómico por 5 segundos para el registro/actualización de empresas
         $lockKey = 'empresa_store_lock_' . $user;
@@ -232,17 +246,6 @@ class EmpresaController extends Controller
                 }
 
                 if ($request->hasFile('documentos')) {
-                    $nombresRequisitos = [
-                        'doc_renma'           => 'Registro RENMA',
-                        'doc_no_objecion'     => 'Constancia de No Objeción Ambiental',
-                        'doc_racda'           => 'Registro RACDA',
-                        'doc_poliza'          => 'Póliza de Seguro de Responsabilidad Ambiental',
-                        'doc_efluentes'       => 'Caracterización de Efluentes Líquidos',
-                        'doc_emisiones'       => 'Caracterización de Emisiones Atmosféricas',
-                        'doc_plan_desechos'   => 'Plan de Manejo de Desechos y Residuos Sólidos',
-                        'doc_plan_emergencia' => 'Plan de Emergencia y Contingencia Ambiental',
-                    ];
-
                     $fechasEmision     = $request->input('fechas_emision', []);
                     $fechasVencimiento = $request->input('fechas_vencimiento', []);
                     $esVitalicio       = $request->input('es_vitalicio', []);
@@ -253,15 +256,19 @@ class EmpresaController extends Controller
 
                             $vitalicio = filter_var($esVitalicio[$codigoRequisito] ?? false, FILTER_VALIDATE_BOOLEAN);
 
+                            // Consultar el nombre oficial desde el catálogo en la BD
+                            $catalogoRequisito = \App\Models\RequisitoEmpresaCatalogo::where('codigo', strtoupper($codigoRequisito))->first();
+                            $nombreRequisitoOficial = $catalogoRequisito ? $catalogoRequisito->nombre : 'Documento Adjunto';
+
                             $empresa->documentosExpediente()->updateOrCreate(
                                 ['codigo_requisito' => strtoupper($codigoRequisito)],
                                 [
-                                    'nombre_requisito'  => $nombresRequisitos[$codigoRequisito] ?? 'Documento Adjunto',
+                                    'nombre_requisito'  => $nombreRequisitoOficial,
                                     'archivo_path'      => $path,
                                     'fecha_emision'     => $fechasEmision[$codigoRequisito] ?? null,
                                     'fecha_vencimiento' => $vitalicio ? null : ($fechasVencimiento[$codigoRequisito] ?? null),
                                     'es_vitalicio'      => $vitalicio,
-                                    'estado_revision'   => 'VALIDO',
+                                    'estado_revision'   => 'PENDIENTE',
                                 ]
                             );
                         }

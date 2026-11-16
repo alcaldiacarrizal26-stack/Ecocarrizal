@@ -22,6 +22,7 @@ class SolicitudRecaudo extends Model
     protected $fillable = [
         'solicitud_id',
         'tipo_recaudo',
+        'valor',
         'nombre_archivo',
         'bucket_path',
         'archivo_url',
