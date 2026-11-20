@@ -4,104 +4,27 @@
     <meta charset="UTF-8">
     <title>Informe Ejecutivo - Poder Popular</title>
     <style>
-        @page {
-            size: auto;
-            margin: 0mm;
-        }
-
-        body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #1e293b;
-            line-height: 1.4;
-            font-size: 11px;
-            margin: 0;
-            padding: 12mm 15mm;
-            background-color: #ffffff;
-        }
-
-        /* Encabezado Institucional Carrizal */
-        .header {
-            border-left: 6px solid #059669;
-            padding-left: 14px;
-            margin-bottom: 16px;
-        }
-        .header .sub-badge {
-            font-size: 9px;
-            font-weight: bold;
-            color: #047857;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            background-color: #ecfdf5;
-            padding: 3px 8px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 4px;
-        }
-        .header h1 {
-            font-size: 16px;
-            color: #0f172a;
-            margin: 2px 0;
-            text-transform: uppercase;
-            font-weight: 800;
-        }
-        .header p {
-            font-size: 10px;
-            color: #64748b;
-            margin: 0;
-        }
-
-        .section-title {
-            font-size: 11px;
-            font-weight: bold;
-            color: #0f172a;
-            margin-top: 14px;
-            margin-bottom: 8px;
-            border-bottom: 2px solid #059669;
-            padding-bottom: 3px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .comuna-group {
-            margin-bottom: 10px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-        .comuna-header {
-            background-color: #f1f5f9;
-            padding: 6px 10px;
-            font-weight: bold;
-            color: #0f172a;
-            font-size: 10px;
-            text-transform: uppercase;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .footer {
-            margin-top: 15px;
-            text-align: center;
-            font-size: 8px;
-            color: #94a3b8;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 6px;
-        }
-
-        @media print {
-            .no-print { display: none !important; }
-        }
+        @page { size: auto; margin: 0mm; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.4; font-size: 11px; margin: 0; padding: 12mm 15mm; background-color: #ffffff; }
+        .header { border-left: 6px solid #059669; padding-left: 14px; margin-bottom: 16px; }
+        .header .sub-badge { font-size: 9px; font-weight: bold; color: #047857; text-transform: uppercase; letter-spacing: 0.8px; background-color: #ecfdf5; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
+        .header h1 { font-size: 16px; color: #0f172a; margin: 2px 0; text-transform: uppercase; font-weight: 800; }
+        .header p { font-size: 10px; color: #64748b; margin: 0; }
+        .section-title { font-size: 11px; font-weight: bold; color: #0f172a; margin-top: 14px; margin-bottom: 8px; border-bottom: 2px solid #059669; padding-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .comuna-group { margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+        .comuna-header { background-color: #f1f5f9; padding: 6px 10px; font-weight: bold; color: #0f172a; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+        .footer { margin-top: 15px; text-align: center; font-size: 8px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 6px; }
+        @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body>
 
-    <!-- Botón de respaldo manual -->
     <div class="no-print" style="margin-bottom: 12px; text-align: right;">
         <button onclick="window.print()" style="padding: 6px 12px; background-color: #0f172a; color: #ffffff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 10px;">
             🖨️ Imprimir / Guardar como PDF
         </button>
     </div>
 
-    <!-- Encabezado Institucional Dinámico -->
     <div class="header">
         <span class="sub-badge">Alcaldía del Municipio Carrizal • Despacho de la Alcaldesa</span>
         <h1>Informe Ejecutivo: Priorización del Poder Popular</h1>
@@ -111,8 +34,9 @@
     @php
         $totalReg = $registrosGenerales->count();
         $resueltos = $registrosGenerales->filter(function($item) use ($tipoRegistro) {
-            $estatusCampo = $tipoRegistro === 'solicitud' ? ($item->estado ?? '') : ($item->estatus ?? '');
-            return in_array(strtolower($estatusCampo), ['cerrado', 'aprobado', 'resuelto', 'completado']);
+            // CORREGIDO: Ambos usan 'estado' ahora
+            $estatusCampo = $item->estado ?? '';
+            return in_array(strtoupper($estatusCampo), ['CERRADO', 'APROBADO', 'RESUELTO', 'COMPLETADO', 'ATENDIDO']);
         })->count();
         $sinResolver = $totalReg - $resueltos;
 
@@ -135,22 +59,15 @@
         $maxMotivo = $motivosPrincipales->max('total') ?: 1;
     @endphp
 
-    <!-- BLOQUE METRICAS PRINCIPALES: Dos Gráficas Circulares Idénticas y Simétricas -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
         <tr>
-            <!-- 1. TARJETA ESTATUS DE REGISTROS -->
             <td width="49%" valign="top" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background-color: #f8fafc;">
-                <div style="font-size: 10px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 8px;">
-                    ESTATUS DE REGISTROS
-                </div>
-                
+                <div style="font-size: 10px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 8px;">ESTATUS DE REGISTROS</div>
                 <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                         <td width="40%" align="center" valign="middle">
                             <img src="{{ $chartEstatusUrl }}" width="70" height="70" style="display: block; margin: 0 auto;" alt="Estatus" />
-                            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 3px;">
-                                TOTAL: {{ $totalReg }}
-                            </div>
+                            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 3px;">TOTAL: {{ $totalReg }}</div>
                         </td>
                         <td width="60%" valign="middle" style="padding-left: 8px; font-size: 9px; line-height: 1.6;">
                             <div style="margin-bottom: 6px;">
@@ -165,24 +82,17 @@
                     </tr>
                 </table>
             </td>
-
-            <td width="2%"></td> <!-- Espaciador -->
-
-            <!-- 2. TARJETA GRAVEDAD O VEREDICTOS -->
+            <td width="2%"></td>
             <td width="49%" valign="top" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background-color: #f8fafc;">
                 <div style="font-size: 10px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 8px;">
                     {{ $tipoRegistro === 'solicitud' ? 'Veredictos de Inspección' : 'Niveles de Gravedad' }}
                 </div>
-
                 <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                         <td width="40%" align="center" valign="middle">
                             <img src="{{ $tipoRegistro === 'solicitud' ? $chartDictamenUrl : $chartGravedadUrl }}" width="70" height="70" style="display: block; margin: 0 auto;" alt="Métrica 2" />
-                            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 3px;">
-                                TOTAL: {{ $totalReg }}
-                            </div>
+                            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 3px;">TOTAL: {{ $totalReg }}</div>
                         </td>
-                        
                         <td width="60%" valign="middle" style="padding-left: 8px; font-size: 8px; line-height: 1.4;">
                             @if($tipoRegistro === 'denuncia')
                                 <div style="margin-bottom: 4px;"><span style="color: #dc2626; font-size: 11px;">■</span> <strong>Alta:</strong> {{ $gravedadAlta }} ({{ $pctAlta }}%)</div>
@@ -201,7 +111,6 @@
         </tr>
     </table>
 
-    <!-- Bloque 1: Priorización por Comunas y Sectores -->
     <div class="section-title">1. Priorización de Comunas y Sectores con Mayor Incidencia</div>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
         <thead>
@@ -224,7 +133,6 @@
         </tbody>
     </table>
 
-    <!-- Bloque 2: Distribución Gráfica por Principales Motivos o Tipos de Trámite -->
     <div class="section-title">2. Distribución Gráfica por Principales {{ $tipoRegistro === 'solicitud' ? 'Tipos de Trámite' : 'Motivos' }}</div>
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;">
         @foreach($motivosPrincipales as $motivo)
@@ -232,13 +140,8 @@
                 $porcentajeMotivo = max(round(($motivo->total / $maxMotivo) * 100), 5);
                 $nombreMotivo = $motivo->motivo;
                 if($tipoRegistro === 'solicitud') {
-                    $nombresTramites = [
-                        'inspeccion' => 'Inspección Técnica',
-                        'poda_deshierbe' => 'Poda o Deshierbe',
-                        'tala' => 'Tala de Árboles',
-                        'desmalezamiento_conformacion' => 'Desmalezamiento y Conformación'
-                    ];
-                    $nombreMotivo = $nombresTramites[$motivo->motivo] ?? ucfirst($motivo->motivo);
+                    // Ya viene procesado desde el controlador si es relación
+                    $nombreMotivo = ucfirst($motivo->motivo);
                 } else {
                     $nombreMotivo = ucfirst($motivo->motivo);
                 }
@@ -255,7 +158,6 @@
         @endforeach
     </div>
 
-    <!-- Bloque 3: Consolidado Territorial Agrupado -->
     <div class="section-title">3. Consolidado Territorial por Comunas y Sectores</div>
     
     @php
@@ -278,22 +180,19 @@
 
             @foreach($agrupadoPorSector as $sectorNombre => $registrosSector)
                 @php
+                    // CORREGIDO: Usar tipoTramite->nombre para solicitudes
                     $motivosEnSector = $registrosSector->countBy(function($item) use ($tipoRegistro) {
-                        $campoMotivo = $tipoRegistro === 'solicitud' ? $item->tipo_tramite : $item->tipo_contaminacion;
+                        $campoMotivo = $tipoRegistro === 'solicitud' ? ($item->tipoTramite->nombre ?? 'Trámite') : $item->tipo_contaminacion;
                         return ucfirst($campoMotivo);
                     });
                     
-                    $resumenMotivosString = $motivosEnSector->map(function($count, $motivo) use ($tipoRegistro) {
-                        if($tipoRegistro === 'solicitud') {
-                            $mapa = ['Inspeccion' => 'Inspección', 'Poda_deshierbe' => 'Poda', 'Tala' => 'Tala', 'Desmalezamiento_conformacion' => 'Desmalezamiento'];
-                            $motivo = $mapa[$motivo] ?? $motivo;
-                        }
+                    $resumenMotivosString = $motivosEnSector->map(function($count, $motivo) {
                         return "{$count} {$motivo}";
                     })->implode(' • ');
 
-                    $gAlta = $registrosSector->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'alta')->count();
-                    $gMedia = $registrosSector->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'media')->count();
-                    $gBaja = $registrosSector->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'baja')->count();
+                    $gAlta = $registrosSector->filter(fn($i) => strtoupper($i->nivel_gravedad ?? '') === 'ALTA')->count();
+                    $gMedia = $registrosSector->filter(fn($i) => strtoupper($i->nivel_gravedad ?? '') === 'MEDIA')->count();
+                    $gBaja = $registrosSector->filter(fn($i) => strtoupper($i->nivel_gravedad ?? '') === 'BAJA')->count();
                 @endphp
                 <div style="padding: 6px 10px; border-bottom: 1px solid #f1f5f9; font-size: 10px;">
                     <strong>Sector: {{ $sectorNombre }}</strong> 

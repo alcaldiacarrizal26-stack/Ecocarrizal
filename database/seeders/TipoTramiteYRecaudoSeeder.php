@@ -16,7 +16,7 @@ class TipoTramiteYRecaudoSeeder extends Seeder
                 'descripcion' => 'Evaluación e inspección en sitio por parte del personal técnico ambiental.',
                 'plazo_dias' => 0,
                 'recaudos' => [
-                    'obligatorios' => [
+                    'OBLIGATORIO' => [
                         ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'PDF o imagen legible']
                     ]
                 ]
@@ -26,17 +26,17 @@ class TipoTramiteYRecaudoSeeder extends Seeder
                 'descripcion' => 'Autorización técnica para labores de mantenimiento, fitosanitarias o poda de formación de vegetación.',
                 'plazo_dias' => 31,
                 'recaudos' => [
-                    'obligatorios' => [
+                    'OBLIGATORIO' => [
                         ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
                         ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar motivos y ramas a intervenir']
                     ],
-                    'condicionales' => [
+                    'CONDICIONAL' => [
                         ['key' => 'autorizacion_propietario', 'label' => 'Autorización del Propietario', 'hint' => 'Requerido si no eres el propietario directo'],
                         ['key' => 'variables_ambientales', 'label' => 'Variables Ambientales (MINEC)', 'hint' => 'Requerido si se encuentra en Zona Protectora'],
                         ['key' => 'registro_mercantil', 'label' => 'Copia del Registro Mercantil', 'hint' => 'Requerido para Personas Jurídicas'],
                         ['key' => 'rif_empresa', 'label' => 'Copia del RIF Vigente de la Empresa', 'hint' => 'Requerido para Personas Jurídicas']
                     ],
-                    'opcionales' => [
+                    'OPCIONAL' => [
                         ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                         ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                         ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
@@ -49,18 +49,18 @@ class TipoTramiteYRecaudoSeeder extends Seeder
                 'descripcion' => 'Autorización técnica para el derribo/remoción de ejemplares arbóreos por riesgo, infraestructura o enfermedad.',
                 'plazo_dias' => 31,
                 'recaudos' => [
-                    'obligatorios' => [
+                    'OBLIGATORIO' => [
                         ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
                         ['key' => 'carta_explicativa', 'label' => 'Carta Justificativa de Tala', 'hint' => 'Detallar motivos de riesgo o daño'],
                         ['key' => 'carta_compromiso', 'label' => 'Carta de Compromiso de Compensación Ambiental', 'hint' => 'Compromiso firmado para reforestación']
                     ],
-                    'condicionales' => [
+                    'CONDICIONAL' => [
                         ['key' => 'autorizacion_propietario', 'label' => 'Autorización del Propietario', 'hint' => 'Requerido si no eres el propietario'],
                         ['key' => 'variables_ambientales', 'label' => 'Variables Ambientales (MINEC)', 'hint' => 'Requerido en Zona Protectora'],
                         ['key' => 'registro_mercantil', 'label' => 'Copia del Registro Mercantil', 'hint' => 'Requerido para Personas Jurídicas'],
                         ['key' => 'rif_empresa', 'label' => 'Copia del RIF Vigente de la Empresa', 'hint' => 'Requerido para Personas Jurídicas']
                     ],
-                    'opcionales' => [
+                    'OPCIONAL' => [
                         ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                         ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                         ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
@@ -73,17 +73,17 @@ class TipoTramiteYRecaudoSeeder extends Seeder
                 'descripcion' => 'Permisos para trabajos de limpieza profunda, acondicionamiento y movimiento menor de suelos.',
                 'plazo_dias' => 31,
                 'recaudos' => [
-                    'obligatorios' => [
+                    'OBLIGATORIO' => [
                         ['key' => 'cedula', 'label' => 'Copia de la Cédula de Identidad', 'hint' => 'Requisito inicial obligatorio'],
                         ['key' => 'carta_explicativa', 'label' => 'Carta Explicativa del Trabajo a Realizar', 'hint' => 'Detallar intervención de suelo']
                     ],
-                    'condicionales' => [
+                    'CONDICIONAL' => [
                         ['key' => 'autorizacion_propietario', 'label' => 'Autorización del Propietario', 'hint' => 'Requerido si no eres el propietario'],
                         ['key' => 'variables_ambientales', 'label' => 'Variables Ambientales (MINEC)', 'hint' => 'Requerido en Zona Protectora'],
                         ['key' => 'registro_mercantil', 'label' => 'Copia del Registro Mercantil', 'hint' => 'Requerido para Personas Jurídicas'],
                         ['key' => 'rif_empresa', 'label' => 'Copia del RIF Vigente de la Empresa', 'hint' => 'Requerido para Personas Jurídicas']
                     ],
-                    'opcionales' => [
+                    'OPCIONAL' => [
                         ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                         ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                         ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
@@ -101,16 +101,21 @@ class TipoTramiteYRecaudoSeeder extends Seeder
                     'nombre' => $info['nombre'],
                     'descripcion' => $info['descripcion'],
                     'plazo_dias' => $info['plazo_dias'],
+                    'activo' => true, // Asegúrate de tener esta columna en la migración
                 ]
             );
 
             foreach ($info['recaudos'] as $tipoRequisito => $requisitos) {
                 foreach ($requisitos as $req) {
                     RecaudoCatalogo::updateOrInsert(
-                        ['tipo_tramite' => $tipoTramite->slug, 'key' => $req['key']],
+                        [
+                            'tipo_tramite_id' => $tipoTramite->id, // <-- AQUÍ EL CAMBIO (ID en vez de slug)
+                            'key' => $req['key']
+                        ],
                         [
                             'label' => $req['label'],
-                            'tipo_requisito' => rtrim($tipoRequisito, 's'),
+                            'tipo_requisito' => $tipoRequisito, // Ya viene en mayúsculas ('OBLIGATORIO', etc.)
+                            'tipo_documento' => 'FORMAL', // <-- Nuevo campo del catálogo
                             'hint' => $req['hint'] ?? null,
                             'updated_at' => now(),
                             'created_at' => now(),

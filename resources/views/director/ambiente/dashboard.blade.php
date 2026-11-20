@@ -86,8 +86,8 @@
                     @forelse($denunciasUrgentes ?? [] as $denuncia)
                         <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                             <div>
-                                <h4 class="text-xs font-bold text-slate-900">{{ $denuncia->codigo }} - {{ $denuncia->tipo_contaminacion }}</h4>
-                                <p class="text-[11px] text-slate-500 truncate max-w-[250px]">{{ $denuncia->sector }} · {{ $denuncia->created_at->diffForHumans() }}</p>
+                                <h4 class="text-xs font-bold text-slate-900">{{ $denuncia->codigo_denuncia }} - {{ $denuncia->tipo_contaminacion }}</h4>
+                                <p class="text-[11px] text-slate-500 truncate max-w-[250px]">{{ $denuncia->sector }} · {{ $denuncia->created_at?->diffForHumans() }}</p>
                             </div>
                             <a href="{{ route('director.ambiente.denuncias.show', $denuncia->id) }}" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg transition-all">
                                 Atender
@@ -110,10 +110,13 @@
                 </div>
                 <div class="space-y-3">
                     @forelse($solicitudesAntiguas ?? [] as $solicitud)
+                        @php
+                            $nombreTramite = $solicitud->tipoTramite->nombre ?? str_replace('_', ' ', $solicitud->tipo_tramite ?? 'Trámite');
+                        @endphp
                         <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                             <div>
-                                <h4 class="text-xs font-bold text-slate-900">{{ $solicitud->codigo_expediente }} · <span class="capitalize font-normal">{{ str_replace('_', ' ', $solicitud->tipo_tramite) }}</span></h4>
-                                <p class="text-[11px] text-slate-500">{{ $solicitud->sector }} · Espera: <span class="text-amber-600 font-semibold">{{ $solicitud->created_at->diffForHumans() }}</span></p>
+                                <h4 class="text-xs font-bold text-slate-900">{{ $solicitud->codigo_solicitud }} · <span class="font-normal">{{ $nombreTramite }}</span></h4>
+                                <p class="text-[11px] text-slate-500">{{ $solicitud->sector }} · Espera: <span class="text-amber-600 font-semibold">{{ $solicitud->created_at?->diffForHumans() }}</span></p>
                             </div>
                             <a href="{{ route('director.ambiente.solicitudes.show', $solicitud->id) }}" class="px-3 py-1 bg-slate-200 hover:bg-emerald-600 hover:text-white text-slate-700 text-xs font-semibold rounded-lg transition-all">
                                 Revisar
@@ -188,15 +191,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Ajuste del color de las etiquetas de los gráficos a un gris oscuro legible sobre blanco
             const labelColor = '#64748b';
 
-            // Datos Solicitudes por Tipo
             const solicitudesCtx = document.getElementById('solicitudesChart').getContext('2d');
             new Chart(solicitudesCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: {!! json_encode($categoriasSolicitudes['labels'] ?? ['Tala / Poda', 'Ocupación Vegetal', 'Evaluación Riesgo', 'Otros']) !!},
+                    labels: {!! json_encode($categoriasSolicitudes['labels'] ?? ['Inspección', 'Poda / Deshierbe', 'Desmalezamiento', 'Tala']) !!},
                     datasets: [{
                         data: {!! json_encode($categoriasSolicitudes['values'] ?? [0, 0, 0, 0]) !!},
                         backgroundColor: ['#059669', '#10b981', '#34d399', '#a7f3d0'],
@@ -212,12 +213,11 @@
                 }
             });
 
-            // Datos Denuncias por Gravedad
             const denunciasCtx = document.getElementById('denunciasChart').getContext('2d');
             new Chart(denunciasCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: {!! json_encode($gravedadDenuncias['labels'] ?? ['Alta', 'Media', 'Baja']) !!},
+                    labels: {!! json_encode($gravedadDenuncias['labels'] ?? ['ALTA', 'MEDIA', 'BAJA']) !!},
                     datasets: [{
                         data: {!! json_encode($gravedadDenuncias['values'] ?? [0, 0, 0]) !!},
                         backgroundColor: ['#e11d48', '#f59e0b', '#3b82f6'],

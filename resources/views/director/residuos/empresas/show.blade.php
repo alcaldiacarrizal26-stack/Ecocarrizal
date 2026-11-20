@@ -67,16 +67,16 @@
                 <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ciudadano Registrante</span>
                 <span class="block text-xs font-bold text-slate-800">{{ $empresa->user->nombre ?? 'N/A' }} {{ $empresa->user->apellido ?? '' }}</span>
                 <span class="block text-[11px] text-slate-500">C.I: {{ $empresa->user->cedula ?? 'N/A' }}</span>
-                <span class="block text-[10px] text-slate-400 mt-0.5">Fecha: {{ $empresa->created_at?->format('d/m/Y H:i') ?? 'N/A' }}</span>
+                <span class="block text-[10px] text-slate-400 mt-0.5">Fecha: {{ $empresa->created_at ? \Carbon\Carbon::parse($empresa->created_at)->format('d/m/Y H:i') : 'N/A' }}</span>
             </div>
         </div>
     </div>
 
-    {{-- BLOQUE 2: Perfil Ambiental Dinámico (Estética Clara y Lógica por Rol) --}}
+    {{-- BLOQUE 2: Perfil Ambiental Dinámico --}}
     @if($empresa->perfilAmbiental)
     @php
         $perfil = $empresa->perfilAmbiental;
-        $esManejador = strtoupper($perfil->rol_ambiental) === 'MANEJADOR';
+        $esManejador = strtoupper($perfil->rol_ambiental ?? '') === 'MANEJADOR';
     @endphp
     <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
@@ -178,7 +178,7 @@
                                     {{ $doc->nombre_requisito }}
                                 </p>
                                 <span class="px-2 py-0.5 text-[9px] font-bold uppercase rounded-md border 
-                                    {{ ($doc->estado_revision ?? $doc->estado) === 'VALIDO' || ($doc->estado_revision ?? $doc->estado) === 'APROBADO' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200' }}">
+                                    {{ in_array(strtoupper($doc->estado_revision ?? $doc->estado ?? ''), ['VALIDO', 'APROBADO']) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200' }}">
                                     {{ $doc->estado_revision ?? $doc->estado ?? 'PENDIENTE' }}
                                 </span>
                             </div>
@@ -230,9 +230,9 @@
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="py-3 px-3 font-bold font-mono text-indigo-600">{{ $decl->periodo }}</td>
                                 <td class="py-3 px-3 uppercase text-[11px]">{{ $decl->frecuencia }}</td>
-                                <td class="py-3 px-3 font-mono">{{ number_format($decl->toneladas_comunes, 3) }}</td>
-                                <td class="py-3 px-3 font-mono text-emerald-600 font-bold">{{ number_format($decl->toneladas_reciclables, 3) }}</td>
-                                <td class="py-3 px-3 font-mono text-rose-600 font-bold">{{ number_format($decl->toneladas_peligrosas, 3) }}</td>
+                                <td class="py-3 px-3 font-mono">{{ number_format((float) $decl->toneladas_comunes, 3) }}</td>
+                                <td class="py-3 px-3 font-mono text-emerald-600 font-bold">{{ number_format((float) $decl->toneladas_reciclables, 3) }}</td>
+                                <td class="py-3 px-3 font-mono text-rose-600 font-bold">{{ number_format((float) $decl->toneladas_peligrosas, 3) }}</td>
                                 <td class="py-3 px-3">
                                     <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-slate-100 text-slate-700">
                                         {{ $decl->estatus }}
@@ -296,11 +296,11 @@
         @endif
     </div>
 
-    {{-- BLOQUE 6: Veredicto Directoral (Con Input Oculto Corregido) --}}
+    {{-- BLOQUE 6: Veredicto Directoral --}}
     <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
         <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-3">Emisión de Veredicto Directoral</h2>
         
-        @if(in_array(strtoupper($empresa->estatus), ['APROBADO', 'RECHAZADO']))
+        @if(in_array(strtoupper($empresa->estatus ?? ''), ['APROBADO', 'RECHAZADO']))
             <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
                 <div class="flex items-center justify-between text-xs">
                     <span class="font-bold text-slate-500 uppercase">Estado Final del Expediente:</span>

@@ -19,7 +19,7 @@ class Denuncia extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'codigo',
+        'codigo_denuncia',
         'user_id',
         'inspector_id',
         'tipo_contaminacion',
@@ -31,10 +31,9 @@ class Denuncia extends Model
         'justificacion_gravedad',
         'descripcion',
         'evidencias',
-        'estatus',
+        'estado',
         'observaciones',
         'fecha_asignacion_inspector', // <-- Agregado
-        'fecha_inicio_inspeccion',
         'fecha_cierre',
     ];
 
@@ -51,18 +50,18 @@ class Denuncia extends Model
             $anioActual = date('Y');
             $prefix = 'DEN-' . $anioActual . '-';
 
-            $ultimoRegistro = static::where('codigo', 'LIKE', $prefix . '%')
+            $ultimoRegistro = static::where('codigo_denuncia', 'LIKE', $prefix . '%')
                 ->latest('created_at')
                 ->first();
 
             if ($ultimoRegistro) {
-                $partes = explode('-', $ultimoRegistro->codigo);
+                $partes = explode('-', $ultimoRegistro->codigo_denuncia);
                 $numero = (int) end($partes) + 1;
             } else {
                 $numero = 1;
             }
 
-            $denuncia->codigo = $prefix . str_pad($numero, 4, '0', STR_PAD_LEFT);
+            $denuncia->codigo_denuncia = $prefix . str_pad($numero, 4, '0', STR_PAD_LEFT);
         });
     }
 

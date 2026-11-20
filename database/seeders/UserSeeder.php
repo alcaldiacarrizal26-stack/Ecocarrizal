@@ -5,16 +5,28 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Usuario Ciudadano (Rol 4 - Sin dirección)
+        // IDs numéricos de roles y direcciones
+        $roleAdmin     = 1;
+        $roleDirector  = 2;
+        $roleInspector = 3;
+        $roleCiudadano = 4;
+        $roleAlcaldesa = 5;
+
+        $dirAmbiente = 1;
+        $dirResiduos = 2;
+
+        // 1. Usuario Ciudadano
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-30541863'],
             [
-                'role_id' => 4,
+                'id' => (string) Str::uuid(),
+                'role_id' => $roleCiudadano,
                 'direccion_id' => null,
                 'telefono' => '04125994461',
                 'nombre' => 'Cristhian',
@@ -29,11 +41,12 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // 2. Usuario Administrador (Rol 1 - Sin dirección)
+        // 2. Usuario Administrador
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-12345678'],
             [
-                'role_id' => 1,
+                'id' => (string) Str::uuid(),
+                'role_id' => $roleAdmin,
                 'direccion_id' => null,
                 'telefono' => '04121234567',
                 'nombre' => 'Admin',
@@ -48,11 +61,12 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // 3. Usuario Alcaldesa (Rol 5 - Sin dirección)
+        // 3. Usuario Alcaldesa
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-00000001'],
             [
-                'role_id' => 5,
+                'id' => (string) Str::uuid(),
+                'role_id' => $roleAlcaldesa,
                 'direccion_id' => null,
                 'telefono' => '04120000000',
                 'nombre' => 'Alcaldesa',
@@ -67,12 +81,13 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // 4. Usuario Director (Rol 2 - Dirección de Ambiente)
+        // 4. Usuario Director (Dirección de Ambiente)
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-87654321'],
             [
-                'role_id' => 2,
-                'direccion_id' => 1,
+                'id' => (string) Str::uuid(),
+                'role_id' => $roleDirector,
+                'direccion_id' => $dirAmbiente,
                 'telefono' => '04149876543',
                 'nombre' => 'Carlos',
                 'apellido' => 'Mendoza',
@@ -86,12 +101,13 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // 5. Usuario Director (Rol 2 - Dirección de Residuos)
+        // 5. Usuario Director (Dirección de Residuos)
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-98765432'],
             [
-                'role_id' => 2,
-                'direccion_id' => 2,
+                'id' => (string) Str::uuid(),
+                'role_id' => $roleDirector,
+                'direccion_id' => $dirResiduos,
                 'telefono' => '04129876943',
                 'nombre' => 'Simon',
                 'apellido' => 'Bolivar',
@@ -105,12 +121,13 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // 6. Usuario Inspector (Rol 3 - Dirección de Ambiente)
+        // 6. Usuario Inspector
         DB::table('users')->updateOrInsert(
             ['cedula' => 'V-11223344'],
             [
-                'role_id' => 3,
-                'direccion_id' => 1,
+                'id' => (string) Str::uuid(),
+                'role_id' => $roleInspector,
+                'direccion_id' => $dirAmbiente,
                 'telefono' => '04241112233',
                 'nombre' => 'Roberto',
                 'apellido' => 'Gómez',
@@ -124,26 +141,18 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // 7. Registro en la tabla de inspectores
+        // 7. Registro en credenciales_inspector
         $inspectorUser = DB::table('users')->where('cedula', 'V-11223344')->first();
 
         if ($inspectorUser) {
-            DB::table('inspectores')->updateOrInsert(
+            DB::table('credenciales_inspector')->updateOrInsert(
                 ['user_id' => $inspectorUser->id],
                 [
-                    'direccion_id' => 1,
                     'codigo_credencial' => 'INS-2026-001',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
             );
-        }
-
-        // 8. Ajustar secuencias de ID en PostgreSQL
-        DB::statement("SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1)) FROM users;");
-        
-        if (DB::getDriverName() === 'pgsql') {
-            DB::statement("SELECT setval(pg_get_serial_sequence('inspectores', 'id'), coalesce(max(id), 1)) FROM inspectores;");
         }
     }
 }

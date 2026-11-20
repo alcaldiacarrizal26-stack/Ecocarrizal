@@ -12,7 +12,7 @@
                     Dirección de Ecología y Residuos Sólidos
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                    ¡Bienvenido, {{ auth()->user()->nombre }}!
+                    ¡Bienvenido, {{ auth()->user()->nombre ?? auth()->user()->name ?? 'Director' }}!
                 </h1>
                 <p class="text-xs sm:text-sm text-slate-300 font-medium max-w-2xl leading-relaxed">
                     Panel de control directivo para la validación, dictamen técnico y supervisión de expedientes comerciales y ambientales del Municipio Carrizal.
@@ -26,7 +26,7 @@
         </div>
     </div>
 
-    <!-- Tarjetas de Estadísticas (Sin logos, solo texto y cifras) -->
+    <!-- Tarjetas de Estadísticas -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
         <!-- Pendientes / Por Revisar -->
@@ -58,10 +58,9 @@
         </div>
     </div>
 
-    <!-- Tabla de Solicitudes Pendientes (Estilo Moderno y Limpio) -->
+    <!-- Tabla de Solicitudes Pendientes -->
     <div class="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/80 overflow-hidden">
         
-        <!-- Cabecera de la Sección -->
         <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
             <div>
                 <h3 class="font-extrabold text-slate-800 text-sm uppercase tracking-wider">Solicitudes de Registro Pendientes</h3>
@@ -72,7 +71,6 @@
             </span>
         </div>
 
-        <!-- Tabla Estilizada -->
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-600">
                 <thead class="bg-slate-100/70 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-100">
@@ -86,14 +84,17 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($empresasPendientes as $empresa)
+                        @php
+                            $estatusEmpresa = strtoupper($empresa->estatus ?? 'PENDIENTE');
+                        @endphp
                         <tr class="hover:bg-emerald-50/30 transition-colors duration-150">
                             <td class="p-4.5 pl-6">
                                 <span class="font-bold text-slate-900 block text-sm">{{ $empresa->nombre_comercial ?? 'Sin Nombre Comercial' }}</span>
                                 <span class="text-slate-400 font-mono text-[11px]">{{ $empresa->razon_social }} • <strong class="text-slate-600">{{ $empresa->rif }}</strong></span>
                             </td>
                             <td class="p-4.5">
-                                <span class="text-slate-800 font-semibold block">{{ $empresa->sector }}</span>
-                                <span class="text-slate-400 text-[11px]">{{ $empresa->comuna }}</span>
+                                <span class="text-slate-800 font-semibold block">{{ $empresa->sector ?? 'N/E' }}</span>
+                                <span class="text-slate-400 text-[11px]">{{ $empresa->comuna ?? 'N/E' }}</span>
                             </td>
                             <td class="p-4.5">
                                 <span class="px-3 py-1 bg-emerald-50 text-[#0d5238] rounded-xl font-extrabold border border-emerald-200/60 text-[10px] tracking-wide inline-block shadow-xs">
@@ -102,7 +103,7 @@
                             </td>
                             <td class="p-4.5">
                                 <span class="px-3 py-1 bg-amber-50 text-amber-700 rounded-xl font-extrabold border border-amber-200/60 text-[10px] tracking-wide inline-block shadow-xs">
-                                    PENDIENTE
+                                    {{ $estatusEmpresa }}
                                 </span>
                             </td>
                             <td class="p-4.5 pr-6 text-center">

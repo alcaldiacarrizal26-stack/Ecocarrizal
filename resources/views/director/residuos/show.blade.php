@@ -1,4 +1,4 @@
-<x-layouts.app class="app">
+<x-layouts.app title="Expediente Empresa - {{ $empresa->razon_social }}" active="residuos_empresas">
 <div class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     
     {{-- Header & Navegación --}}
@@ -7,7 +7,7 @@
             <div class="flex items-center gap-3">
                 <h1 class="text-2xl font-bold text-white tracking-tight">{{ $empresa->razon_social }}</h1>
                 <span class="px-2.5 py-1 text-xs font-semibold rounded-full border bg-slate-800 text-slate-300 border-slate-700">
-                    {{ $empresa->estatus }}
+                    {{ strtoupper($empresa->estatus ?? 'PENDIENTE') }}
                 </span>
             </div>
             <p class="text-sm text-slate-400 mt-1">
@@ -18,7 +18,7 @@
             </p>
         </div>
         <div>
-            <a href="{{ route('director.residuos.empresas') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition-all border border-slate-700">
+            <a href="{{ route('director.residuos.empresas.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition-all border border-slate-700">
                 &larr; Volver a empresas
             </a>
         </div>
@@ -34,13 +34,13 @@
             </div>
             <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
                 <span class="block text-xs font-medium text-slate-400 uppercase">Contacto Comercial</span>
-                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->correo_comercial }}</span>
-                <span class="block text-xs text-slate-400 mt-0.5">{{ $empresa->telefono_comercial }}</span>
+                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->correo_comercial ?? 'N/A' }}</span>
+                <span class="block text-xs text-slate-400 mt-0.5">{{ $empresa->telefono_comercial ?? 'N/A' }}</span>
             </div>
             <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
                 <span class="block text-xs font-medium text-slate-400 uppercase">Ubicación</span>
-                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->comuna }}</span>
-                <span class="block text-xs text-slate-400 mt-0.5">{{ $empresa->sector }}, {{ $empresa->calle_avenida }}</span>
+                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->comuna ?? 'N/E' }}</span>
+                <span class="block text-xs text-slate-400 mt-0.5">{{ $empresa->sector ?? 'N/E' }}, {{ $empresa->calle_avenida ?? 'N/E' }}</span>
             </div>
         </div>
     </div>
@@ -51,16 +51,17 @@
         <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-4 border-b border-slate-800 pb-2">Perfil y Diagnóstico Ambiental</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
-                <span class="block text-xs font-medium text-slate-400 uppercase">Actividad Económica</span>
-                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->perfilAmbiental->actividad_economica ?? 'No especificado' }}</span>
+                <span class="block text-xs font-medium text-slate-400 uppercase">Rol / Sector Económico</span>
+                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->perfilAmbiental->rol_ambiental ?? 'No especificado' }}</span>
+                <span class="block text-xs text-slate-400 mt-0.5">{{ $empresa->perfilAmbiental->sector_economico ?? '' }}</span>
             </div>
             <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
-                <span class="block text-xs font-medium text-slate-400 uppercase">Tipo de Desechos</span>
-                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->perfilAmbiental->tipo_desechos ?? 'No especificado' }}</span>
+                <span class="block text-xs font-medium text-slate-400 uppercase">Clasificación de Residuos</span>
+                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->perfilAmbiental->clasificacion_residuos ?? 'No especificado' }}</span>
             </div>
             <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
-                <span class="block text-xs font-medium text-slate-400 uppercase">Generación Estimada</span>
-                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ $empresa->perfilAmbiental->volumen_estimado ?? 'N/A' }}</span>
+                <span class="block text-xs font-medium text-slate-400 uppercase">Generación Diaria Estimada</span>
+                <span class="block text-sm font-semibold text-slate-100 mt-1">{{ isset($empresa->perfilAmbiental->generacion_diaria_estimada_kg) ? $empresa->perfilAmbiental->generacion_diaria_estimada_kg . ' kg/día' : 'N/A' }}</span>
             </div>
         </div>
     </div>
@@ -75,7 +76,7 @@
                 @foreach($empresa->documentosExpediente as $doc)
                     <div class="flex items-center justify-between p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-xl hover:border-slate-700 transition-colors">
                         <div class="truncate mr-3">
-                            <p class="text-sm font-semibold text-slate-200 truncate">{{ $doc->tipo_documento ?? 'Documento Adjunto' }}</p>
+                            <p class="text-sm font-semibold text-slate-200 truncate">{{ $doc->categoria_documento ?? $doc->nombre_archivo ?? 'Documento Adjunto' }}</p>
                             <p class="text-xs text-slate-400 mt-0.5">Subido: {{ $doc->created_at?->format('d/m/Y') }}</p>
                         </div>
                         <a href="{{ route('expedientes.documento.ver', $doc) }}" target="_blank" 
@@ -105,11 +106,11 @@
 
             <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
                 <button type="submit" name="accion" value="RECHAZAR" 
-                        class="px-5 py-2.5 bg-rose-600/20 text-rose-300 border border-rose-500/30 hover:bg-rose-600/30 font-semibold text-sm rounded-xl transition-all">
+                        class="px-5 py-2.5 bg-rose-600/20 text-rose-300 border border-rose-500/30 hover:bg-rose-600/30 font-semibold text-sm rounded-xl transition-all cursor-pointer">
                     Rechazar Solicitud
                 </button>
                 <button type="submit" name="accion" value="APROBAR" 
-                        class="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 font-semibold text-sm rounded-xl shadow-lg shadow-emerald-900/20 transition-all">
+                        class="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 font-semibold text-sm rounded-xl shadow-lg shadow-emerald-900/20 transition-all cursor-pointer">
                     Aprobar Expediente
                 </button>
             </div>

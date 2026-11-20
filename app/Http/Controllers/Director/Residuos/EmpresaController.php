@@ -8,7 +8,7 @@ use App\Models\Empresa;
 use App\Models\Sancion;
 use App\Models\Inspeccion;
 use App\Models\OrdenInspeccion;
-use App\Models\Inspector;
+use App\Models\CredencialInspector; // <-- CORREGIDO
 use App\Models\User;
 use App\Models\Notificacion;
 use Illuminate\Http\Request;
@@ -22,7 +22,8 @@ class EmpresaController extends Controller
 
         if ($request->get('vista') === 'sanciones') {
             $query->whereHas('sanciones', function ($q) {
-                $q->whereIn('estatus', ['NOTIFICADA', 'EN_REVISION', 'PENDIENTE_NOTIFICACION']);
+                // NOTIFICADA, EN_SUBSANACION
+                $q->whereIn('estatus', ['NOTIFICADA', 'EN_SUBSANACION']); 
             });
         }
 
@@ -43,7 +44,7 @@ class EmpresaController extends Controller
     {
         $empresa = Empresa::with([
             'perfilAmbiental', 
-            'documentosExpediente', 
+            'documentosExpediente.requisito', 
             'sanciones', 
             'declaracionesResiduos',
             'user'
@@ -57,12 +58,9 @@ class EmpresaController extends Controller
         $empresa = Empresa::findOrFail($id);
 
         if (in_array(strtoupper($empresa->estatus), ['APROBADO', 'RECHAZADO'])) {
-            return redirect()
-                ->back()
-                ->withErrors(['error' => 'No es posible modificar el veredicto de una empresa cuyo expediente ya fue APROBADO o RECHAZADO.']);
+            return redirect()->back()->withErrors(['error' => 'No es posible modificar el veredicto de una empresa cuyo expediente ya fue APROBADO o RECHAZADO.']);
         }
 
-        // Capturamos la acción del botón y la inyectamos como estatus si no viene definido
         if (!$request->filled('estatus') && $request->filled('accion')) {
             $accion = strtoupper(trim($request->input('accion')));
             $estatusMapeado = match($accion) {
@@ -76,33 +74,30 @@ class EmpresaController extends Controller
 
         $validated = $request->validate([
             'estatus' => 'required|in:APROBADO,RECHAZADO,OBSERVADO',
-            'observaciones_fiscalia' => 'required_if:estatus,RECHAZADO,OBSERVADO|nullable|string|max:1000',
+            'observaciones_administrativas' => 'required_if:estatus,RECHAZADO,OBSERVADO|nullable|string|max:1000', // <-- CORREGIDO
             'observaciones' => 'nullable|string|max:1000',
         ], [
             'estatus.required' => 'El campo estatus o veredicto es obligatorio.',
-            'observaciones_fiscalia.required_if' => 'Es obligatorio indicar el motivo u observación cuando el veredicto es Rechazado u Observado.',
+            'observaciones_administrativas.required_if' => 'Es obligatorio indicar el motivo u observación cuando el veredicto es Rechazado u Observado.',
         ]);
 
         $empresa->refresh();
         if (in_array(strtoupper($empresa->estatus), ['APROBADO', 'RECHAZADO'])) {
-            return redirect()
-                ->back()
-                ->withErrors(['error' => 'El expediente ya ha sido procesado previamente por otro medio.']);
+            return redirect()->back()->withErrors(['error' => 'El expediente ya ha sido procesado previamente por otro medio.']);
         }
 
-        $observacionesFinal = $validated['observaciones_fiscalia'] ?? $validated['observaciones'] ?? $empresa->observaciones_fiscalia;
+        $observacionesFinal = $validated['observaciones_administrativas'] ?? $validated['observaciones'] ?? $empresa->observaciones_administrativas;
 
         $empresa->update([
             'estatus' => $validated['estatus'],
-            'observaciones_fiscalia' => $observacionesFinal,
+            'observaciones_administrativas' => $observacionesFinal, // <-- CORREGIDO
         ]);
 
-        // Notificar al ciudadano sobre el veredicto de su expediente comercial
         if ($empresa->user_id) {
             $veredicto = $validated['estatus'];
             $mensajeNotif = match($veredicto) {
                 'APROBADO' => '¡Felicitaciones! Tu expediente comercial y perfil ambiental han sido APROBADOS.',
-                'OBSERVADO' => 'Tu expediente comercial presenta observaciones de la fiscalía ambiental. Ingresa para corregir.',
+                'OBSERVADO' => 'Tu expediente comercial presenta observaciones. Ingresa para corregir.',
                 'RECHAZADO' => 'Tu expediente comercial ha sido rechazado formalmente. Revisa las observaciones.',
                 default => 'El estatus de tu expediente comercial ha cambiado.'
             };
@@ -111,13 +106,12 @@ class EmpresaController extends Controller
                 'user_id'  => $empresa->user_id,
                 'titulo'   => 'Veredicto de Expediente Comercial',
                 'mensaje'  => $mensajeNotif,
-                'tipo'     => $veredicto === 'APROBADO' ? 'success' : 'warning',
+                'tipo'     => $veredicto === 'APROBADO' ? 'EXITO' : 'ADVERTENCIA', // <-- MAYÚSCULAS
                 'link_url' => route('ciudadano.empresas'),
             ]);
         }
 
-        return redirect()
-            ->route('director.residuos.empresas.show', $empresa->id)
+        return redirect()->route('director.residuos.empresas.show', $empresa->id)
             ->with('success', 'El veredicto para la empresa ' . $empresa->razon_social . ' ha sido registrado exitosamente.');
     }
 
@@ -141,15 +135,15 @@ class EmpresaController extends Controller
     {
         $validated = $request->validate([
             'tipo_infraccion'          => 'required|string|max:255',
-            'gravedad'                  => 'required|in:LEVE,GRAVE,MUY_GRAVE',
-            'unidades_tributarias'      => 'required|numeric|min:0',
-            'motivo_descripcion'        => 'required|string',
-            'base_legal'                => 'nullable|string',
-            'fecha_incidencia'          => 'required|date',
-            'fecha_citacion'            => 'nullable|date',
-            'fecha_limite_subsanacion'  => 'nullable|date',
-            'inspeccion_id'             => 'nullable|uuid|exists:inspecciones,id',
-            'evidencia'                 => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'gravedad'                 => 'required|in:LEVE,MEDIA,GRAVE', // <-- CORREGIDO
+            'unidades_tributarias'     => 'required|numeric|min:0',
+            'motivo_descripcion'       => 'required|string',
+            'base_legal'               => 'nullable|string',
+            'fecha_incidencia'         => 'required|date',
+            'fecha_citacion'           => 'nullable|date',
+            'fecha_limite_subsanacion' => 'nullable|date',
+            'inspeccion_id'            => 'nullable|uuid|exists:inspecciones,id',
+            'evidencia'                => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $rutasEvidencia = [];
@@ -166,7 +160,7 @@ class EmpresaController extends Controller
         $codigo = 'SAN-RES-' . date('Y') . '-' . strtoupper(Str::random(5));
 
         Sancion::create([
-            'codigo_expediente'        => $codigo,
+            'codigo_sancion'           => $codigo, // <-- CORREGIDO
             'empresa_id'               => $empresa->id,
             'director_id'              => auth()->id(),
             'inspeccion_id'            => $validated['inspeccion_id'] ?? null,
@@ -182,13 +176,12 @@ class EmpresaController extends Controller
             'estatus'                  => 'NOTIFICADA',
         ]);
 
-        // Notificar al representante legal de la empresa sobre la sanción aperturada
         if ($empresa->user_id) {
             Notificacion::create([
                 'user_id'  => $empresa->user_id,
                 'titulo'   => 'Procedimiento Sancionatorio Aperturado',
                 'mensaje'  => "Se ha emitido la sanción {$codigo} asociada a su establecimiento. Revise los detalles y plazos de subsanación.",
-                'tipo'     => 'danger',
+                'tipo'     => 'ERROR', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }
@@ -197,13 +190,10 @@ class EmpresaController extends Controller
             ->with('success', "Procedimiento sancionatorio {$codigo} aperturado y notificado correctamente.");
     }
 
-    /**
-     * Resuelve/Retira una sanción tras la evaluación presencial del director.
-     */
     public function resolverSancion(Request $request, Sancion $sancion)
     {
         $request->validate([
-            'estatus'                   => 'required|in:SUBSANADA,DESESTIMADA',
+            'estatus'                   => 'required|in:RESUELTA,ARCHIVADA', // <-- CORREGIDO
             'observaciones_resolucion'  => 'required|string',
             'evidencia_resolucion'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
@@ -220,14 +210,13 @@ class EmpresaController extends Controller
 
         $sancion->update($data);
 
-        // Notificar al ciudadano sobre la resolución de su sanción
         $sancion->load('empresa');
         if ($sancion->empresa && $sancion->empresa->user_id) {
             Notificacion::create([
                 'user_id'  => $sancion->empresa->user_id,
                 'titulo'   => 'Resolución de Procedimiento Sancionatorio',
-                'mensaje'  => "Su expediente sancionatorio {$sancion->codigo_expediente} ha sido actualizado a: {$request->estatus}.",
-                'tipo'     => 'success',
+                'mensaje'  => "Su expediente sancionatorio {$sancion->codigo_sancion} ha sido actualizado a: {$request->estatus}.", // <-- CORREGIDO
+                'tipo'     => 'EXITO', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }
@@ -248,11 +237,12 @@ class EmpresaController extends Controller
 
     public function inspecciones($empresaId)
     {
-        $empresa = Empresa::with(['ordenesInspeccion.inspector', 'ordenesInspeccion.inspeccion'])->findOrFail($empresaId);
+        $empresa = Empresa::with(['ordenesInspeccion.inspector', 'ordenesInspeccion.inspecciones'])->findOrFail($empresaId); // <-- inspecciones (plural)
         
-        $inspectoresDisponibles = Inspector::where('disponible', true)->with('user')->get()->map(function($insp) {
+        // CORREGIDO: Enviar user_id como 'id' para que el formulario haga match con exists:users,id
+        $inspectoresDisponibles = CredencialInspector::where('disponible', true)->with('user')->get()->map(function($insp) {
             return (object)[
-                'id' => $insp->id,
+                'id' => $insp->user_id, 
                 'nombre' => $insp->user->nombre . ' ' . $insp->user->apellido,
                 'credencial' => $insp->codigo_credencial
             ];
@@ -282,7 +272,7 @@ class EmpresaController extends Controller
                     }
                 },
             ],
-            'observaciones_campo'   => 'required|string',
+            // 'observaciones_campo' ELIMINADO (ahora va en la inspección)
             'orden_adjunta'         => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
@@ -299,21 +289,20 @@ class EmpresaController extends Controller
             'director_id'               => auth()->id(),
             'tipo_inspeccion'           => $request->tipo_inspeccion,
             'base_legal_inspeccion'     => $request->base_legal_inspeccion,
-            'observaciones_campo'       => $request->observaciones_campo,
+            // 'observaciones_campo' ELIMINADO
             'orden_adjunta_path'        => $path,
-            'estatus'                   => 'inspector_asignado',
+            'estatus'                   => 'INSPECTOR_ASIGNADO', // <-- MAYÚSCULAS
             'fecha_visita_programada'   => $request->fecha_visita,
             'fecha_asignacion_inspector'=> now(),
         ]);
 
-        // Notificar al dueño de la empresa que tiene programada una visita de inspección
         $empresa = Empresa::find($empresaId);
         if ($empresa && $empresa->user_id) {
             Notificacion::create([
                 'user_id'  => $empresa->user_id,
                 'titulo'   => 'Nueva Orden de Inspección Programada',
                 'mensaje'  => "Se ha emitido una orden de inspección para su establecimiento programada para la fecha: {$request->fecha_visita}.",
-                'tipo'     => 'warning',
+                'tipo'     => 'ADVERTENCIA', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }
@@ -325,7 +314,7 @@ class EmpresaController extends Controller
     {
         $orden = OrdenInspeccion::findOrFail($id);
 
-        if (!in_array($orden->estatus, ['pendiente', 'inspector_asignado'])) {
+        if (!in_array($orden->estatus, ['PENDIENTE', 'INSPECTOR_ASIGNADO'])) { // <-- MAYÚSCULAS
             return redirect()->back()->withErrors(['error' => 'No se puede eliminar una orden de inspección que ya se encuentra en curso o atendida.']);
         }
 

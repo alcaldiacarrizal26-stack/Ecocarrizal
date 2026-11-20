@@ -12,29 +12,40 @@ return new class extends Migration
         Schema::create('documentos_expediente', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
-
-            $table->string('codigo_requisito');
-            $table->text('nombre_requisito');
+            
+            $table->foreignId('requisito_id')
+                ->constrained('requisitos_empresas_catalogo')
+                ->restrictOnDelete();
+            
             $table->string('numero_folio')->nullable();
             $table->text('archivo_path')->nullable();
-            
             $table->date('fecha_emision')->nullable();
             $table->date('fecha_vencimiento')->nullable();
             $table->boolean('es_vitalicio')->default(false);
-
             $table->text('observaciones')->nullable();
+            
+            // Auditoría de revisión (faltaba)
+            $table->foreignUuid('revisado_por')->nullable()
+                ->constrained('users')->nullOnDelete();
+            $table->timestampTz('fecha_revision')->nullable();
+            
             $table->timestampsTz();
+
+            $table->unique(['empresa_id', 'requisito_id']);
         });
 
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("
                 ALTER TABLE documentos_expediente 
-                ADD COLUMN estado_revision estado_revision_doc_enum NOT NULL DEFAULT 'VALIDO';
+                ADD COLUMN estado_revision estado_revision_doc_enum NOT NULL DEFAULT 'OBSERVADO';
             ");
-        } else {
-            Schema::table('documentos_expediente', function (Blueprint $table) {
-                $table->enum('estado_revision', ['VALIDO', 'OBSERVADO', 'RECHAZADO'])->default('VALIDO');
-            });
+            DB::statement("
+                ALTER TABLE documentos_expediente 
+                ADD CONSTRAINT chk_vitalicio_fecha CHECK (
+                    (es_vitalicio = true AND fecha_vencimiento IS NULL)
+                    OR (es_vitalicio = false AND fecha_vencimiento IS NOT NULL)
+                );
+            ");
         }
     }
 

@@ -15,18 +15,12 @@ class SolicitudRecaudo extends Model
 
     protected $table = 'solicitud_recaudos';
 
-    // Desactiva la actualización automática de timestamps.
-    // Se gestiona solo 'created_at' manualmente o por default en la BD.
-    public $timestamps = false;
-
     protected $fillable = [
         'solicitud_id',
-        'tipo_recaudo',
-        'valor',
+        'recaudo_catalogo_id',
         'nombre_archivo',
         'bucket_path',
         'archivo_url',
-        'es_evidencia_fotografica',
         'created_at',
     ];
 
@@ -38,5 +32,10 @@ class SolicitudRecaudo extends Model
     public function solicitud(): BelongsTo
     {
         return $this->belongsTo(Solicitud::class, 'solicitud_id');
+    }
+
+    public function recaudoCatalogo(): BelongsTo // <-- NUEVA RELACIÓN
+    {
+        return $this->belongsTo(RecaudoCatalogo::class, 'recaudo_catalogo_id');
     }
 }

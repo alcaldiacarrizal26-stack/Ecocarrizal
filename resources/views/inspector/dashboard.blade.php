@@ -1,14 +1,29 @@
-<x-layouts.app title="Panel del Inspector">
+<x-layouts.app title="Panel del Inspector" active="inspector_dashboard">
     <div class="p-6 max-w-7xl mx-auto space-y-6">
         
         <!-- Saludo -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">¡Hola, {{ $user->nombre }}!</h1>
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase rounded-md border border-emerald-200">
+                        {{ $user->role->nombre ?? 'Inspector' }}
+                    </span>
+                    @if($user->inspector?->codigo_credencial)
+                        <span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-mono font-bold rounded-md border border-slate-200">
+                            Credencial: {{ $user->inspector->codigo_credencial }}
+                        </span>
+                    @endif
+                    @if($user->inspector?->especialidad)
+                        <span class="text-xs text-slate-500 font-medium">
+                            • {{ $user->inspector->especialidad }}
+                        </span>
+                    @endif
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800">¡Hola, {{ $user->nombre ?? $user->name ?? 'Inspector' }}!</h1>
                 <p class="text-slate-500 text-sm">Bienvenido al panel técnico de inspecciones y fiscalización.</p>
             </div>
             <a href="{{ route('inspecciones.index') }}" 
-               class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-xl transition shadow-sm flex items-center gap-2">
+               class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-xl transition shadow-sm flex items-center gap-2 shrink-0">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002 2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 Ir al Módulo de Inspecciones
             </a>
@@ -20,7 +35,7 @@
                 <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </div>
-                <h2 class="text-lg font-bold text-slate-800 mb-1">Evaluación de Solicitudes y Denuncias</h2>
+                <h2 class="text-lg font-bold text-slate-800 mb-1">Evaluación de Solicitudes, Denuncias y Órdenes</h2>
                 <p class="text-slate-500 text-sm mb-4">Consulta las asignaciones pendientes por visitar en campo y levanta las actas de inspección correspondientes.</p>
                 <a href="{{ route('inspecciones.index') }}" class="text-emerald-600 font-semibold text-sm hover:underline">Gestionar Inspecciones →</a>
             </div>

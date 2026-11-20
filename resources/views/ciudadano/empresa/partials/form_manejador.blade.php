@@ -43,13 +43,6 @@
     
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Frecuencia</label>
-            <input type="text" value="Semanal" disabled
-                   class="w-full bg-slate-100 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 cursor-not-allowed">
-            <input type="hidden" name="frecuencia" value="SEMANAL">
-        </div>
-
-        <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Identificador de la Semana</label>
             <input type="text" name="periodo" placeholder="Ej: 2026-W12" required
                    class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none">
@@ -83,7 +76,6 @@
                 <span x-show="tieneGeneradorFijo" class="text-[10px] text-amber-700 font-bold lowercase">(fijo)</span>
             </label>
             
-            <!-- Si usa generador fijo se muestra el input de texto bloqueado -->
             <template x-if="tieneGeneradorFijo">
                 <input type="text" name="generador_origen_rif" 
                        x-model="generador_origen_rif" 
@@ -91,7 +83,6 @@
                        class="w-full bg-slate-100 text-slate-600 cursor-not-allowed font-medium font-mono border border-slate-300 rounded-xl px-3 py-2 text-sm">
             </template>
 
-            <!-- Si es manual, se despliega el RIF normalizado (Select tipo + Inputs numéricos) -->
             <template x-if="!tieneGeneradorFijo">
                 <div>
                     <div class="flex items-center gap-1.5">
@@ -115,7 +106,7 @@
             </template>
         </div>
 
-        <!-- Placa del Vehículo Normalizada (Máximo 7 caracteres, Mayúsculas Automáticas) -->
+        <!-- Placa del Vehículo Normalizada -->
         <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Placa del Vehículo de Transportista</label>
             <input type="text" name="vehiculo_placa" 

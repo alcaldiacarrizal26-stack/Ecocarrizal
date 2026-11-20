@@ -9,10 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('login_attempts', function (Blueprint $table) {
-            $table->string('email')->primary();
+            $table->uuid('id')->primary();
+            $table->string('email');
+            $table->string('ip_address', 45);
             $table->integer('attempt_count')->default(0);
             $table->timestampTz('last_failed_at')->nullable();
             $table->timestampTz('locked_until')->nullable();
+
+            $table->unique(['email', 'ip_address']);
+
+            // Índices para optimizar las consultas de bloqueo en tiempo de login
+            $table->index('email');
+            $table->index('ip_address');
         });
     }
 

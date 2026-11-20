@@ -10,11 +10,10 @@ class Role extends Model
     use HasFactory;
 
     protected $table = 'roles';
-    protected $primaryKey = 'id_roles'; // <--- Indicar la clave primaria correcta
 
     protected $fillable = [
         'nombre',
-        'label',
+        'descripcion',
     ];
 
     public function usuarios()

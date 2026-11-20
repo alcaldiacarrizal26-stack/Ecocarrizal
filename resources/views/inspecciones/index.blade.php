@@ -1,5 +1,5 @@
 <x-layouts.app title="Módulo de Inspecciones Ambientales" active="inspecciones">
-    <div class="p-6 max-w-7xl mx-auto space-y-6">
+    <div class="p-6 max-w-7xl mx-auto space-y-6" x-data="{ search: '', tipoFiltro: 'TODOS', estadoFiltro: 'TODOS' }">
         
     <!-- Encabezado -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -52,20 +52,21 @@
             <!-- Filtro por Tipo / Origen -->
             <div>
                 <select x-model="tipoFiltro" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:border-emerald-500 transition">
-                    <option value="todos">Todos los Orígenes / Tipos</option>
-                    <option value="orden">Fiscalización de Residuos (Órdenes)</option>
-                    <option value="solicitud">Solicitudes Ambientales</option>
-                    <option value="denuncia">Denuncias Ambientales</option>
+                    <option value="TODOS">Todos los Orígenes / Tipos</option>
+                    <option value="ORDEN">Fiscalización de Residuos (Órdenes)</option>
+                    <option value="SOLICITUD">Solicitudes Ambientales</option>
+                    <option value="DENUNCIA">Denuncias Ambientales</option>
                 </select>
             </div>
 
             <!-- Filtro por Estado -->
             <div>
                 <select x-model="estadoFiltro" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:border-emerald-500 transition">
-                    <option value="todos">Todos los Estados</option>
-                    <option value="inspector_asignado">Inspector Asignado</option>
-                    <option value="en_inspeccion">En Inspección</option>
-                    <option value="requiere_reinspeccion">Requiere Reinspección</option>
+                    <option value="TODOS">Todos los Estados</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="INSPECTOR_ASIGNADO">INSPECTOR ASIGNADO</option>
+                    <option value="EN_INSPECCION">EN INSPECCIÓN</option>
+                    <option value="REQUIERE_REINSPECCION">REQUIERE REINSPECCIÓN</option>
                 </select>
             </div>
         </div>
@@ -86,36 +87,44 @@
                     @forelse($asignacionesPendientes as $item)
                         @php
                             $isDirectorOrAdmin = in_array($rol, ['director', 'director_ambiente', 'director_residuos', 'admin']);
-                            $assignedInspectorId =$item->inspector_id ?? null;
-                            $esAsignadoAlUsuario = ($assignedInspectorId ===$currentInspectorId);
+                            $assignedInspectorId = $item->inspector_id ?? null;
+                            $esAsignadoAlUsuario = ($assignedInspectorId === $currentInspectorId);
                             
-                            // Directores y admins ven todo, pero solo ejecutan si está asignado a ellos o si son Admin total
                             $puedeEjecutar = !$isDirectorOrAdmin || $esAsignadoAlUsuario || in_array($rol, ['admin', 'administrador']);
 
-                            // Variables para filtrado Alpine.js
-                            $codigoTexto = strtolower($item->codigo_orden ?? $item->codigo_expediente ?? $item->codigo ?? '');
-                            $entidadTexto = strtolower(isset($item->empresa) ?$item->empresa->razon_social . ' ' . $item->empresa->rif : ($item->sector ?? ''));
-                            $tipoClave = isset($item->codigo_orden) ? 'orden' : (isset($item->tipo_tramite) ? 'solicitud' : 'denuncia');$estadoValor = $item->estado ?? $item->estatus ?? 'pendiente';
+                            $codigoItem = $item->codigo_orden
+                                ?? $item->codigo_solicitud
+                                ?? $item->codigo_denuncia
+                                ?? $item->codigo_expediente
+                                ?? $item->codigo
+                                ?? 'N/A';
+
+                            $nombreTramiteItem = $item->tipoTramite->nombre ?? str_replace('_', ' ', $item->tipo_tramite ?? 'Solicitud');
+
+                            $codigoTexto = strtolower($codigoItem);
+                            $entidadTexto = strtolower(isset($item->empresa) ? ($item->empresa->razon_social . ' ' . $item->empresa->rif) : ($item->sector ?? ''));
+                            $tipoClave = isset($item->codigo_orden) ? 'ORDEN' : (isset($item->codigo_solicitud) || isset($item->tipo_tramite_id) || isset($item->tipo_tramite) ? 'SOLICITUD' : 'DENUNCIA');
+                            $estadoValor = strtoupper($item->estado ?? $item->estatus ?? 'PENDIENTE');
                         @endphp
                         <tr class="hover:bg-slate-50"
-                            x-show="(search === '' || '{{ $codigoTexto }}'.includes(search.toLowerCase()) \vert{}\vert{} '{{$entidadTexto }}'.includes(search.toLowerCase())) &&
-                                     (tipoFiltro === 'todos' || tipoFiltro === '{{ $tipoClave }}') &&
-                                     (estadoFiltro === 'todos' || estadoFiltro === '{{ $estadoValor }}')">
+                            x-show="(search === '' || '{{ $codigoTexto }}'.includes(search.toLowerCase()) || '{{ $entidadTexto }}'.includes(search.toLowerCase())) &&
+                                     (tipoFiltro === 'TODOS' || tipoFiltro === '{{ $tipoClave }}') &&
+                                     (estadoFiltro === 'TODOS' || estadoFiltro === '{{ $estadoValor }}')">
                             <td class="px-4 py-3 font-medium text-slate-900 font-mono">
-                                {{ $item->codigo_orden ?? $item->codigo_expediente ?? $item->codigo ?? 'N/A' }}
+                                {{ $codigoItem }}
                             </td>
                             <td class="px-4 py-3">
-                                @if(isset($item->codigo_orden))
+                                @if($tipoClave === 'ORDEN')
                                     <span class="px-2 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                        Fiscalización Residuos: {{ $item->tipo_inspeccion }}
+                                        Fiscalización Residuos: {{ $item->tipo_inspeccion ?? 'ORDINARIA' }}
                                     </span>
-                                @elseif(isset($item->tipo_tramite))
+                                @elseif($tipoClave === 'SOLICITUD')
                                     <span class="px-2 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">
-                                        Solicitud: {{ str_replace('_', ' ', $item->tipo_tramite) }}
+                                        Solicitud: {{ $nombreTramiteItem }}
                                     </span>
                                 @else
                                     <span class="px-2 py-1 rounded-md text-xs font-semibold bg-red-50 text-red-700">
-                                        Denuncia: {{ $item->tipo_contaminacion }}
+                                        Denuncia: {{ $item->tipo_contaminacion ?? 'General' }}
                                     </span>
                                 @endif
                             </td>
@@ -140,26 +149,26 @@
                             <td class="px-4 py-3">
                                 @php
                                     $statusClasses = match($estadoValor) {
-                                        'en_inspeccion' => 'bg-indigo-100 text-indigo-800 border border-indigo-200',
-                                        'requiere_reinspeccion' => 'bg-purple-100 text-purple-800 border border-purple-200',
-                                        'inspector_asignado' => 'bg-sky-100 text-sky-800',
-                                        'pendiente' => 'bg-amber-100 text-amber-800',
+                                        'EN_INSPECCION' => 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+                                        'REQUIERE_REINSPECCION' => 'bg-purple-100 text-purple-800 border border-purple-200',
+                                        'INSPECTOR_ASIGNADO' => 'bg-sky-100 text-sky-800',
+                                        'PENDIENTE' => 'bg-amber-100 text-amber-800',
                                         default => 'bg-slate-100 text-slate-800'
                                     };
                                 @endphp
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusClasses }}">
-                                    {{ ucfirst(str_replace('_', ' ', $estadoValor)) }}
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $statusClasses }}">
+                                    {{ str_replace('_', ' ', $estadoValor) }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-right">
                                 @if($puedeEjecutar)
                                     <div class="flex items-center justify-end gap-2">
-                                        @if(in_array($estadoValor, ['inspector_asignado', 'requiere_reinspeccion']))
+                                        @if(in_array($estadoValor, ['INSPECTOR_ASIGNADO', 'REQUIERE_REINSPECCION']))
                                             <form action="{{ route('inspecciones.iniciar-revision', $item->id) }}" method="POST">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
-                                                    {{ $estadoValor === 'requiere_reinspeccion' ? 'Iniciar Reinspección' : 'Iniciar Revisión' }}
+                                                <button type="submit" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg transition cursor-pointer">
+                                                    {{ $estadoValor === 'REQUIERE_REINSPECCION' ? 'Iniciar Reinspección' : 'Iniciar Revisión' }}
                                                 </button>
                                             </form>
                                         @endif
@@ -206,6 +215,9 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($inspeccionesRealizadas as $inspeccion)
+                        @php
+                            $dictamenValor = strtoupper($inspeccion->dictamen ?? '');
+                        @endphp
                         <tr class="hover:bg-slate-50">
                             <td class="px-4 py-3 font-mono font-bold text-slate-900">
                                 {{ $inspeccion->codigo_acta }}
@@ -221,7 +233,7 @@
                             </td>
                             <td class="px-4 py-3">
                                 @php
-                                    $badgeClasses = match($inspeccion->dictamen) {
+                                    $badgeClasses = match($dictamenValor) {
                                         'APROBADO' => 'bg-emerald-100 text-emerald-800',
                                         'CON_OBSERVACIONES' => 'bg-amber-100 text-amber-800',
                                         'RECHAZADO' => 'bg-rose-100 text-rose-800',
@@ -230,7 +242,7 @@
                                     };
                                 @endphp
                                 <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $badgeClasses }}">
-                                    {{ str_replace('_', ' ', $inspeccion->dictamen) }}
+                                    {{ str_replace('_', ' ', $dictamenValor) }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-right">
@@ -257,5 +269,4 @@
     </div>
 
 </div>
-
 </x-layouts.app>

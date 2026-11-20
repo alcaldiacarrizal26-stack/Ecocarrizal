@@ -17,8 +17,6 @@ class Inspeccion extends Model
     protected $fillable = [
         'codigo_acta',
         'tipo_inspeccion',
-        'base_legal_inspeccion',
-        'orden_adjunta_path',
         'solicitud_id',
         'denuncia_id',
         'orden_inspeccion_id',
@@ -30,10 +28,16 @@ class Inspeccion extends Model
         'fotos_evidencia',
         'recomendaciones',
         'dictamen',
+        'estado',
+        'fecha_inicio',
+        'fecha_cierre',
+        'version'
     ];
 
     protected $casts = [
         'fecha_visita' => 'datetime',
+        'fecha_inicio' => 'datetime',
+        'fecha_cierre' => 'datetime',
         'hallazgos' => 'array',
         'fotos_evidencia' => 'array',
     ];
@@ -58,7 +62,7 @@ class Inspeccion extends Model
         return $this->belongsTo(OrdenInspeccion::class, 'orden_inspeccion_id', 'id');
     }
 
-    public function sancion()
+    public function sanciones(): HasMany
     {
         return $this->hasOne(Sancion::class, 'inspeccion_id', 'id');
     }

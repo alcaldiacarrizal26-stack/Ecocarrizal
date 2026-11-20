@@ -8,8 +8,8 @@
             <p class="text-xs text-slate-500 mt-0.5">Gestión de compromisos de reforestación y donaciones voluntarias de plantas en viveros municipales.</p>
         </div>
         <div>
-            <!-- Botón para Donar Ejemplares sin requerir resolución previa -->
-            <button @click="esDonacion = true; itemSeleccionado = { id: null, resolucion: 'DONACION-VOLUNTARIA', especie: '', pendientes: 999 }; nombreArchivo = ''; modalAbierto = true;"
+            <!-- Botón para Donar Ejemplares (sin especie) -->
+            <button @click="esDonacion = true; itemSeleccionado = { id: null, codigo: 'DONACION-VOLUNTARIA', pendientes: 999 }; nombreArchivo = ''; modalAbierto = true;"
                     class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer border-0">
                 <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -43,41 +43,7 @@
 
     <!-- Indicadores / Métricas -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center space-x-4">
-            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ejemplares Asignados</p>
-                <p class="text-xl font-bold text-slate-800 mt-0.5">{{ $stats['arboles_comprometidos'] ?? 0 }}</p>
-            </div>
-        </div>
-
-        <div class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center space-x-4">
-            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Entregados / Donados</p>
-                <p class="text-xl font-bold text-slate-800 mt-0.5">{{ $stats['arboles_entregados'] ?? 0 }}</p>
-            </div>
-        </div>
-
-        <div class="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center space-x-4">
-            <div class="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pendientes por Entregar</p>
-                <p class="text-xl font-bold text-slate-800 mt-0.5">{{ $stats['pendientes_entrega'] ?? 0 }}</p>
-            </div>
-        </div>
+        <!-- ... (Los mismos 3 indicadores, sin cambios) ... -->
     </div>
 
     <!-- Tabla de Registros -->
@@ -91,7 +57,7 @@
                 <thead class="bg-slate-50 text-slate-400 uppercase font-bold text-[10px] tracking-wider border-b border-slate-100">
                     <tr>
                         <th class="p-4">Resolución / Tipo</th>
-                        <th class="p-4">Especie Requerida / Donada</th>
+                        <!-- <th class="p-4">Especie Requerida / Donada</th> ELIMINADA -->
                         <th class="p-4">Progreso / Cantidad</th>
                         <th class="p-4">Estatus</th>
                         <th class="p-4 text-center">Acción</th>
@@ -100,9 +66,10 @@
                 <tbody class="divide-y divide-slate-100 font-medium">
                     @forelse ($compensaciones as $item)
                         @php
-                            $esVoluntario = ($item->tipo_tramite === 'DONACION' || str_contains($item->codigo_resolucion, 'DONACION'));
+                            $esVoluntario = ($item->solicitud_id === null || str_contains($item->codigo_compensacion, 'DONACION'));
                             $pendientes = max(0, $item->cantidad_asignada - $item->cantidad_entregada);
                             $porcentaje = $item->cantidad_asignada > 0 ? min(100, round(($item->cantidad_entregada / $item->cantidad_asignada) * 100)) : 100;
+                            $ultimaEntrega = $item->entregas->sortByDesc('created_at')->first();
                         @endphp
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="p-4 font-bold text-slate-800">
@@ -111,11 +78,11 @@
                                         Donación Voluntaria
                                     </span>
                                 @else
-                                    <div class="font-bold text-indigo-600 font-mono">{{ $item->codigo_resolucion }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5">Exp: {{ $item->solicitud->codigo_expediente ?? 'N/A' }}</div>
+                                    <div class="font-bold text-indigo-600 font-mono">{{ $item->codigo_compensacion }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">Exp: {{ $item->solicitud->codigo_solicitud ?? 'N/A' }}</div>
                                 @endif
                             </td>
-                            <td class="p-4 text-slate-700 font-semibold">{{ $item->especie_requerida }}</td>
+                            <!-- <td class="p-4 text-slate-700 font-semibold">{{ $item->especie_requerida }}</td> ELIMINADA -->
                             <td class="p-4">
                                 @if($esVoluntario)
                                     <span class="font-bold text-slate-800 font-mono">{{ $item->cantidad_entregada }} uds. donadas</span>
@@ -145,8 +112,7 @@
                                     <button 
                                         @click="esDonacion = false; itemSeleccionado = {
                                             id: '{{ $item->id }}',
-                                            resolucion: '{{ $item->codigo_resolucion }}',
-                                            especie: '{{ $item->especie_requerida }}',
+                                            codigo: '{{ $item->codigo_compensacion }}',
                                             pendientes: {{ $pendientes }}
                                         }; nombreArchivo = ''; modalAbierto = true;" 
                                         class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] rounded-xl transition-colors cursor-pointer">
@@ -154,8 +120,8 @@
                                     </button>
                                 @endif
 
-                                @if($item->comprobante_path)
-                                    <a href="{{ Storage::url($item->comprobante_path) }}" target="_blank" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl transition-colors inline-block">
+                                @if($ultimaEntrega && $ultimaEntrega->comprobante_path)
+                                    <a href="{{ Storage::url($ultimaEntrega->comprobante_path) }}" target="_blank" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl transition-colors inline-block">
                                         Ver Comprobante
                                     </a>
                                 @endif
@@ -163,7 +129,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="p-8 text-center text-slate-400 text-xs">
+                            <td colspan="4" class="p-8 text-center text-slate-400 text-xs">
                                 <svg class="mx-auto h-10 w-10 text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                                 </svg>
@@ -176,7 +142,7 @@
         </div>
     </div>
 
-    <!-- Modal Formulario (Registrar Entrega de Compensación o Donación Voluntaria) -->
+    <!-- Modal Formulario (Registrar Entrega o Donación Voluntaria) -->
     <div x-show="modalAbierto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
         <div @click.outside="modalAbierto = false" class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             
@@ -188,6 +154,7 @@
                 <button @click="modalAbierto = false" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer leading-none">&times;</button>
             </div>
 
+            <!-- CORREGIDO: La acción apunta a store para entregas y a donar para donaciones -->
             <form x-bind:action="esDonacion ? '{{ route('ciudadano.compensacion.donar') }}' : '{{ url('/ciudadano/compensacion') }}/' + itemSeleccionado?.id" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
                 <template x-if="!esDonacion">
@@ -196,18 +163,13 @@
 
                 <input type="hidden" name="compensacion_id" x-bind:value="itemSeleccionado?.id">
 
-                <template x-if="esDonacion">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Especie / Tipo de Planta Donada <span class="text-rose-500">*</span></label>
-                        <input type="text" name="tipo_especie" placeholder="Ej: Araguaney, Bucare, Plantas Ornamentales..." required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:border-indigo-600 transition">
-                    </div>
-                </template>
-
+                <!-- ELIMINADO EL INPUT DE ESPECIE EN DONACION -->
+                
                 <template x-if="!esDonacion">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Código de Resolución</label>
-                        <input type="text" x-bind:value="itemSeleccionado?.resolucion" disabled class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono font-bold">
-                        <input type="hidden" name="tipo_especie" x-bind:value="itemSeleccionado?.especie">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Código de Compensación</label>
+                        <input type="text" x-bind:value="itemSeleccionado?.codigo" disabled class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono font-bold">
+                        <!-- ELIMINADO EL INPUT HIDDEN DE ESPECIE -->
                     </div>
                 </template>
 

@@ -9,16 +9,14 @@ use App\Models\Solicitud;
 use App\Models\Empresa;
 use App\Models\DeclaracionResiduo;
 use App\Models\Compensacion;
+use Illuminate\Support\Facades\DB;
 
 class ReporteController extends Controller
 {
-    /**
-     * Dashboard General Ejecutivo (Resumen de las 3 áreas)
-     */
     public function index(Request $request)
     {
         $totalDenuncias = Denuncia::count();
-        $denunciasPorComuna = Denuncia::select('comuna', \DB::raw('count(*) as total'))
+        $denunciasPorComuna = Denuncia::select('comuna', DB::raw('count(*) as total'))
             ->groupBy('comuna')
             ->orderByDesc('total')
             ->limit(5)
@@ -49,18 +47,18 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * Detalle 1: División de Ambiente
-     */
     public function ambiente(Request $request)
     {
-        $query = Solicitud::with(['usuario', 'inspector', 'recaudos']);
+        $query = Solicitud::with(['usuario', 'inspector', 'recaudos', 'tipoTramite']);
 
+        // CORREGIDO: Filtramos por la relación tipoTramite (slug) en lugar del campo string
         if ($request->filled('tipo_tramite')) {
-            $query->where('tipo_tramite', $request->tipo_tramite);
+            $query->whereHas('tipoTramite', function($q) use ($request) {
+                $q->where('slug', $request->tipo_tramite);
+            });
         }
         if ($request->filled('estado')) {
-            $query->where('estado', $request->estado);
+            $query->where('estado', strtoupper($request->estado)); // <-- MAYÚSCULAS
         }
         if ($request->filled('fecha_inicio')) {
             $query->whereDate('created_at', '>=', $request->fecha_inicio);
@@ -72,7 +70,7 @@ class ReporteController extends Controller
         $solicitudes = $query->latest()->paginate(15)->withQueryString();
         
         $totalTramites = Solicitud::count();
-        $tramitesAprobados = Solicitud::where('estado', 'aprobado')->count();
+        $tramitesAprobados = Solicitud::where('estado', 'APROBADO')->count(); // <-- MAYÚSCULAS
         $compensacionesPendientes = Compensacion::where('estatus', 'PENDIENTE')->count();
         $totalCompensaciones = Compensacion::count();
 
@@ -88,15 +86,12 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * Detalle 2: División de Residuos Comerciales (RACDA / Declaraciones)
-     */
     public function residuos(Request $request)
     {
         $fechaInicio = $request->input('fecha_inicio', now()->startOfWeek()->toDateString());
         $fechaFin = $request->input('fecha_fin', now()->endOfWeek()->toDateString());
 
-        $query = \App\Models\Empresa::with(['user', 'perfilAmbiental', 'documentosExpediente']);
+        $query = Empresa::with(['user', 'perfilAmbiental', 'documentosExpediente']);
 
         if ($request->filled('buscar')) {
             $busqueda = $request->input('buscar');
@@ -108,7 +103,7 @@ class ReporteController extends Controller
         }
 
         if ($request->filled('estatus')) {
-            $query->where('estatus', $request->input('estatus'));
+            $query->where('estatus', strtoupper($request->input('estatus')));
         }
 
         if ($request->filled('comuna')) {
@@ -118,19 +113,19 @@ class ReporteController extends Controller
         if ($request->filled('rol')) {
             $rol = $request->input('rol');
             $query->whereHas('perfilAmbiental', function($q) use ($rol) {
-                $q->where('rol_ambiental', $rol);
+                $q->where('rol_ambiental', strtoupper($rol));
             });
         }
 
         $empresas = $query->latest()->paginate(10, ['*'], 'empresas_page')->withQueryString();
-        $totalEmpresas = \App\Models\Empresa::count();
-        $comunasDisponibles = \App\Models\Empresa::whereNotNull('comuna')->distinct()->pluck('comuna');
+        $totalEmpresas = Empresa::count();
+        $comunasDisponibles = Empresa::whereNotNull('comuna')->distinct()->pluck('comuna');
 
-        $declaracionesQuery = \App\Models\DeclaracionResiduo::with(['empresa.perfilAmbiental'])
+        $declaracionesQuery = DeclaracionResiduo::with(['empresa.perfilAmbiental'])
             ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
         if ($request->filled('rol_declarante')) {
-            $declaracionesQuery->where('rol_declarante', $request->input('rol_declarante'));
+            $declaracionesQuery->where('rol_declarante', strtoupper($request->input('rol_declarante')));
         }
 
         $declaraciones = $declaracionesQuery->latest()->paginate(10, ['*'], 'declaraciones_page')->withQueryString();
@@ -152,9 +147,6 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * Detalle 3: División de Participación Ciudadana y Poder Popular (Comunas y Sectores)
-     */
     public function poderPopular(Request $request)
     {
         $tipoRegistro = $request->input('tipo', 'denuncia');
@@ -163,7 +155,7 @@ class ReporteController extends Controller
             $query = Solicitud::with(['usuario', 'inspector', 'recaudos']);
             
             if ($request->filled('codigo')) {
-                $query->where('codigo_expediente', 'ilike', '%' . $request->codigo . '%');
+                $query->where('codigo_solicitud', 'ilike', '%' . $request->codigo . '%'); // <-- CORREGIDO
             }
             if ($request->filled('comuna')) {
                 $query->where('comuna', $request->comuna);
@@ -181,13 +173,13 @@ class ReporteController extends Controller
             $query = Denuncia::with(['user', 'inspector']);
             
             if ($request->filled('codigo')) {
-                $query->where('codigo', 'ilike', '%' . $request->codigo . '%');
+                $query->where('codigo_denuncia', 'ilike', '%' . $request->codigo . '%'); // <-- CORREGIDO
             }
             if ($request->filled('comuna')) {
                 $query->where('comuna', $request->comuna);
             }
             if ($request->filled('gravedad')) {
-                $query->where('nivel_gravedad', $request->gravedad);
+                $query->where('nivel_gravedad', strtoupper($request->gravedad)); // <-- MAYÚSCULAS
             }
             if ($request->filled('fecha_inicio')) {
                 $query->whereDate('created_at', '>=', $request->fecha_inicio);
@@ -212,20 +204,26 @@ class ReporteController extends Controller
         $tipoRegistro = $request->input('tipo', 'denuncia');
         
         $rankingComunas = ($tipoRegistro === 'solicitud' ? Solicitud::query() : Denuncia::query())
-            ->select('comuna', 'sector', \DB::raw('count(*) as total'))
+            ->select('comuna', 'sector', DB::raw('count(*) as total'))
             ->groupBy('comuna', 'sector')
             ->orderByDesc('total')
             ->get();
 
-        $motivosPrincipales = ($tipoRegistro === 'solicitud' ? Solicitud::query() : Denuncia::query())
-            ->select(
-                $tipoRegistro === 'solicitud' ? 'tipo_tramite as motivo' : 'tipo_contaminacion as motivo', 
-                \DB::raw('count(*) as total')
-            )
-            ->groupBy('motivo')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get();
+        if ($tipoRegistro === 'solicitud') {
+            // CORREGIDO: join para obtener el nombre del trámite ya que es un ID
+            $motivosPrincipales = Solicitud::join('tipos_tramites', 'solicitudes.tipo_tramite_id', '=', 'tipos_tramites.id')
+                ->select('tipos_tramites.nombre as motivo', DB::raw('count(*) as total'))
+                ->groupBy('tipos_tramites.nombre')
+                ->orderByDesc('total')
+                ->limit(5)
+                ->get();
+        } else {
+            $motivosPrincipales = Denuncia::select('tipo_contaminacion as motivo', DB::raw('count(*) as total'))
+                ->groupBy('tipo_contaminacion')
+                ->orderByDesc('total')
+                ->limit(5)
+                ->get();
+        }
 
         $registrosGenerales = ($tipoRegistro === 'solicitud' 
             ? Solicitud::with('inspecciones') 
@@ -235,8 +233,9 @@ class ReporteController extends Controller
         $totalReg = $registrosGenerales->count();
         
         $resueltos = $registrosGenerales->filter(function($item) use ($tipoRegistro) {
-            $estatusCampo = $tipoRegistro === 'solicitud' ? ($item->estado ?? '') : ($item->estatus ?? '');
-            return in_array(strtolower($estatusCampo), ['cerrado', 'aprobado', 'resuelto', 'completado', 'atendido']);
+            // CORREGIDO: Denuncias usan 'estado' y comparamos en MAYÚSCULAS
+            $estatusCampo = $tipoRegistro === 'solicitud' ? ($item->estado ?? '') : ($item->estado ?? '');
+            return in_array(strtoupper($estatusCampo), ['CERRADO', 'APROBADO', 'RESUELTO', 'COMPLETADO', 'ATENDIDO']);
         })->count();
         $sinResolver = $totalReg - $resueltos;
 
@@ -321,9 +320,10 @@ class ReporteController extends Controller
             ));
 
         } else {
-            $gravedadAlta = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'alta')->count();
-            $gravedadMedia = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'media')->count();
-            $gravedadBaja = $registrosGenerales->filter(fn($i) => strtolower($i->nivel_gravedad ?? '') === 'baja')->count();
+            // CORREGIDO: UPPERCASE en las comparaciones
+            $gravedadAlta = $registrosGenerales->filter(fn($i) => strtoupper($i->nivel_gravedad ?? '') === 'ALTA')->count();
+            $gravedadMedia = $registrosGenerales->filter(fn($i) => strtoupper($i->nivel_gravedad ?? '') === 'MEDIA')->count();
+            $gravedadBaja = $registrosGenerales->filter(fn($i) => strtoupper($i->nivel_gravedad ?? '') === 'BAJA')->count();
 
             $chartGravedadConfig = [
                 'type' => 'doughnut',
@@ -363,12 +363,12 @@ class ReporteController extends Controller
 
     public function exportarEmpresasPdf()
     {
-        $totalEmpresas = \App\Models\Empresa::count();
-        $totalGeneradores = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'GENERADOR'))->count();
-        $totalManejadores = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'MANEJADOR'))->count();
-        $totalNoAplica = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'NO_APLICA'))->count();
+        $totalEmpresas = Empresa::count();
+        $totalGeneradores = Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'GENERADOR'))->count();
+        $totalManejadores = Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'MANEJADOR'))->count();
+        $totalNoAplica = Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'NO_APLICA'))->count();
 
-        $empresas = \App\Models\Empresa::with(['perfilAmbiental'])->get();
+        $empresas = Empresa::with(['perfilAmbiental'])->get();
         $resumenComunasEmpresas = [];
 
         foreach ($empresas->groupBy('comuna') as $comuna => $lista) {
@@ -395,18 +395,18 @@ class ReporteController extends Controller
         $fechaInicio = $request->input('fecha_inicio', now()->startOfWeek()->toDateString());
         $fechaFin = $request->input('fecha_fin', now()->endOfWeek()->toDateString());
 
-        $totalEmpresas = \App\Models\Empresa::count();
-        $totalGeneradoras = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'GENERADOR'))->count();
-        $totalManejadoras = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'MANEJADOR'))->count();
-        $totalNoAplica = \App\Models\Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'NO_APLICA'))->count();
+        $totalEmpresas = Empresa::count();
+        $totalGeneradoras = Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'GENERADOR'))->count();
+        $totalManejadoras = Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'MANEJADOR'))->count();
+        $totalNoAplica = Empresa::whereHas('perfilAmbiental', fn($q) => $q->where('rol_ambiental', 'NO_APLICA'))->count();
 
         $totalesPorCategoria = [
-            'comunes' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_comunes'),
-            'reciclables' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_reciclables'),
-            'peligrosas' => \App\Models\DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_peligrosas'),
+            'comunes' => DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_comunes'),
+            'reciclables' => DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_reciclables'),
+            'peligrosas' => DeclaracionResiduo::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])->sum('toneladas_peligrosas'),
         ];
 
-        $empresas = \App\Models\Empresa::with(['declaracionesResiduos' => function($q) use ($fechaInicio, $fechaFin) {
+        $empresas = Empresa::with(['declaracionesResiduos' => function($q) use ($fechaInicio, $fechaFin) {
             $q->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
         }, 'perfilAmbiental'])->get();
         
@@ -468,7 +468,7 @@ class ReporteController extends Controller
         $fechaInicio = $request->input('fecha_inicio');
         $fechaFin = $request->input('fecha_fin');
 
-        $query = Solicitud::with(['inspecciones', 'inspector', 'recaudos'])
+        $query = Solicitud::with(['inspecciones', 'inspector', 'recaudos', 'tipoTramite'])
             ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
         $solicitudes = $query->get();
@@ -478,11 +478,14 @@ class ReporteController extends Controller
         $tramitesSinInspector = $solicitudes->filter(fn($s) => is_null($s->inspector_id))->count();
 
         $resumenPorTipo = [];
-        $agrupadasPorTipo = $solicitudes->groupBy('tipo_tramite');
+        
+        // CORREGIDO: Agrupamos por ID de trámite y obtenemos el nombre desde la relación
+        $agrupadasPorTipo = $solicitudes->groupBy('tipo_tramite_id');
 
-        foreach ($agrupadasPorTipo as $tipo => $lista) {
+        foreach ($agrupadasPorTipo as $tipoId => $lista) {
+            $nombreTramite = $lista->first()->tipoTramite->nombre ?? 'Desconocido';
             $estatusConteo = $lista->groupBy('estado')->map->count();
-            $resumenPorTipo[$tipo] = [
+            $resumenPorTipo[$nombreTramite] = [
                 'total' => $lista->count(),
                 'estatus' => $estatusConteo,
             ];
@@ -493,18 +496,22 @@ class ReporteController extends Controller
 
         foreach ($agrupadasPorComuna as $comuna => $listaComuna) {
             if (empty($comuna)) continue;
-            $tiposEnComuna = $listaComuna->groupBy('tipo_tramite')->map->count();
+            $tiposEnComuna = $listaComuna->groupBy('tipo_tramite_id')->map(function($items) {
+                return $items->first()->tipoTramite->nombre ?? 'Desconocido';
+            })->countBy()->toArray(); 
+            // Nota: countBy del mapeo anterior agrupa por el nombre resultante.
+            
             $resumenPorComuna[$comuna] = [
                 'tipos' => $tiposEnComuna,
                 'total' => $listaComuna->count(),
             ];
         }
 
-        // Métricas de Denuncias en el mismo período para enriquecer el balance ambiental
+        // Métricas de Denuncias (UPPERCASE y campo 'estado')
         $denunciasQuery = Denuncia::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
         $totalDenuncias = $denunciasQuery->count();
-        $denunciasRechazadas = (clone $denunciasQuery)->whereIn('estatus', ['rechazado', 'desestimado'])->count();
-        $denunciasAtendidas = (clone $denunciasQuery)->where('estatus', 'atendido')->count();
+        $denunciasRechazadas = (clone $denunciasQuery)->whereIn('estado', ['RECHAZADO', 'DESESTIMADO'])->count(); // <-- CORREGIDO
+        $denunciasAtendidas = (clone $denunciasQuery)->where('estado', 'ATENDIDO')->count(); // <-- CORREGIDO
 
         $compensacionesQuery = Compensacion::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
         $compensacionesADeber = (clone $compensacionesQuery)->where('estatus', 'PENDIENTE')->count();

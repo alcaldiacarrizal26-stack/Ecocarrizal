@@ -26,7 +26,7 @@ class Empresa extends Model
         'calle_avenida',
         'edificio_galpon_local',
         'estatus',
-        'observaciones_fiscalia',
+        'observaciones_administrativas',
     ];
 
     public function user(): BelongsTo

@@ -12,15 +12,21 @@ return new class extends Migration
             "estado_revision_doc_enum"     => "'VALIDO', 'OBSERVADO', 'RECHAZADO'",
             "dictamen_inspeccion_enum"     => "'APROBADO', 'CON_OBSERVACIONES', 'RECHAZADO', 'REINSPECCION_REQUERIDA'",
             "estatus_compensacion_enum"    => "'PENDIENTE', 'PARCIAL', 'COMPLETADO'",
-            "estatus_entrega_enum"         => "'PENDIENTE', 'APROBADO', 'RECHAZADO'",
-            "tipo_tramite_enum"            => "'inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion', 'tala'",
-            "estado_solicitud_enum"        => "'pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'aprobado', 'rechazado'",
-            "estado_orden_inspeccion_enum" => "'pendiente', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'atendido', 'desestimado'",
-            "nivel_bitacora_enum"          => "'info', 'warning', 'danger', 'critical'",
+            "estatus_entrega_enum"         => "'PENDIENTE', 'EN_REVISION', 'APROBADO', 'RECHAZADO'",
+            "estado_solicitud_enum"        => "'PENDIENTE', 'INCOMPLETA', 'EN_REVISION', 'INSPECTOR_ASIGNADO', 'EN_INSPECCION', 'REQUIERE_REINSPECCION', 'APROBADO', 'RECHAZADO'",
+            "estado_orden_inspeccion_enum" => "'PENDIENTE', 'INSPECTOR_ASIGNADO', 'EN_INSPECCION', 'REQUIERE_REINSPECCION', 'ATENDIDO', 'DESESTIMADO'",
+            "nivel_bitacora_enum"          => "'INFO', 'WARNING', 'DANGER', 'CRITICAL'",
             "estatus_declaracion_enum"     => "'PRESENTADA', 'OBSERVADA', 'CONFORME', 'APROBADA', 'RECHAZADA'",
-            "frecuencia_declaracion_enum"  => "'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL', 'SEMANAL'",
             "categoria_residuo_enum"       => "'COMUN', 'RECICLABLE', 'PELIGROSO'",
             "tipo_operacion_manejo_enum"   => "'RECOLECCION_TRANSPORTE', 'ALMACENAMIENTO_TEMPORAL', 'TRATAMIENTO', 'RECICLAJE_VALORIZACION', 'DISPOSICION_FINAL'",
+            "gravedad_sancion_enum"        => "'LEVE', 'MEDIA', 'GRAVE'",
+            "estatus_sancion_enum"         => "'NOTIFICADA', 'EN_SUBSANACION', 'RESUELTA', 'PAGADA', 'CONDONADA', 'ARCHIVADA'",
+            "estado_inspeccion_enum"       => "'PROGRAMADA', 'EN_CURSO', 'FINALIZADA', 'CANCELADA', 'REQUIERE_REINSPECCION'",
+            "tipo_requisito_enum"          => "'OBLIGATORIO', 'CONDICIONAL', 'OPCIONAL'",
+            "estatus_empresa_enum"         => "'PENDIENTE_APROBACION', 'OBSERVADO', 'APROBADO', 'RECHAZADO'",
+            "prioridad_ticket_enum"        => "'BAJA', 'MEDIA', 'ALTA'",
+            "estatus_ticket_enum"          => "'ABIERTO', 'EN_PROCESO', 'RESUELTO'",
+            "tipo_notificacion_enum"       => "'EXITO', 'INFORMACION', 'ADVERTENCIA', 'ERROR'",
         ];
 
         if (DB::getDriverName() === 'pgsql') {
@@ -36,10 +42,11 @@ return new class extends Migration
         if (DB::getDriverName() === 'pgsql') {
             $enums = [
                 "tipo_racda_enum", "estado_revision_doc_enum", "dictamen_inspeccion_enum",
-                "estatus_compensacion_enum", "estatus_entrega_enum", "tipo_tramite_enum",
+                "estatus_compensacion_enum", "estatus_entrega_enum", "tipo_requisito_enum",
                 "estado_solicitud_enum", "estado_orden_inspeccion_enum", "nivel_bitacora_enum",
-                "estatus_declaracion_enum", "frecuencia_declaracion_enum", "categoria_residuo_enum",
-                "tipo_operacion_manejo_enum"
+                "estatus_declaracion_enum", "categoria_residuo_enum", "estado_inspeccion_enum",
+                "tipo_operacion_manejo_enum", "gravedad_sancion_enum", "estatus_sancion_enum",
+                "estatus_empresa_enum", "prioridad_ticket_enum", "estatus_ticket_enum", "tipo_notificacion_enum"
             ];
 
             foreach ($enums as $name) {

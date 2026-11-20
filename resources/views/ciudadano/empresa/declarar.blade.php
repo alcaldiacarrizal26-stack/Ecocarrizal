@@ -23,14 +23,12 @@
     <div class="p-6 max-w-5xl mx-auto space-y-6 bg-slate-50 min-h-screen" 
          x-data="declaracionResiduos({{ json_encode($datosIniciales) }})">
         
-        <!-- Alerta de Errores o Excepciones Flash -->
         @if(session('error'))
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm shadow-sm">
                 <strong>⚠️ Atención:</strong> {{ session('error') }}
             </div>
         @endif
 
-        <!-- Header con Insignia Dinámica -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div>
                 <div class="flex items-center gap-2">
@@ -66,7 +64,6 @@
 
             <input type="hidden" name="rol_declarante" value="{{ $rolAmbiental }}">
 
-            <!-- Sección 1: Carga Dinámica del Formulario según Rol -->
             @if ($rolAmbiental === 'MANEJADOR')
                 @include('ciudadano.empresa.partials.form_manejador')
             @elseif ($rolAmbiental === 'GENERADOR')
@@ -75,10 +72,8 @@
                 @include('ciudadano.empresa.partials.form_no_aplica')
             @endif
 
-            <!-- Muestra Secciones 2 y 3 ÚNICAMENTE si no es NO_APLICA -->
             @if ($rolAmbiental !== 'NO_APLICA')
                 
-                <!-- Sección 2: Desglose por Tipo de Residuo -->
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                         <div>
@@ -96,7 +91,6 @@
                             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 relative space-y-3">
                                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                                     
-                                    <!-- Tipo de Residuo -->
                                     <div class="md:col-span-4">
                                         <label class="block text-xs font-medium text-slate-500 mb-1">Tipo de Residuo</label>
                                         <select x-model="item.residuo_id" 
@@ -120,7 +114,6 @@
                                         <input type="hidden" :name="`detalles[${index}][codigo_residuo]`" :value="slugify(item.nombre_residuo)">
                                     </div>
 
-                                    <!-- Categoría Automática -->
                                     <div class="md:col-span-2">
                                         <label class="block text-xs font-medium text-slate-500 mb-1">Categoría</label>
                                         <div class="px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 text-center uppercase"
@@ -129,7 +122,6 @@
                                         <input type="hidden" :name="`detalles[${index}][categoria]`" :value="item.categoria">
                                     </div>
 
-                                    <!-- Operación Manejo (Manejadores) -->
                                     <template x-if="rol_ambiental === 'MANEJADOR'">
                                         <div class="md:col-span-3">
                                             <label class="block text-xs font-medium text-slate-500 mb-1">Tipo Operación</label>
@@ -143,14 +135,12 @@
                                         </div>
                                     </template>
 
-                                    <!-- Cantidad -->
                                     <div :class="rol_ambiental === 'MANEJADOR' ? 'md:col-span-1.5' : 'md:col-span-2'">
                                         <label class="block text-xs font-medium text-slate-500 mb-1">Cantidad</label>
                                         <input type="number" step="0.001" min="0" :name="`detalles[${index}][cantidad]`" x-model.number="item.cantidad" required
                                                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-emerald-500">
                                     </div>
 
-                                    <!-- Unidad de Medida -->
                                     <div :class="rol_ambiental === 'MANEJADOR' ? 'md:col-span-1.5' : 'md:col-span-3'">
                                         <label class="block text-xs font-medium text-slate-500 mb-1">Unidad</label>
                                         <select :name="`detalles[${index}][unidad_medida]`" x-model="item.unidad_medida" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-2 text-sm text-slate-800 focus:outline-none focus:border-emerald-500">
@@ -161,7 +151,6 @@
                                         </select>
                                     </div>
 
-                                    <!-- Eliminar Renglón -->
                                     <div class="md:col-span-1 text-right">
                                         <button type="button" @click="eliminarRenglon(index)" x-show="detalles.length > 1"
                                                 class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
@@ -170,7 +159,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Adjunto por Renglón -->
                                 <div class="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <div class="text-xs text-slate-500">
                                         Toneladas equivalentes: <span class="text-emerald-700 font-mono font-bold" x-text="calcularToneladas(item).toFixed(3) + ' TON'"></span>
@@ -195,7 +183,6 @@
                         </template>
                     </div>
 
-                    <!-- Totales en Tiempo Real -->
                     <div class="bg-slate-100/80 p-4 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <div>
                             <span class="block text-xs text-slate-500 uppercase font-semibold">Comunes</span>
@@ -212,7 +199,6 @@
                     </div>
                 </div>
 
-                <!-- Sección 3: Anexos Generales -->
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <h2 class="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2">3. Anexos / Manifiestos Generales</h2>
                     
@@ -244,7 +230,6 @@
 
             @endif
 
-            <!-- Botones de Envio -->
             <div class="flex items-center justify-end gap-3">
                 <a href="{{ route('ciudadano.declaraciones.index') }}" 
                    class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-xl transition-colors">
@@ -277,7 +262,6 @@
             vehiculo_placa: '',
             destino_final_nombre: '',
 
-            // Variables para el control del RIF segmentado del Generador
             rifGeneradorInput: { tipo: 'J', numero: '', digito: '' },
 
             anexosNombres: [],
@@ -324,7 +308,6 @@
 
             formatPlaca() {
                 if (this.vehiculo_placa) {
-                    // Remueve todo lo que no sea letra o número, pasa a mayúsculas y limita estrictamente a 7 caracteres (estándar INTT)
                     this.vehiculo_placa = this.vehiculo_placa
                         .replace(/[^a-zA-Z0-9]/g, '')
                         .toUpperCase()

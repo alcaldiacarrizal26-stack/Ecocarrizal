@@ -11,83 +11,8 @@
             
             territorios: {{ json_encode($territorios) }},
             
-            tiposTramites: {
-                'inspeccion': {
-                    nombre: 'Solicitud de Inspección TÉCNICA',
-                    descripcion: 'Evaluación e inspección en sitio por parte del personal técnico ambiental.',
-                    plazoDias: 0,
-                    requisitosObligatorios: [
-                        { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'PDF o imagen legible' }
-                    ],
-                    requisitosCondicionales: [],
-                    requisitosOpcionales: []
-                },
-                'poda_deshierbe': {
-                    nombre: 'Solicitud de Permiso para Poda o Deshierbe',
-                    descripcion: 'Autorización técnica para labores de mantenimiento, fitosanitarias o poda de formación de vegetación.',
-                    plazoDias: 31,
-                    requisitosObligatorios: [
-                        { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'Requisito inicial obligatorio' },
-                        { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar', hint: 'Detallar motivos y ramas a intervenir' }
-                    ],
-                    requisitosCondicionales: [
-                        { key: 'autorizacion_propietario', label: 'Autorización del Propietario', hint: 'Si no es el propietario directo del inmueble/terreno', flag: 'aplicaAutorizacionPropietario' },
-                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' },
-                        { key: 'registro_mercantil', label: 'Copia del Registro Mercantil', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' },
-                        { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' }
-                    ],
-                    requisitosOpcionales: [
-                        { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado', hint: 'Título o documento legal' },
-                        { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno', hint: 'Croquis o plano de mensura' },
-                        { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente', hint: 'Emitida por la Alcaldía' },
-                        { key: 'constancia_catastral', label: 'Constancia Catastral Vigente', hint: 'Catastro municipal' }
-                    ]
-                },
-                'tala': {
-                    nombre: 'Solicitud de Permiso para Tala de Árboles',
-                    descripcion: 'Autorización técnica para el derribo/remoción de ejemplares arbóreos por riesgo, infraestructura o enfermedad.',
-                    plazoDias: 31,
-                    requisitosObligatorios: [
-                        { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'Requisito inicial obligatorio' },
-                        { key: 'carta_explicativa', label: 'Carta Justificativa de Tala', hint: 'Detallar motivos de riesgo o estado fitosanitario' },
-                        { key: 'carta_compromiso', label: 'Carta de Compromiso de Compensación Ambiental', hint: 'Compromiso firmado para reforestación o donación' }
-                    ],
-                    requisitosCondicionales: [
-                        { key: 'autorizacion_propietario', label: 'Autorización del Propietario', hint: 'Si no es el propietario directo del inmueble/terreno', flag: 'aplicaAutorizacionPropietario' },
-                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora o resguardo hídrico', flag: 'aplicaVariablesAmbientales' },
-                        { key: 'registro_mercantil', label: 'Copia del Registro Mercantil', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' },
-                        { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' }
-                    ],
-                    requisitosOpcionales: [
-                        { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado', hint: 'Título o documento legal' },
-                        { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno', hint: 'Croquis o plano de mensura' },
-                        { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente', hint: 'Emitida por la Alcaldía' },
-                        { key: 'constancia_catastral', label: 'Constancia Catastral Vigente', hint: 'Catastro municipal' }
-                    ]
-                },
-                'desmalezamiento_conformacion': {
-                    nombre: 'Permiso de Desmalezamiento y Conformación de Terreno',
-                    descripcion: 'Permisos para trabajos de limpieza profunda, acondicionamiento y movimiento menor de suelos.',
-                    plazoDias: 31,
-                    requisitosObligatorios: [
-                        { key: 'cedula', label: 'Copia de la Cédula de Identidad', hint: 'Requisito inicial obligatorio' },
-                        { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar', hint: 'Detallar intervención de suelo' }
-                    ],
-                    requisitosCondicionales: [
-                        { key: 'autorizacion_propietario', label: 'Autorización del Propietario', hint: 'Si no es el propietario directo del inmueble/terreno', flag: 'aplicaAutorizacionPropietario' },
-                        { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)', hint: 'Si aplica en Zona Protectora o requiere afectación vegetal ante el MINEC', flag: 'aplicaVariablesAmbientales' },
-                        { key: 'registro_mercantil', label: 'Copia del Registro Mercantil', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' },
-                        { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa', hint: 'Requerido para Personas Jurídicas / Empresas', flag: 'esPersonaJuridica' }
-                    ],
-                    requisitosOpcionales: [
-                        { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado', hint: 'Título o documento legal' },
-                        { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno', hint: 'Croquis o plano de mensura' },
-                        { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente', hint: 'Emitida por la Alcaldía' },
-                        { key: 'constancia_catastral', label: 'Constancia Catastral Vigente', hint: 'Catastro municipal' },
-                        { key: 'carta_compromiso', label: 'Carta de Compromiso de Reposición', hint: 'En caso de afectación a bienes públicos' }
-                    ]
-                }
-            },
+            // AQUÍ ESTÁ LA MAGIA: Todo viene dinámico desde el Controlador
+            tiposTramites: {{ json_encode($tiposTramites) }},
             
             selectedComuna: '',
             selectedSector: '',
@@ -155,7 +80,8 @@
 
             get clavesRecaudosConsignados() {
                 if (!this.solicitudSeleccionada || !this.solicitudSeleccionada.recaudos) return [];
-                return this.solicitudSeleccionada.recaudos.map(r => r.tipo_recaudo);
+                // CORREGIDO: Buscar en la relación recaudo_catalogo
+                return this.solicitudSeleccionada.recaudos.map(r => r.recaudo_catalogo?.key).filter(Boolean);
             },
 
             get datosEspecificosModal() {
@@ -169,7 +95,11 @@
 
             get requisitosPendientesModal() {
                 if (!this.solicitudSeleccionada) return [];
-                const config = this.tiposTramites[this.solicitudSeleccionada.tipo_tramite];
+                
+                // CORREGIDO: tipo_tramite es ahora un objeto (relación)
+                const slugTramite = this.solicitudSeleccionada.tipo_tramite?.slug || this.solicitudSeleccionada.tipo_tramite;
+                const config = this.tiposTramites[slugTramite];
+                
                 if (!config) return [];
                 
                 const consignados = this.clavesRecaudosConsignados;
@@ -188,16 +118,20 @@
 
             get requisitosConsignadosModal() {
                 if (!this.solicitudSeleccionada || !this.solicitudSeleccionada.recaudos) return [];
-                const config = this.tiposTramites[this.solicitudSeleccionada.tipo_tramite];
+                
+                const slugTramite = this.solicitudSeleccionada.tipo_tramite?.slug || this.solicitudSeleccionada.tipo_tramite;
+                const config = this.tiposTramites[slugTramite];
+                
                 const todosRequisitos = config 
                     ? [...config.requisitosObligatorios, ...config.requisitosCondicionales, ...config.requisitosOpcionales] 
                     : [];
 
                 return this.solicitudSeleccionada.recaudos.map(recaudo => {
-                    const reqConfig = todosRequisitos.find(r => r.key === recaudo.tipo_recaudo);
+                    const key = recaudo.recaudo_catalogo?.key; // CORREGIDO
+                    const reqConfig = todosRequisitos.find(r => r.key === key);
                     return {
                         id: recaudo.id,
-                        key: recaudo.tipo_recaudo,
+                        key: key,
                         label: reqConfig ? reqConfig.label : recaudo.nombre_archivo,
                         nombre_archivo: recaudo.nombre_archivo,
                         archivo_url: recaudo.archivo_url
@@ -304,28 +238,31 @@
                         <tbody class="divide-y divide-slate-100 font-medium">
                             @foreach ($tramites as $tramite)
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="p-4 font-bold text-slate-800">{{ $tramite->codigo_expediente ?? '#' . $tramite->id }}</td>
+                                    {{-- CORREGIDO: codigo_solicitud --}}
+                                    <td class="p-4 font-bold text-slate-800">{{ $tramite->codigo_solicitud ?? '#' . $tramite->id }}</td>
                                     <td class="p-4 text-slate-700 font-semibold">
-                                        {{ $tiposTramites[$tramite->tipo_tramite]['nombre'] ?? $tramite->tipo_tramite }}
+                                        {{-- CORREGIDO: Usar la relación tipoTramite --}}
+                                        {{ $tramite->tipoTramite->nombre ?? 'Trámite' }}
                                     </td>
                                     <td class="p-4">{{ $tramite->comuna }} — {{ $tramite->sector }}</td>
                                     <td class="p-4 text-slate-400">{{ $tramite->created_at->format('d/m/Y') }}</td>
                                     <td class="p-4">
-                                        @if($tramite->estado === 'incompleta')
+                                        {{-- CORREGIDO: Mayúsculas --}}
+                                        @if($tramite->estado === 'INCOMPLETA')
                                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block border bg-amber-50 text-amber-700 border-amber-200">
                                                 Documentación Incompleta
                                             </span>
-                                        @elseif($tramite->estado === 'aprobado')
+                                        @elseif($tramite->estado === 'APROBADO')
                                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block border bg-emerald-50 text-emerald-700 border-emerald-200">
                                                 Aprobado
                                             </span>
-                                        @elseif($tramite->estado === 'rechazado')
+                                        @elseif($tramite->estado === 'RECHAZADO')
                                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block border bg-rose-50 text-rose-700 border-rose-200">
                                                 Rechazado
                                             </span>
                                         @else
                                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block border bg-blue-50 text-blue-700 border-blue-200">
-                                                {{ ucfirst($tramite->estado ?? 'Pendiente') }}
+                                                {{ ucfirst(strtolower($tramite->estado ?? 'PENDIENTE')) }}
                                             </span>
                                         @endif
                                     </td>
@@ -333,6 +270,8 @@
                                     {{-- COLUMNA DE TIMER/PLAZO --}}
                                     <td class="p-4 text-center">
                                         @php
+                                            // CORREGIDO: Usar relación para el slug
+                                            $slugTramite = $tramite->tipoTramite->slug ?? '';
                                             $plazosDias = [
                                                 'poda_deshierbe' => 31,
                                                 'tala' => 31,
@@ -340,13 +279,13 @@
                                                 'inspeccion' => 0,
                                             ];
 
-                                            $diasPlazo = $plazosDias[$tramite->tipo_tramite] ?? 0;
+                                            $diasPlazo = $plazosDias[$slugTramite] ?? 0;
                                             $fechaLimite = $tramite->fecha_limite_documentos 
                                                 ? \Carbon\Carbon::parse($tramite->fecha_limite_documentos) 
-                                                : ($diasPlazo > 0 && $tramite->estado === 'incompleta' ? $tramite->created_at->addDays($diasPlazo) : null);
+                                                : ($diasPlazo > 0 && $tramite->estado === 'INCOMPLETA' ? $tramite->created_at->addDays($diasPlazo) : null);
                                         @endphp
 
-                                        @if($fechaLimite && $tramite->estado === 'incompleta')
+                                        @if($fechaLimite && $tramite->estado === 'INCOMPLETA')
                                             <div x-data="{ timer: obtenerTiempoRestante('{{ $fechaLimite->toIso8601String() }}') }">
                                                 <template x-if="timer && !timer.expirado">
                                                     <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border bg-amber-50/80 text-amber-800 border-amber-200 text-[10px] font-bold" :title="'Fecha límite: ' + timer.fechaFormatted">
@@ -392,6 +331,18 @@
                     </div>
                     <button @click="openModalCrear = false" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer leading-none">&times;</button>
                 </div>
+
+                {{-- Bloque de errores para evitar fallos silenciosos --}}
+                @if($errors->any())
+                    <div class="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl text-xs space-y-1">
+                        <strong class="font-bold">Por favor corrige los siguientes errores:</strong>
+                        <ul class="list-disc pl-4">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <form @submit.prevent="submitForm($el)" action="{{ route('ciudadano.solicitudes.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                     @csrf
@@ -564,8 +515,9 @@
                     <div class="space-y-6">
                         <div class="flex items-start justify-between border-b border-slate-100 pb-4">
                             <div>
-                                <span class="text-xs font-bold text-indigo-600 tracking-wide uppercase" x-text="solicitudSeleccionada.codigo_expediente"></span>
-                                <h3 class="text-base font-bold text-slate-800" x-text="tiposTramites[solicitudSeleccionada.tipo_tramite]?.nombre || solicitudSeleccionada.tipo_tramite"></h3>
+                                {{-- CORREGIDO: codigo_solicitud --}}
+                                <span class="text-xs font-bold text-indigo-600 tracking-wide uppercase" x-text="solicitudSeleccionada.codigo_solicitud"></span>
+                                <h3 class="text-base font-bold text-slate-800" x-text="solicitudSeleccionada.tipo_tramite?.nombre || 'Trámite'"></h3>
                                 <p class="text-xs text-slate-400" x-text="solicitudSeleccionada.comuna + ' — ' + solicitudSeleccionada.sector"></p>
                             </div>
                             <button @click="openModalDetalle = false" type="button" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer leading-none">&times;</button>
@@ -578,7 +530,8 @@
                             </div>
                             <div>
                                 <span class="text-slate-400 font-semibold block text-[10px] uppercase">Estatus Actual:</span>
-                                <span class="font-bold inline-block mt-0.5 capitalize" :class="solicitudSeleccionada.estado === 'rechazado' ? 'text-rose-700' : 'text-indigo-700'" x-text="solicitudSeleccionada.estado || 'Pendiente'"></span>
+                                {{-- CORREGIDO: 'RECHAZADO' --}}
+                                <span class="font-bold inline-block mt-0.5 capitalize" :class="solicitudSeleccionada.estado === 'RECHAZADO' ? 'text-rose-700' : 'text-indigo-700'" x-text="solicitudSeleccionada.estado || 'PENDIENTE'"></span>
                             </div>
                             <div class="sm:col-span-2">
                                 <span class="text-slate-400 font-semibold block text-[10px] uppercase">Exposición de Motivos:</span>
@@ -608,7 +561,7 @@
                         </div>
 
                         {{-- Motivo de Rechazo / Observaciones si aplica --}}
-                        <template x-if="solicitudSeleccionada.estado === 'rechazado' && (solicitudSeleccionada.observaciones || solicitudSeleccionada.motivo_rechazo)">
+                        <template x-if="solicitudSeleccionada.estado === 'RECHAZADO' && (solicitudSeleccionada.observaciones || solicitudSeleccionada.motivo_rechazo)">
                             <div class="p-4 bg-rose-50 rounded-2xl border border-rose-200 space-y-1">
                                 <span class="block text-[10px] uppercase font-bold text-rose-700">Motivo de Rechazo / Observaciones</span>
                                 <p class="text-xs text-rose-900 font-medium" x-text="solicitudSeleccionada.observaciones || solicitudSeleccionada.motivo_rechazo"></p>
@@ -678,7 +631,7 @@
                                 </div>
                             </template>
 
-                            <template x-if="requisitosPendientesModal.length > 0 && solicitudSeleccionada.estado !== 'rechazado'">
+                            <template x-if="requisitosPendientesModal.length > 0 && solicitudSeleccionada.estado !== 'RECHAZADO'">
                                 <form :action="'/ciudadano/solicitudes/' + solicitudSeleccionada.id + '/pendientes'" method="POST" enctype="multipart/form-data" class="space-y-3">
                                     @csrf
                                     @method('PUT')
@@ -718,7 +671,8 @@
                             * El comprobante oficial incluye código QR de autenticidad municipal.
                         </span>
 
-                        <template x-if="solicitudSeleccionada.estado !== 'incompleta'">
+                        {{-- CORREGIDO: 'INCOMPLETA' --}}
+                        <template x-if="solicitudSeleccionada.estado !== 'INCOMPLETA'">
                             <button 
                                 type="button"
                                 @click="imprimirSolicitudPdf('/ciudadano/solicitudes/' + solicitudSeleccionada.id + '/pdf')" 
@@ -729,7 +683,7 @@
                             </button>
                         </template>
                         
-                        <template x-if="solicitudSeleccionada.estado === 'incompleta'">
+                        <template x-if="solicitudSeleccionada.estado === 'INCOMPLETA'">
                             <button 
                                 disabled 
                                 title="Debe consignar los documentos pendientes para desbloquear el comprobante oficial."

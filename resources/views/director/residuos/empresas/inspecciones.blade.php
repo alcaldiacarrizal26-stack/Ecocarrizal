@@ -1,4 +1,4 @@
-<x-layouts.app title="Inspecciones y Fiscalización - {{ $empresa->razon_social }}" active="residuos">
+<x-layouts.app title="Inspecciones y Fiscalización - {{ $empresa->razon_social }}" active="residuos_empresas">
 <div class="p-4 sm:p-6 max-w-6xl mx-auto space-y-6" x-data="{ 
     modalNuevaInspeccion: false,
     tipoInspeccion: 'ORDINARIA',
@@ -27,7 +27,13 @@
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(res => res.json())
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok || !Array.isArray(data)) {
+                throw new Error(data.detalle || data.message || data.error || 'Error al obtener funcionarios');
+            }
+            return data;
+        })
         .then(data => {
             window.dispatchEvent(new CustomEvent('cargar-inspectores-select', { detail: data }));
         })
@@ -106,14 +112,14 @@
 
                     <div class="flex items-center gap-3">
                         <span class="text-xs font-bold text-slate-500">
-                            Programada: {{ \Carbon\Carbon::parse($orden->fecha_visita_programada)->format('d/m/Y') }}
+                            Programada: {{ $orden->fecha_visita_programada ? \Carbon\Carbon::parse($orden->fecha_visita_programada)->format('d/m/Y') : 'N/A' }}
                         </span>
 
                         @if(in_array($orden->estatus, ['pendiente', 'inspector_asignado']))
                             <form action="{{ route('director.residuos.empresas.inspecciones.destroy', $orden->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta orden de inspección?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition">
+                                <button type="submit" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition cursor-pointer">
                                     Eliminar
                                 </button>
                             </form>
@@ -130,7 +136,7 @@
                         @endif
                         @if($orden->orden_adjunta_path)
                             <div class="pt-2">
-                                <a href="{{ asset('storage/' . $orden->orden_adjunta_path) }}" target="_blank" class="text-emerald-600 hover:underline font-bold flex items-center gap-1">
+                                <a href="{{ asset('storage/' . ltrim($orden->orden_adjunta_path, '/')) }}" target="_blank" class="text-emerald-600 hover:underline font-bold flex items-center gap-1">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Ver Orden Adjunta
                                 </a>
@@ -247,7 +253,7 @@
                                 <template x-if="fileInspeccionName">
                                     <div class="mt-3 p-2 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 flex items-center justify-between">
                                         <span class="truncate" x-text="fileInspeccionName"></span>
-                                        <button type="button" @click.stop="fileInspeccionName = ''; $refs.fileInspeccionInput.value = ''" class="text-rose-600 font-bold">&times;</button>
+                                        <button type="button" @click.stop="fileInspeccionName = ''; $refs.fileInspeccionInput.value = ''" class="text-rose-600 font-bold cursor-pointer">&times;</button>
                                     </div>
                                 </template>
                             </div>
@@ -256,8 +262,8 @@
                 </div>
 
                 <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 shrink-0">
-                    <button type="button" @click="modalNuevaInspeccion = false" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">Cancelar</button>
-                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition flex items-center gap-1.5">Emitir Orden de Inspección</button>
+                    <button type="button" @click="modalNuevaInspeccion = false" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition flex items-center gap-1.5 cursor-pointer">Emitir Orden de Inspección</button>
                 </div>
             </form>
         </div>

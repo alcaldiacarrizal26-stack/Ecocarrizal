@@ -12,7 +12,7 @@ return new class extends Migration
         Schema::create('declaraciones_residuos', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users');
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete(); // Corregido a foreignUuid para los UUIDs de users
 
             $table->string('rol_declarante', 20)->default('GENERADOR'); 
             $table->string('periodo', 20);
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->string('destino_final_nombre')->nullable();
 
             $table->jsonb('manifiestos_archivos')->nullable();
-            $table->text('observaciones_fiscalia')->nullable();
+            $table->text('observaciones_administrativas')->nullable();
             $table->timestampsTz();
 
             $table->unique(['empresa_id', 'periodo']);
@@ -44,10 +44,11 @@ return new class extends Migration
                 ALTER TABLE declaraciones_residuos 
                 ADD COLUMN estatus estatus_declaracion_enum NOT NULL DEFAULT 'PRESENTADA';
             ");
-        } else {
-            Schema::table('declaraciones_residuos', function (Blueprint $table) {
-                $table->enum('estatus', ['BORRADOR', 'PRESENTADA', 'OBSERVADA', 'CONFORME'])->default('PRESENTADA');
-            });
+
+            DB::statement("ALTER TABLE declaraciones_residuos ADD CONSTRAINT chk_semana_iso CHECK (
+                EXTRACT(ISODOW FROM fecha_inicio_periodo) = 1
+                AND fecha_fin_periodo = fecha_inicio_periodo + INTERVAL '6 days'
+            )");
         }
     }
 

@@ -12,10 +12,9 @@ return new class extends Migration
         Schema::create('entregas_compensacion', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('compensacion_id')->constrained('compensaciones')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
 
             $table->integer('cantidad_entregada');
-            $table->string('especie_entregada');
             $table->text('comprobante_path');
             $table->text('observacion_ciudadano')->nullable();
             $table->text('observacion_director')->nullable();
@@ -29,10 +28,6 @@ return new class extends Migration
                 ALTER TABLE entregas_compensacion 
                 ADD COLUMN estatus estatus_entrega_enum NOT NULL DEFAULT 'PENDIENTE';
             ");
-        } else {
-            Schema::table('entregas_compensacion', function (Blueprint $table) {
-                $table->enum('estatus', ['PENDIENTE', 'APROBADO', 'RECHAZADO'])->default('PENDIENTE');
-            });
         }
     }
 

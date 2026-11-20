@@ -22,7 +22,7 @@
             </div>
 
             <div class="shrink-0 bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200">
-                Estado: {{ $user->is_active ? 'Activo' : 'Inactivo' }}
+                Estado: {{ ($user->is_active ?? true) ? 'Activo' : 'Inactivo' }}
             </div>
         </div>
 

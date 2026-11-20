@@ -67,6 +67,7 @@ class RequisitoEmpresaSeeder extends Seeder
                     'nombre' => $req['nombre'],
                     'descripcion' => $req['descripcion'],
                     'es_obligatorio' => $req['es_obligatorio'],
+                    'activo' => true,
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]

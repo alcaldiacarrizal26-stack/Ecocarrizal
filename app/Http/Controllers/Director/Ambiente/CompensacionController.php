@@ -11,9 +11,6 @@ use Illuminate\Support\Facades\DB;
 
 class CompensacionController extends Controller
 {
-    /**
-     * Muestra el panel de compensación ambiental para el Director de Ambiente.
-     */
     public function index()
     {
         $compensaciones = Compensacion::with(['user', 'solicitud', 'entregas.user'])
@@ -21,16 +18,13 @@ class CompensacionController extends Controller
             ->get();
 
         $entregasPendientes = EntregaCompensacion::with(['compensacion.user', 'user'])
-            ->where('estatus', 'PENDIENTE')
+            ->where('estatus', 'PENDIENTE') // <-- Enum de entrega (PENDIENTE)
             ->latest()
             ->get();
 
         return view('director.ambiente.compensacion', compact('compensaciones', 'entregasPendientes'));
     }
 
-    /**
-     * Revisa y procesa una entrega/abono de ejemplares entregado por el ciudadano.
-     */
     public function evaluarEntrega(Request $request, $entregaId)
     {
         $request->validate([
@@ -54,7 +48,6 @@ class CompensacionController extends Controller
             $entrega->fecha_revision = now();
             $entrega->save();
 
-            // Si se aprueba, se suma la cantidad entregada al expediente acumulado
             if ($estatusEvaluacion === 'APROBADO') {
                 $nuevaCantidadEntregada = $compensacion->cantidad_entregada + $entrega->cantidad_entregada;
                 $compensacion->cantidad_entregada = $nuevaCantidadEntregada;
@@ -69,7 +62,6 @@ class CompensacionController extends Controller
             }
         });
 
-        // Enviar notificación al ciudadano según el resultado de la evaluación
         if ($ciudadanoId) {
             $mensajeNotif = $estatusEvaluacion === 'APROBADO' 
                 ? 'Tu entrega de compensación ambiental ha sido verificada y APROBADA exitosamente.' 
@@ -79,7 +71,7 @@ class CompensacionController extends Controller
                 'user_id'  => $ciudadanoId,
                 'titulo'   => 'Actualización de Compensación Ambiental',
                 'mensaje'  => $mensajeNotif,
-                'tipo'     => $estatusEvaluacion === 'APROBADO' ? 'success' : 'warning',
+                'tipo'     => $estatusEvaluacion === 'APROBADO' ? 'EXITO' : 'ADVERTENCIA', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }

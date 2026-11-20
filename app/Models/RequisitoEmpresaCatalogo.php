@@ -13,5 +13,6 @@ class RequisitoEmpresaCatalogo extends Model
         'nombre',
         'descripcion',
         'es_obligatorio',
+        'activo'
     ];
 }

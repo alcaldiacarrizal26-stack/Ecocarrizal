@@ -7,16 +7,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 
-class Inspector extends Model
+class CredencialInspector extends Model
 {
     use HasFactory, Auditable;
 
     protected string $moduloBitacora = 'inspectores';
-    protected $table = 'inspectores';
+    protected $table = 'credenciales_inspector';
 
     protected $fillable = [
         'user_id',
-        'direccion_id',
         'codigo_credencial',
         'especialidad',
         'disponible',
@@ -33,29 +32,6 @@ class Inspector extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function direccion()
-    {
-        return $this->belongsTo(Direccion::class, 'direccion_id', 'id_direccion');
-    }
-
-    public function denuncias()
-    {
-        return $this->hasMany(Denuncia::class, 'inspector_id');
-    }
-
-    public function solicitudes()
-    {
-        return $this->hasMany(Solicitud::class, 'inspector_id');
-    }
-
-    /**
-     * Inspecciones o fiscalizaciones en campo (incluyendo las sorpresa)
-     */
-    public function inspecciones()
-    {
-        return $this->hasMany(Inspeccion::class, 'inspector_id');
     }
 
     // -------------------------------------------------------------

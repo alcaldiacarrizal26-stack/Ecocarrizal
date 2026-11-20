@@ -9,9 +9,6 @@ use Illuminate\Http\Request;
 
 class DeclaracionResiduoController extends Controller
 {
-    /**
-     * Muestra el listado global de todas las declaraciones ambientales.
-     */
     public function index(Request $request)
     {
         $query = DeclaracionResiduo::with(['empresa', 'detalles'])->latest();
@@ -21,7 +18,7 @@ class DeclaracionResiduoController extends Controller
         }
 
         if ($request->filled('estatus')) {
-            $query->where('estatus', $request->estatus);
+            $query->where('estatus', $request->estatus); // PRESENTADA, OBSERVADA, etc.
         }
 
         if ($request->filled('periodo')) {
@@ -30,13 +27,9 @@ class DeclaracionResiduoController extends Controller
 
         $declaraciones = $query->paginate(15);
 
-        // Apunta a la nueva carpeta declaracion: director.residuos.declaraciones.index
         return view('director.residuos.declaraciones.index', compact('declaraciones'));
     }
 
-    /**
-     * Muestra el detalle particular de una declaración.
-     */
     public function show(DeclaracionResiduo $declaracion)
     {
         $declaracion->load(['empresa', 'detalles', 'user']);
@@ -44,9 +37,6 @@ class DeclaracionResiduoController extends Controller
         return view('director.residuos.declaraciones.show', compact('declaracion'));
     }
 
-    /**
-     * Evalúa o actualiza el estatus de una declaración (Aprobado / Rechazado).
-     */
     public function updateEstatus(Request $request, DeclaracionResiduo $declaracion)
     {
         $validated = $request->validate([
@@ -59,12 +49,11 @@ class DeclaracionResiduoController extends Controller
 
         $data = [
             'estatus'        => $validated['estatus'],
-            'observaciones'  => $validated['estatus'] === 'RECHAZADA' ? $validated['motivo_rechazo'] : null,
+            'observaciones_administrativas' => $validated['estatus'] === 'RECHAZADA' ? $validated['motivo_rechazo'] : null, // <-- CORREGIDO
         ];
 
         $declaracion->update($data);
 
-        // Notificar al usuario propietario de la declaración sobre el cambio de estatus
         if ($declaracion->user_id) {
             $esAprobado = $validated['estatus'] === 'APROBADA';
             $mensajeNotif = $esAprobado 
@@ -75,7 +64,7 @@ class DeclaracionResiduoController extends Controller
                 'user_id'  => $declaracion->user_id,
                 'titulo'   => 'Evaluación de Declaración de Residuos',
                 'mensaje'  => $mensajeNotif,
-                'tipo'     => $esAprobado ? 'success' : 'danger',
+                'tipo'     => $esAprobado ? 'EXITO' : 'ERROR', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }

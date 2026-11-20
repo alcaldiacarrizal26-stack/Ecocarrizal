@@ -59,8 +59,9 @@
             let cred = this.selectedInspector.credencial;
             this.editCredencial = cred.startsWith('CZ-INSP-') ? cred.replace('CZ-INSP-', '') : cred;
 
-            this.editNombre = this.selectedInspector.nombre.split(' ')[0] || '';
-            this.editApellido = this.selectedInspector.nombre.split(' ').slice(1).join(' ') || '';
+            // CORREGIDO: Ahora tenemos nombre y apellido por separado en el JSON
+            this.editNombre = this.selectedInspector.nombre;
+            this.editApellido = this.selectedInspector.apellido;
             this.editCorreo = this.selectedInspector.correo;
             this.editEspecialidad = this.selectedInspector.especialidad;
             this.editUpdateUrl = this.selectedInspector.update_url;
@@ -139,36 +140,48 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse($inspectores as $inspector)
                         @php
+                            // CORREGIDO: Acceder a los datos a través de $inspector->user
                             $inspectorData = [
                                 'id' => $inspector->id,
-                                'nombre' => trim(($inspector->nombre ?? '') . ' ' . ($inspector->apellido ?? '')),
-                                'cedula' => $inspector->cedula ?? 'N/A',
-                                'correo' => $inspector->correo ?? $inspector->email ?? 'N/A',
-                                'telefono' => $inspector->telefono ?? 'Sin Registrar',
+                                'nombre' => $inspector->user->nombre ?? '',
+                                'apellido' => $inspector->user->apellido ?? '',
+                                'cedula' => $inspector->user->cedula ?? 'N/A',
+                                'correo' => $inspector->user->correo ?? 'N/A',
+                                'telefono' => $inspector->user->telefono ?? 'Sin Registrar',
                                 'credencial' => $inspector->codigo_credencial,
                                 'especialidad' => $inspector->especialidad ?? 'General',
                                 'disponible' => (bool) $inspector->disponible,
-                                'bloqueado' => !is_null($inspector->user->email_verified_at), // <--- Bandera basada en email_verified_at
+                                'bloqueado' => !is_null($inspector->user->email_verified_at),
                                 'toggle_url' => route('director.inspectores.toggle', $inspector->id),
                                 'update_url' => route('director.inspectores.update', $inspector->id),
-                                'denuncias' => $inspector->denuncias->map(fn($d) => [
-                                    'id' => $d->id, 'codigo' => $d->codigo, 'tipo' => $d->tipo_contaminacion ?? 'Ambiental', 'sector' => $d->sector ?? 'N/A', 'estatus' => ucfirst(str_replace('_', ' ', $d->estatus))
+                                // CORREGIDO: usar denunciasComoInspector y mapear campos nuevos
+                                'denuncias' => $inspector->user->denunciasComoInspector->map(fn($d) => [
+                                    'id' => $d->id, 
+                                    'codigo' => $d->codigo_denuncia, 
+                                    'tipo' => $d->tipo_contaminacion ?? 'Ambiental', 
+                                    'sector' => $d->sector ?? 'N/A', 
+                                    'estatus' => ucfirst(str_replace('_', ' ', $d->estado)) // Campo estado
                                 ])->values(),
-                                'solicitudes' => $inspector->solicitudes->map(fn($s) => [
-                                    'id' => $s->id, 'codigo' => $s->codigo_expediente, 'tipo' => $s->tipo_tramite ?? 'Trámite', 'sector' => $s->sector ?? 'N/A', 'estatus' => ucfirst(str_replace('_', ' ', $s->estado))
+                                // CORREGIDO: usar solicitudesComoInspector, mapear codigo_solicitud y tipoTramite->nombre
+                                'solicitudes' => $inspector->user->solicitudesComoInspector->map(fn($s) => [
+                                    'id' => $s->id, 
+                                    'codigo' => $s->codigo_solicitud, 
+                                    'tipo' => $s->tipoTramite->nombre ?? 'Trámite', 
+                                    'sector' => $s->sector ?? 'N/A', 
+                                    'estatus' => ucfirst(str_replace('_', ' ', $s->estado))
                                 ])->values(),
                             ];
                         @endphp
                             <tr class="hover:bg-slate-50/80 transition-colors">
                                 <td class="px-6 py-4 font-mono font-bold text-emerald-700">{{ $inspector->codigo_credencial }}</td>
-                                <td class="px-6 py-4 font-medium text-slate-900">{{ $inspector->nombre }} {{ $inspector->apellido }}</td>
-                                <td class="px-6 py-4 text-slate-700 font-medium whitespace-nowrap">{{ $inspector->cedula }}</td>
+                                <td class="px-6 py-4 font-medium text-slate-900">{{ $inspector->user->nombre ?? '' }} {{ $inspector->user->apellido ?? '' }}</td>
+                                <td class="px-6 py-4 text-slate-700 font-medium whitespace-nowrap">{{ $inspector->user->cedula ?? 'N/A' }}</td>
                                 <td class="px-6 py-4 text-xs font-semibold text-slate-600">
-                                    {{ $inspector->direccion->nombre_direc ?? 'General' }}
+                                    {{ $inspector->user->direccion->nombre_direc ?? 'General' }}
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border">
-                                        {{ $inspector->denuncias->count() + $inspector->solicitudes->count() }}
+                                        {{ $inspector->user->denunciasComoInspector->count() + $inspector->user->solicitudesComoInspector->count() }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
@@ -202,7 +215,7 @@
                         <div class="flex justify-between items-start pb-3 border-b border-slate-100">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h3 class="text-base font-bold text-slate-900" x-text="isEditing ? 'Editar Inspector' : selectedInspector.nombre"></h3>
+                                    <h3 class="text-base font-bold text-slate-900" x-text="isEditing ? 'Editar Inspector' : (selectedInspector.nombre + ' ' + selectedInspector.apellido)"></h3>
                                     <span 
                                         x-show="!isEditing"
                                         :class="selectedInspector.disponible ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'"
@@ -379,7 +392,6 @@
                                     ></button>
                                 </form>
 
-                                <!-- Botón de edición condicional (Se oculta y muestra aviso si ya está bloqueado) -->
                                 <template x-if="!selectedInspector.bloqueado">
                                     <button 
                                         type="button" 
@@ -475,7 +487,7 @@
                     </div>
 
                     <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                        <button type="button" @click="modalRegisterOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200 transition-colors cursor-pointer">Cancelar sus</button>
+                        <button type="button" @click="modalRegisterOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200 transition-colors cursor-pointer">Cancelar</button>
                         <button type="submit" :disabled="!isFormValid()" :class="isFormValid() ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'" class="px-5 py-2 text-xs font-semibold rounded-xl transition-all">
                             Registrar y Enviar Credenciales
                         </button>

@@ -38,7 +38,8 @@
                     <div class="flex justify-between border-b border-slate-200/60 pb-2">
                         <span class="text-slate-400 font-semibold">Credencial / Perfil Oficial:</span>
                         <span class="font-mono font-bold text-emerald-700">
-                            {{ $inspeccion->inspector->inspector->codigo_credencial ?? 'FUNCIONARIO DIRECTIVO / S.C.' }}
+                            {{-- CORREGIDO: relación credencialInspector --}}
+                            {{ $inspeccion->inspector->credencialInspector->codigo_credencial ?? 'FUNCIONARIO DIRECTIVO / S.C.' }}
                         </span>
                     </div>
                     <div class="flex justify-between border-b border-slate-200/60 pb-2">

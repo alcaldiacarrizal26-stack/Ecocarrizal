@@ -11,7 +11,7 @@
                 <h3 id="modal_titulo" class="text-base font-bold text-slate-800">Asignar Inspector en Campo</h3>
                 <p id="modal_subtitulo" class="text-xs text-slate-500 mt-0.5">Selecciona el funcionario responsable de la actuación.</p>
             </div>
-            <button type="button" onclick="cerrarModalInspector('{{ $modalId }}')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+            <button type="button" onclick="cerrarModalInspector('{{ $modalId }}')" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">&times;</button>
         </div>
 
         <!-- Formulario -->
@@ -31,11 +31,11 @@
             <!-- Footer con Botones -->
             <div class="flex items-center justify-end gap-2 pt-2">
                 <button type="button" onclick="cerrarModalInspector('{{ $modalId }}')" 
-                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer">
                     Cancelar
                 </button>
                 <button type="submit" 
-                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors">
+                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer">
                     Confirmar Asignación
                 </button>
             </div>
@@ -56,9 +56,9 @@
         // Personalizar Acción del Formulario
         form.action = config.actionUrl;
         
-        if (config.method) {
-            let inputMethod = form.querySelector('input[name="_method"]');
-            if (inputMethod) inputMethod.value = config.method;
+        let inputMethod = form.querySelector('input[name="_method"]');
+        if (inputMethod) {
+            inputMethod.value = config.method || 'PUT';
         }
 
         if (config.titulo) document.getElementById('modal_titulo').innerText = config.titulo;
@@ -82,7 +82,6 @@
             return data;
         })
         .then(data => {
-            // Emitir evento a Alpine.js para popular el desplegable
             window.dispatchEvent(new CustomEvent('cargar-inspectores-select', { detail: data }));
         })
         .catch(err => {

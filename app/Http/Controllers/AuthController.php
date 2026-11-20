@@ -88,7 +88,7 @@ class AuthController extends Controller
         BitacoraEvento::registrar([
             'modulo'      => 'auth',
             'tipo_evento' => 'LOGIN_FALLIDO',
-            'nivel'       => 'warning',
+            'nivel'       => 'WARNING',
             'descripcion' => "Intento fallido de inicio de sesión para el correo: {$credentials['correo']}.",
         ]);
 
@@ -130,7 +130,7 @@ class AuthController extends Controller
                 $roleCiudadano = Role::where('nombre', 'ciudadano')->first();
 
                 return User::create([
-                    'role_id'           => $roleCiudadano->id_roles ?? 4,
+                    'role_id'           => $roleCiudadano->id ?? 4,
                     'direccion_id'      => null,
                     'cedula'            => $cedulaUnificada,
                     'telefono'          => $telefonoUnificado,
@@ -165,7 +165,7 @@ class AuthController extends Controller
             BitacoraEvento::registrar([
                 'modulo'      => 'auth',
                 'tipo_evento' => 'REGISTER',
-                'nivel'       => 'info',
+                'nivel'       => 'INFO',
                 'descripcion' => "Nuevo usuario registrado: {$user->nombre} {$user->apellido} ({$user->correo}).",
                 'model'       => $user,
             ]);

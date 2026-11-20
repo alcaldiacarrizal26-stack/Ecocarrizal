@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Solicitud;
 use App\Models\User;
-use App\Models\Inspector;
 use App\Models\Notificacion;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +13,7 @@ class SolicitudController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Conteo de estadísticas consolidado en una sola query
+        // Conteo usando los Enums reales en MAYÚSCULAS
         $rawStats = Solicitud::select('estado', DB::raw('count(*) as total'))
             ->groupBy('estado')
             ->pluck('total', 'estado')
@@ -22,16 +21,15 @@ class SolicitudController extends Controller
 
         $stats = [
             'total_solicitudes'  => array_sum($rawStats),
-            'incompleta'         => $rawStats['incompleta'] ?? 0,
-            'pendiente'          => $rawStats['pendiente'] ?? 0,
-            'inspector_asignado' => $rawStats['inspector_asignado'] ?? 0,
-            'en_inspeccion'      => $rawStats['en_inspeccion'] ?? 0,
-            'aprobada'           => $rawStats['aprobada'] ?? 0,
-            'rechazada'          => $rawStats['rechazada'] ?? 0,
+            'incompleta'         => $rawStats['INCOMPLETA'] ?? 0, // <-- MAYÚSCULAS
+            'pendiente'          => $rawStats['PENDIENTE'] ?? 0,
+            'inspector_asignado' => $rawStats['INSPECTOR_ASIGNADO'] ?? 0,
+            'en_inspeccion'      => $rawStats['EN_INSPECCION'] ?? 0,
+            'aprobada'           => $rawStats['APROBADO'] ?? 0, // <-- Es APROBADO, no APROBADA
+            'rechazada'          => $rawStats['RECHAZADO'] ?? 0, // <-- Es RECHAZADO
         ];
 
-        // 2. Consulta de solicitudes filtradas y paginadas (Cambiado 'solicitante' por 'usuario')
-        $query = Solicitud::with(['usuario', 'inspector', 'recaudos']);
+        $query = Solicitud::with(['usuario', 'inspector', 'recaudos.recaudoCatalogo']);
 
         if ($request->filled('estado') && $request->estado !== 'todos') {
             $query->where('estado', $request->estado);
@@ -39,12 +37,11 @@ class SolicitudController extends Controller
 
         $solicitudes = $query->latest()->paginate(10)->withQueryString();
 
-        // 3. Obtener funcionarios activos con perfil de inspector o director
         $funcionarios = User::whereHas('role', function ($q) {
                 $q->whereIn('nombre', ['director', 'inspector']);
             })
             ->where('is_active', true)
-            ->with(['role', 'direccion', 'inspector'])
+            ->with(['role', 'direccion', 'credencialInspector']) // <-- Corregido
             ->get();
 
         return view('director.ambiente.solicitudes', compact('solicitudes', 'stats', 'funcionarios'));
@@ -54,7 +51,7 @@ class SolicitudController extends Controller
     {
         $solicitud = Solicitud::with('usuario')->findOrFail($id);
 
-        if (!in_array($solicitud->estado, ['pendiente', 'inspector_asignado'])) {
+        if (!in_array($solicitud->estado, ['PENDIENTE', 'INSPECTOR_ASIGNADO'])) { // <-- MAYÚSCULAS
             return redirect()->back()->with('error', 'Solo se pueden asignar funcionarios a solicitudes pendientes o con inspector asignado.');
         }
 
@@ -79,19 +76,18 @@ class SolicitudController extends Controller
         $solicitud->inspector_id               = $request->user_id;
         $solicitud->fecha_asignacion_inspector = now();
 
-        if ($solicitud->estado === 'pendiente') {
-            $solicitud->estado = 'inspector_asignado';
+        if ($solicitud->estado === 'PENDIENTE') {
+            $solicitud->estado = 'INSPECTOR_ASIGNADO';
         }
 
         $solicitud->save();
 
-        // Notificar al ciudadano solicitante sobre la asignación del funcionario
         if ($solicitud->user_id) {
             Notificacion::create([
                 'user_id'  => $solicitud->user_id,
                 'titulo'   => 'Solicitud en Inspección',
                 'mensaje'  => 'Se ha asignado un funcionario inspector a tu solicitud ambiental para su revisión en campo.',
-                'tipo'     => 'info',
+                'tipo'     => 'INFORMACION', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }
@@ -101,7 +97,7 @@ class SolicitudController extends Controller
 
     public function show(string $id)
     {
-        $solicitud = Solicitud::with(['usuario', 'inspector', 'recaudos'])->findOrFail($id);
+        $solicitud = Solicitud::with(['usuario', 'inspector', 'recaudos.recaudoCatalogo', 'tipoTramite'])->findOrFail($id);
         return view('director.ambiente.solicitudes_show', compact('solicitud'));
     }
 
@@ -114,29 +110,25 @@ class SolicitudController extends Controller
     {
         $solicitud = Solicitud::with('usuario')->findOrFail($id);
 
-        // REGLA: Cualquier cosa que no sea 'pendiente' no se puede rechazar
-        if ($solicitud->estado !== 'pendiente') {
+        if ($solicitud->estado !== 'PENDIENTE') { // <-- MAYÚSCULAS
             return redirect()->back()->with('error', 'Solo se pueden rechazar solicitudes que se encuentren en estatus pendiente.');
         }
 
         $request->validate([
             'motivo_rechazo' => 'required|string|max:500',
-        ], [
-            'motivo_rechazo.required' => 'El motivo del rechazo es obligatorio.',
         ]);
 
-        $solicitud->estado        = 'rechazada';
+        $solicitud->estado        = 'RECHAZADO'; // <-- MAYÚSCULAS
         $solicitud->observaciones = $request->motivo_rechazo;
         $solicitud->fecha_cierre  = now();
         $solicitud->save();
 
-        // Notificar al ciudadano
         if ($solicitud->user_id) {
             Notificacion::create([
                 'user_id'  => $solicitud->user_id,
                 'titulo'   => 'Solicitud de Trámite Rechazada',
                 'mensaje'  => 'Tu solicitud de trámite ambiental ha sido rechazada. Motivo: ' . $request->motivo_rechazo,
-                'tipo'     => 'danger',
+                'tipo'     => 'ERROR', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }

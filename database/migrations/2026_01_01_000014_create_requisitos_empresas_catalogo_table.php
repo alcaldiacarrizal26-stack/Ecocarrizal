@@ -9,11 +9,12 @@ return new class extends Migration {
     {
         Schema::create('requisitos_empresas_catalogo', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo')->unique(); // Ej: 'DOC_RENMA', 'DOC_RACDA', etc.
-            $table->string('nombre');           // Ej: 'Registro RENMA'
-            $table->text('descripcion')->nullable(); // Descripción opcional
+            $table->string('codigo')->unique();
+            $table->string('nombre');
+            $table->text('descripcion')->nullable();
             $table->boolean('es_obligatorio')->default(true);
-            $table->timestamps();
+            $table->boolean('activo')->default(true);
+            $table->timestampsTz();
         });
     }
 

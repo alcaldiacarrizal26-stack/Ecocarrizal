@@ -1,4 +1,4 @@
-<x-layouts.app title="Gestión General de Declaraciones Ambientales" active="director_residuos_declaraciones">
+<x-layouts.app title="Gestión General de Declaraciones Ambientales" active="residuos_declaraciones">
     <div class="p-6 max-w-7xl mx-auto space-y-6 bg-slate-50 min-h-screen">
         
         <!-- Header -->
@@ -47,7 +47,7 @@
                 </div>
 
                 <div class="flex items-end gap-2">
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition-colors shadow-sm">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition-colors shadow-sm cursor-pointer">
                         Filtrar
                     </button>
                     <a href="{{ route('director.residuos.declaraciones.index') }}" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs transition-colors">
@@ -109,20 +109,20 @@
                                     @if($item->rol_declarante === 'NO_APLICA')
                                         <span class="text-slate-400 italic">Declaración en Cero</span>
                                     @else
-                                        <div class="text-slate-700">Comunes: <strong class="text-slate-900">{{ number_format($item->toneladas_comunes, 3) }}</strong></div>
-                                        <div class="text-emerald-600">Reciclables: <strong>{{ number_format($item->toneladas_reciclables, 3) }}</strong></div>
-                                        <div class="text-amber-600">Peligrosas: <strong>{{ number_format($item->toneladas_peligrosas, 3) }}</strong></div>
+                                        <div class="text-slate-700">Comunes: <strong class="text-slate-900">{{ number_format((float) $item->toneladas_comunes, 3) }}</strong></div>
+                                        <div class="text-emerald-600">Reciclables: <strong>{{ number_format((float) $item->toneladas_reciclables, 3) }}</strong></div>
+                                        <div class="text-amber-600">Peligrosas: <strong>{{ number_format((float) $item->toneladas_peligrosas, 3) }}</strong></div>
                                     @endif
                                 </td>
 
                                 <!-- Fecha -->
                                 <td class="p-4 text-xs text-slate-500">
-                                    {{ $item->created_at->format('d/m/Y h:i A') }}
+                                    {{ $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d/m/Y h:i A') : 'N/A' }}
                                 </td>
 
                                 <!-- Estatus -->
                                 <td class="p-4">
-                                    @switch($item->estatus)
+                                    @switch(strtoupper($item->estatus ?? 'PRESENTADA'))
                                         @case('APROBADA')
                                             <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                                                 Aprobada
@@ -166,7 +166,7 @@
 
             @if($declaraciones->hasPages())
                 <div class="p-4 border-t border-slate-100">
-                    {{ $declaraciones->links() }}
+                    {{ $declaraciones->appends(request()->query())->links() }}
                 </div>
             @endif
         </div>

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DocumentoEmpresa;
+use App\Models\DocumentoExpediente;
 use Illuminate\Support\Facades\Storage;
 
 class DocumentoController extends Controller
 {
-    public function show(DocumentoEmpresa $documento)
+    public function show(DocumentoExpediente $documento)
     {
         // 1. Verificar Autorización (El usuario debe ser el dueño o un fiscal/admin)
         $user = auth()->user();
@@ -16,7 +16,7 @@ class DocumentoController extends Controller
         }
 
         // 2. Verificar existencia en el disco privado
-        if (!Storage::disk('private')->exists($documento->ruta_archivo)) {
+        if (!Storage::disk('private')->exists($documento->archivo_path)) {
             abort(404, 'El archivo no existe.');
         }
 

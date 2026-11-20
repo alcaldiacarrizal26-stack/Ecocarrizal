@@ -12,14 +12,14 @@ return new class extends Migration
         Schema::create('bitacora_eventos', function (Blueprint $table) {
             $table->uuid('id')->primary();
             
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('user_id')->nullable()->constrained('users')->nullOnDelete();
             
             $table->string('modulo', 50)->default('general');
             $table->string('tipo_evento', 50);
-            $table->string('descripcion');
+            $table->text('descripcion');
             
             $table->string('auditable_type')->nullable();
-            $table->string('auditable_id')->nullable(); 
+            $table->text('auditable_id')->nullable(); 
 
             $table->jsonb('valores_anteriores')->nullable();
             $table->jsonb('valores_nuevos')->nullable();
@@ -37,12 +37,8 @@ return new class extends Migration
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("
                 ALTER TABLE bitacora_eventos 
-                ADD COLUMN nivel nivel_bitacora_enum NOT NULL DEFAULT 'info';
+                ADD COLUMN nivel nivel_bitacora_enum NOT NULL DEFAULT 'INFO';
             ");
-        } else {
-            Schema::table('bitacora_eventos', function (Blueprint $table) {
-                $table->enum('nivel', ['info', 'warning', 'danger', 'critical'])->default('info');
-            });
         }
     }
 

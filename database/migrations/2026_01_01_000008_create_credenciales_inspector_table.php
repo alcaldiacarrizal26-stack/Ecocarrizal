@@ -8,21 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('inspectores', function (Blueprint $table) {
+        Schema::create('credenciales_inspector', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
-            $table->foreignId('direccion_id')->constrained('direcciones', 'id_direccion');
+            $table->uuid('user_id')->unique();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
 
             $table->string('codigo_credencial', 50)->unique();
             $table->string('especialidad', 100)->nullable();
             $table->boolean('disponible')->default(true);
 
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('inspectores');
+        Schema::dropIfExists('credenciales_inspector');
     }
 };

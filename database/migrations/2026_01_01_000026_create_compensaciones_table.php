@@ -11,13 +11,11 @@ return new class extends Migration
     {
         Schema::create('compensaciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('codigo_resolucion', 30)->unique();
+            $table->string('codigo_compensacion', 30)->unique();
             
             $table->foreignUuid('solicitud_id')->nullable()->constrained('solicitudes')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete();
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
 
-            $table->string('especie_requerida');
             $table->integer('cantidad_asignada')->default(0);
             $table->integer('cantidad_entregada')->default(0);
 
@@ -32,10 +30,6 @@ return new class extends Migration
                 ALTER TABLE compensaciones 
                 ADD COLUMN estatus estatus_compensacion_enum NOT NULL DEFAULT 'PENDIENTE';
             ");
-        } else {
-            Schema::table('compensaciones', function (Blueprint $table) {
-                $table->enum('estatus', ['PENDIENTE', 'PARCIAL', 'COMPLETADO'])->default('PENDIENTE');
-            });
         }
     }
 

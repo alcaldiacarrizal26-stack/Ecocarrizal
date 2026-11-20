@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('role_id')->constrained('roles', 'id_roles')->cascadeOnDelete();
-            $table->foreignId('direccion_id')->nullable()->constrained('direcciones', 'id_direccion')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
+            $table->foreignId('direccion_id')->nullable()->constrained('direcciones')->nullOnDelete();
 
             $table->string('cedula', 20)->unique();
             $table->string('telefono', 15);
@@ -25,7 +25,7 @@ return new class extends Migration
 
             $table->string('password');
             $table->rememberToken();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index('correo');
             $table->index('cedula');

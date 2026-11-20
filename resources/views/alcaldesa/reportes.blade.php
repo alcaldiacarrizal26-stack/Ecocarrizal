@@ -15,7 +15,6 @@
 
         <!-- Bloque 1: Métricas Globales por Área -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Ambiente -->
             <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
                 <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-md">Área Ambiente</span>
                 <div class="flex items-baseline justify-between">
@@ -25,7 +24,6 @@
                 <p class="text-[11px] text-slate-500">Compensaciones pendientes: <strong>{{ $compensacionesPendientes }}</strong></p>
             </div>
 
-            <!-- Residuos -->
             <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
                 <span class="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-bold rounded-md">Manejo de Residuos</span>
                 <div class="flex items-baseline justify-between">
@@ -35,7 +33,6 @@
                 <p class="text-[11px] text-slate-500">Comunes: {{ number_format($toneladasTotalesComunes, 2) }} Ton</p>
             </div>
 
-            <!-- Participación Ciudadana -->
             <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
                 <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-md">Poder Popular</span>
                 <div class="flex items-baseline justify-between">
@@ -45,7 +42,6 @@
                 <p class="text-[11px] text-slate-500">Articulación directa con Comunas.</p>
             </div>
 
-            <!-- Total General Toneladas Peligrosas / Reciclables -->
             <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
                 <span class="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-bold rounded-md">Materiales Especiales</span>
                 <div class="flex items-baseline justify-between">
@@ -56,10 +52,9 @@
             </div>
         </div>
 
-        <!-- Bloque 2: Detalle por Comunas y Sectores (Poder Popular) -->
+        <!-- Bloque 2: Detalle por Comunas y Sectores -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            <!-- Comunas con mayor incidencia / reportes -->
             <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
                 <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Incidencia por Comunas (Poder Popular)</h3>
                 <div class="space-y-3">
@@ -74,7 +69,6 @@
                 </div>
             </div>
 
-            <!-- Últimas Denuncias Ciudadanas -->
             <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
                 <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Últimos Reportes Ambientales Recibidos</h3>
                 <div class="space-y-3">
@@ -84,7 +78,8 @@
                                 <p class="text-xs font-bold text-slate-800">{{ $denuncia->tipo_contaminacion }}</p>
                                 <p class="text-[11px] text-slate-500">Sector: {{ $denuncia->sector }} • Comuna: {{ $denuncia->comuna }}</p>
                             </div>
-                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-200 text-slate-700 uppercase">{{ $denuncia->estatus }}</span>
+                            <!-- CORREGIDO: estado en lugar de estatus -->
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-200 text-slate-700 uppercase">{{ $denuncia->estado }}</span>
                         </div>
                     @empty
                         <p class="text-xs text-slate-400 text-center py-4">Sin denuncias registradas.</p>

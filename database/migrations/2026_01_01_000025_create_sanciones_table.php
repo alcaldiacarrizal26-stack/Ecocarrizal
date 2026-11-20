@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -10,14 +11,13 @@ return new class extends Migration
     {
         Schema::create('sanciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('codigo_expediente', 30)->unique(); 
+            $table->string('codigo_sancion', 30)->unique();
             
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
-            $table->foreignId('director_id')->constrained('users'); 
+            $table->foreignUuid('director_id')->constrained('users'); // Corregido a foreignUuid
             $table->foreignUuid('inspeccion_id')->nullable()->constrained('inspecciones')->nullOnDelete(); 
 
             $table->string('tipo_infraccion'); 
-            $table->enum('gravedad', ['LEVE', 'GRAVE', 'MUY_GRAVE'])->default('LEVE');
             $table->text('motivo_descripcion');
             $table->text('base_legal')->nullable(); 
 
@@ -32,17 +32,17 @@ return new class extends Migration
             $table->text('observaciones_subsanacion')->nullable(); 
             $table->text('observaciones_resolucion')->nullable(); 
 
-            $table->enum('estatus', [
-                'PENDIENTE_NOTIFICACION',
-                'NOTIFICADA',
-                'EN_REVISION',
-                'SUBSANADA',
-                'DESESTIMADA'
-            ])->default('PENDIENTE_NOTIFICACION');
-
             $table->timestampTz('fecha_resolucion')->nullable();
             $table->timestampsTz();
         });
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE sanciones 
+                ADD COLUMN gravedad gravedad_sancion_enum NOT NULL DEFAULT 'LEVE',
+                ADD COLUMN estatus estatus_sancion_enum NOT NULL DEFAULT 'NOTIFICADA';
+            ");
+        }
     }
 
     public function down(): void

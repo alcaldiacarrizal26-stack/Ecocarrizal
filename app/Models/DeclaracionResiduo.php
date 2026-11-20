@@ -20,7 +20,6 @@ class DeclaracionResiduo extends Model
         'user_id',
         'rol_declarante',
         'periodo',
-        'frecuencia',
         'fecha_inicio_periodo',
         'fecha_fin_periodo',
         'toneladas_comunes',
@@ -35,7 +34,7 @@ class DeclaracionResiduo extends Model
         'destino_final_nombre',
         'manifiestos_archivos',
         'estatus',
-        'observaciones_fiscalia',
+        'observaciones_administrativas',
     ];
 
     protected $casts = [

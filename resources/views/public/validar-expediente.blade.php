@@ -34,18 +34,20 @@
                 <div class="space-y-3 text-xs bg-slate-50 p-5 rounded-2xl border border-slate-100">
                     <div class="flex justify-between border-b border-slate-200/60 pb-2">
                         <span class="text-slate-400 font-semibold">Código de Expediente:</span>
-                        <span class="font-mono font-bold text-indigo-600">{{ $solicitud->codigo_expediente }}</span>
+                        {{-- CORREGIDO: codigo_solicitud --}}
+                        <span class="font-mono font-bold text-indigo-600">{{ $solicitud->codigo_solicitud }}</span>
                     </div>
                     <div class="flex justify-between border-b border-slate-200/60 pb-2">
                         <span class="text-slate-400 font-semibold">Tipo de Trámite:</span>
-                        <span class="font-bold text-slate-700 uppercase">{{ str_replace('_', ' ', $solicitud->tipo_tramite) }}</span>
+                        {{-- CORREGIDO: Relación tipoTramite --}}
+                        <span class="font-bold text-slate-700 uppercase">{{ $solicitud->tipoTramite->nombre ?? 'TRÁMITE' }}</span>
                     </div>
                     <div class="flex justify-between border-b border-slate-200/60 pb-2">
                         <span class="text-slate-400 font-semibold">Solicitante:</span>
                         <span class="font-bold text-slate-700">
                             @php
                                 $u = $solicitud->usuario ?? null;
-                                $nombreCompleto = trim(($u->nombre ?? $u->name ?? '') . ' ' . ($u->apellido ?? $u->last_name ?? ''));
+                                $nombreCompleto = trim(($u->nombre ?? '') . ' ' . ($u->apellido ?? ''));
                             @endphp
                             {{ $nombreCompleto !== '' ? $nombreCompleto : 'Ciudadano Registrado (ID: ' . $solicitud->user_id . ')' }}
                         </span>

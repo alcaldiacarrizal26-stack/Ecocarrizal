@@ -14,17 +14,15 @@ return new class extends Migration
             $table->string('codigo_orden', 30)->unique(); 
             
             $table->foreignUuid('empresa_id')->constrained('empresas')->cascadeOnDelete();
-            $table->foreignId('inspector_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('director_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('inspector_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('director_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->string('tipo_inspeccion', 30)->default('ORDINARIA'); 
             $table->text('base_legal_inspeccion');
-            $table->text('observaciones_campo'); 
             $table->text('orden_adjunta_path')->nullable();
 
             $table->timestampTz('fecha_visita_programada');
             $table->timestampTz('fecha_asignacion_inspector')->nullable();
-            $table->timestampTz('fecha_inicio_inspeccion')->nullable();
             $table->timestampTz('fecha_cierre')->nullable();
 
             $table->timestampsTz();
@@ -33,12 +31,8 @@ return new class extends Migration
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("
                 ALTER TABLE ordenes_inspeccion 
-                ADD COLUMN estatus estado_orden_inspeccion_enum NOT NULL DEFAULT 'inspector_asignado';
+                ADD COLUMN estatus estado_orden_inspeccion_enum NOT NULL DEFAULT 'PENDIENTE';
             ");
-        } else {
-            Schema::table('ordenes_inspeccion', function (Blueprint $table) {
-                $table->enum('estatus', ['pendiente', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'atendido', 'desestimado'])->default('inspector_asignado');
-            });
         }
     }
 

@@ -40,7 +40,7 @@ return new class extends Migration
             $table->jsonb('residuos_reciclables')->nullable();
             $table->jsonb('residuos_peligrosos')->nullable();
 
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 

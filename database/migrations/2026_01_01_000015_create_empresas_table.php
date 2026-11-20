@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('empresas', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
 
             $table->string('rif', 15)->unique();
             $table->string('razon_social');
@@ -32,8 +32,8 @@ return new class extends Migration
                 'RECHAZADO'
             ])->default('PENDIENTE_APROBACION');
 
-            $table->text('observaciones_fiscalia')->nullable();
-            $table->timestamps();
+            $table->text('observaciones_administrativas')->nullable();
+            $table->timestampsTz();
 
             $table->index('estatus');
         });

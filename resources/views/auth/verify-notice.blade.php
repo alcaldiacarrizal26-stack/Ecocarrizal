@@ -10,7 +10,6 @@
     <div class="min-h-screen flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/80 rounded-3xl w-full max-w-md p-8 shadow-2xl space-y-6">
             
-            <!-- Icono Institucional -->
             <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center shadow-inner">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
@@ -36,7 +35,6 @@
                 </div>
             @endif
 
-            <!-- Formulario para corregir el correo -->
             <div class="p-5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-4 text-left shadow-sm">
                 <p class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,10 +46,8 @@
                 <form action="{{ route('verification.update-email') }}" method="POST" class="space-y-3">
                     @csrf
                     
-                    <!-- Input oculto que envía de forma segura el correo actual a PHP -->
-                    <input type="hidden" name="correo_actual" value="{{ $correoPendiente }}">
+                    <input type="hidden" name="correo_actual" value="{{ $correoPendiente ?? '' }}">
 
-                    <!-- Visualización clara y elegante del correo actual -->
                     <div>
                         <label class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Correo registrado actualmente</label>
                         <div class="w-full bg-white text-slate-900 font-bold border-2 border-slate-200 rounded-xl px-3.5 py-2.5 text-xs shadow-inner flex items-center justify-between">
@@ -62,7 +58,6 @@
                         </div>
                     </div>
 
-                    <!-- Campo libre para el correo correcto -->
                     <div>
                         <label class="block text-[10px] uppercase tracking-wider font-bold text-slate-600 mb-1">Escribe el nuevo correo correcto</label>
                         <input 

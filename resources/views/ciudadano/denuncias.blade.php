@@ -5,24 +5,25 @@
             openModal: false, 
             openDetailModal: false,
             showSuccessAlert: true,
-            filtroEstatus: 'todos',
+            filtroEstado: 'TODOS',
             selectedDenuncia: null,
             isSubmitting: false,
 
-            denunciasLista: {{ json_encode($denuncias->pluck('estatus')->map(fn($e) => strtolower(trim($e)))) }},
+            // CORREGIDO: Ahora usamos 'estado' y lo mantenemos en mayúsculas
+            denunciasLista: {{ json_encode($denuncias->pluck('estado')->map(fn($e) => strtoupper(trim($e)))) }},
 
             tieneDenunciasVisibles() {
-                if (this.filtroEstatus === 'todos') return this.denunciasLista.length > 0;
-                return this.denunciasLista.includes(this.filtroEstatus.toLowerCase());
+                if (this.filtroEstado === 'TODOS') return this.denunciasLista.length > 0;
+                return this.denunciasLista.includes(this.filtroEstado.toUpperCase());
             },
 
-            // Formulario
+            // Formulario (Valores iniciales en MAYÚSCULAS)
             tipoContaminacion: '', 
             otroTipoContaminacion: '',
             comuna: '',
             sector: '',
             puntoReferencia: '',
-            gravedad: 'baja',
+            gravedad: 'BAJA', // <-- CORREGIDO
             justificacionGravedad: '',
             descripcion: '',
             evidenciasCount: 0,
@@ -68,7 +69,8 @@
                 if (this.puntoReferencia.trim().length < 3 || this.descripcion.trim().length < 5) return false;
                 if (this.tipoContaminacion === 'Otro' && this.otroTipoContaminacion.trim().length < 3) return false;
                 
-                if (this.gravedad === 'alta' && this.justificacionGravedad.trim().length < 3) return false;
+                // CORREGIDO: Evaluar 'ALTA' en mayúsculas
+                if (this.gravedad === 'ALTA' && this.justificacionGravedad.trim().length < 3) return false;
                 
                 if (this.evidenciasCount < 1 || this.fileError !== '') return false;
                 return true;
@@ -101,11 +103,7 @@
                     <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     <span>{{ session('success') }}</span>
                 </div>
-                <button 
-                    @click="showSuccessAlert = false" 
-                    type="button" 
-                    class="text-emerald-500 hover:text-emerald-800 p-1 rounded-lg transition-colors cursor-pointer"
-                >
+                <button @click="showSuccessAlert = false" type="button" class="text-emerald-500 hover:text-emerald-800 p-1 rounded-lg transition-colors cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
@@ -118,15 +116,15 @@
                     <label for="filtro_estatus" class="text-xs font-semibold text-slate-500">Filtrar por estatus:</label>
                     <select 
                         id="filtro_estatus"
-                        x-model="filtroEstatus" 
+                        x-model="filtroEstado" 
                         class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
                     >
-                        <option value="todos">Todos los estatus</option>
-                        <option value="pendiente">Pendiente</option>
-                        <option value="inspector_asignado">Inspector Asignado</option>
-                        <option value="en_revision">En Inspección</option>
-                        <option value="atendido">Atendido</option>
-                        <option value="desestimado">Desestimado / Rechazado</option>
+                        <option value="TODOS">Todos los estatus</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="INSPECTOR_ASIGNADO">Inspector Asignado</option>
+                        <option value="EN_REVISION">En Inspección</option>
+                        <option value="ATENDIDO">Atendido</option>
+                        <option value="DESESTIMADO">Desestimado / Rechazado</option>
                     </select>
                 </div>
             </div>
@@ -162,7 +160,7 @@
                             <tbody class="divide-y divide-slate-100 font-medium">
                                 @foreach ($denuncias as $denuncia)
                                     <tr 
-                                        x-show="filtroEstatus === 'todos' || filtroEstatus === '{{ strtolower(trim($denuncia->estatus)) }}'"
+                                        x-show="filtroEstado === 'TODOS' || filtroEstado === '{{ strtoupper(trim($denuncia->estado)) }}'"
                                         class="hover:bg-slate-50/50"
                                     >
                                         <td class="p-4 font-bold text-slate-800">
@@ -171,8 +169,8 @@
                                         <td class="p-4">{{ $denuncia->comuna }} — {{ $denuncia->sector }}</td>
                                         <td class="p-4">
                                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase
-                                                @if($denuncia->nivel_gravedad === 'alta') bg-rose-100 text-rose-700
-                                                @elseif($denuncia->nivel_gravedad === 'media') bg-amber-100 text-amber-700
+                                                @if($denuncia->nivel_gravedad === 'ALTA') bg-rose-100 text-rose-700
+                                                @elseif($denuncia->nivel_gravedad === 'MEDIA') bg-amber-100 text-amber-700
                                                 @else bg-slate-100 text-slate-600 @endif"
                                             >
                                                 {{ $denuncia->nivel_gravedad }}
@@ -181,14 +179,14 @@
                                         <td class="p-4 text-slate-400">{{ $denuncia->created_at->format('d/m/Y') }}</td>
                                         <td class="p-4">
                                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block border
-                                                @if($denuncia->estatus === 'pendiente') bg-amber-50 text-amber-700 border-amber-200
-                                                @elseif($denuncia->estatus === 'inspector_asignado') bg-indigo-50 text-indigo-700 border-indigo-200
-                                                @elseif($denuncia->estatus === 'en_revision') bg-blue-50 text-blue-700 border-blue-200
-                                                @elseif($denuncia->estatus === 'atendido') bg-emerald-50 text-emerald-700 border-emerald-200
-                                                @elseif(in_array($denuncia->estatus, ['desestimado', 'rechazado'])) bg-rose-50 text-rose-700 border-rose-200
+                                                @if($denuncia->estado === 'PENDIENTE') bg-amber-50 text-amber-700 border-amber-200
+                                                @elseif($denuncia->estado === 'INSPECTOR_ASIGNADO') bg-indigo-50 text-indigo-700 border-indigo-200
+                                                @elseif($denuncia->estado === 'EN_REVISION') bg-blue-50 text-blue-700 border-blue-200
+                                                @elseif($denuncia->estado === 'ATENDIDO') bg-emerald-50 text-emerald-700 border-emerald-200
+                                                @elseif(in_array($denuncia->estado, ['DESESTIMADO', 'RECHAZADO'])) bg-rose-50 text-rose-700 border-rose-200
                                                 @else bg-slate-100 text-slate-600 border-slate-200 @endif"
                                             >
-                                                {{ str_replace('_', ' ', $denuncia->estatus) }}
+                                                {{ str_replace('_', ' ', $denuncia->estado) }}
                                             </span>
                                         </td>
                                         <td class="p-4 text-center">
@@ -217,7 +215,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                                Denuncia #<span x-text="selectedDenuncia?.id"></span>
+                                Denuncia #<span x-text="selectedDenuncia?.codigo_denuncia"></span>
                             </span>
                             <span class="text-xs text-slate-400" x-text="selectedDenuncia?.created_at ? new Date(selectedDenuncia.created_at).toLocaleDateString() : ''"></span>
                         </div>
@@ -232,22 +230,22 @@
                             <span class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Estatus Actual</span>
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block"
                                 :class="{
-                                    'bg-amber-50 text-amber-700 border border-amber-200': selectedDenuncia?.estatus === 'pendiente',
-                                    'bg-indigo-50 text-indigo-700 border border-indigo-200': selectedDenuncia?.estatus === 'inspector_asignado',
-                                    'bg-blue-50 text-blue-700 border border-blue-200': selectedDenuncia?.estatus === 'en_revision',
-                                    'bg-emerald-50 text-emerald-700 border border-emerald-200': selectedDenuncia?.estatus === 'atendido',
-                                    'bg-rose-50 text-rose-700 border border-rose-200': selectedDenuncia?.estatus === 'desestimado' || selectedDenuncia?.estatus === 'rechazado'
+                                    'bg-amber-50 text-amber-700 border border-amber-200': selectedDenuncia?.estado === 'PENDIENTE',
+                                    'bg-indigo-50 text-indigo-700 border border-indigo-200': selectedDenuncia?.estado === 'INSPECTOR_ASIGNADO',
+                                    'bg-blue-50 text-blue-700 border border-blue-200': selectedDenuncia?.estado === 'EN_REVISION',
+                                    'bg-emerald-50 text-emerald-700 border border-emerald-200': selectedDenuncia?.estado === 'ATENDIDO',
+                                    'bg-rose-50 text-rose-700 border border-rose-200': selectedDenuncia?.estado === 'DESESTIMADO' || selectedDenuncia?.estado === 'RECHAZADO'
                                 }"
-                                x-text="selectedDenuncia?.estatus ? selectedDenuncia.estatus.replace('_', ' ') : ''"
+                                x-text="selectedDenuncia?.estado ? selectedDenuncia.estado.replace('_', ' ') : ''"
                             ></span>
                         </div>
                         <div>
                             <span class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Nivel de Gravedad</span>
                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase inline-block"
                                 :class="{
-                                    'bg-slate-100 text-slate-600': selectedDenuncia?.nivel_gravedad === 'baja',
-                                    'bg-amber-100 text-amber-700': selectedDenuncia?.nivel_gravedad === 'media',
-                                    'bg-rose-100 text-rose-700': selectedDenuncia?.nivel_gravedad === 'alta'
+                                    'bg-slate-100 text-slate-600': selectedDenuncia?.nivel_gravedad === 'BAJA',
+                                    'bg-amber-100 text-amber-700': selectedDenuncia?.nivel_gravedad === 'MEDIA',
+                                    'bg-rose-100 text-rose-700': selectedDenuncia?.nivel_gravedad === 'ALTA'
                                 }"
                                 x-text="selectedDenuncia?.nivel_gravedad"
                             ></span>
@@ -262,7 +260,7 @@
                         <p class="text-slate-600 bg-slate-50/50 p-3 rounded-xl border border-slate-100 italic" x-text="selectedDenuncia?.punto_referencia"></p>
                     </div>
 
-                    <template x-if="selectedDenuncia?.nivel_gravedad === 'alta' && selectedDenuncia?.justificacion_gravedad">
+                    <template x-if="selectedDenuncia?.nivel_gravedad === 'ALTA' && selectedDenuncia?.justificacion_gravedad">
                         <div class="space-y-1 bg-rose-50/50 p-3.5 rounded-xl border border-rose-100">
                             <span class="block text-[10px] uppercase font-bold text-rose-600">Justificación de Gravedad Alta</span>
                             <p class="text-rose-900 font-medium" x-text="selectedDenuncia?.justificacion_gravedad"></p>
@@ -310,6 +308,18 @@
                     <h3 class="text-sm font-bold text-slate-800">Registrar Denuncia Ambiental</h3>
                     <button @click="openModal = false" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer leading-none">&times;</button>
                 </div>
+
+                {{-- BLOQUE DE ERRORES AÑADIDO PARA EVITAR "ERROR SILENCIOSO" --}}
+                @if($errors->any())
+                    <div class="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl text-xs space-y-1">
+                        <strong class="font-bold">Por favor corrige los siguientes errores:</strong>
+                        <ul class="list-disc pl-4">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <form 
                     action="{{ route('ciudadano.denuncias.store') }}" 
@@ -377,13 +387,13 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Nivel de Gravedad <span class="text-rose-500">*</span></label>
                         <select name="nivel_gravedad" x-model="gravedad" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            <option value="baja">Baja (Sin riesgo directo o afectación menor)</option>
-                            <option value="media">Media (Afectación comunitaria moderada)</option>
-                            <option value="alta">Alta (Riesgo inminente para la salud o ambiente)</option>
+                            <option value="BAJA">Baja (Sin riesgo directo o afectación menor)</option>
+                            <option value="MEDIA">Media (Afectación comunitaria moderada)</option>
+                            <option value="ALTA">Alta (Riesgo inminente para la salud o ambiente)</option>
                         </select>
                     </div>
 
-                    <div x-show="gravedad === 'alta'" x-cloak class="space-y-1">
+                    <div x-show="gravedad === 'ALTA'" x-cloak class="space-y-1">
                         <div class="flex justify-between items-center">
                             <label class="block text-xs font-semibold text-rose-700">Justificación de Gravedad Alta <span class="text-rose-500">*</span></label>
                             <span class="text-[10px]" :class="justificacionGravedad.trim().length >= 3 ? 'text-emerald-600' : 'text-rose-500'">

@@ -14,7 +14,6 @@ class UsuarioController extends Controller
     {
         $query = User::with(['role', 'direccion'])->latest();
 
-        // Filtro por búsqueda (nombre, apellido, cédula o correo)
         if ($request->filled('buscar')) {
             $busq = $request->buscar;
             $query->where(function($q) use ($busq) {
@@ -25,12 +24,10 @@ class UsuarioController extends Controller
             });
         }
 
-        // Filtro por rol
         if ($request->filled('role_id')) {
             $query->where('role_id', $request->role_id);
         }
 
-        // Filtro por estatus (activo / inactivo)
         if ($request->filled('estatus')) {
             $query->where('is_active', $request->estatus === 'activo');
         }
@@ -43,7 +40,6 @@ class UsuarioController extends Controller
 
     public function toggleStatus(User $usuario)
     {
-        // Evitar que el admin se desactive a sí mismo por seguridad
         if ($usuario->id === auth()->id()) {
             return back()->withErrors(['error' => 'No puedes modificar tu propio estatus de acceso activo.']);
         }
@@ -53,11 +49,10 @@ class UsuarioController extends Controller
 
         $estadoTexto = $usuario->is_active ? 'ACTIVADO' : 'SUSPENDIDO';
 
-        // Registrar en bitácora
         BitacoraEvento::registrar([
             'modulo' => 'usuarios',
             'tipo_evento' => 'CAMBIO_ESTATUS',
-            'nivel' => 'warning',
+            'nivel' => 'WARNING', // <-- MAYÚSCULAS
             'descripcion' => "El usuario {$usuario->nombre} {$usuario->apellido} ({$usuario->correo}) ha sido {$estadoTexto} por el administrador.",
             'model' => $usuario,
         ]);

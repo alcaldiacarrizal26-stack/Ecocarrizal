@@ -5,7 +5,6 @@
         currentRecord: {} 
     }">
         
-        <!-- Cabecera Principal y Navegación de Bloques -->
         <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Dirección de Residuos</span>
@@ -13,15 +12,12 @@
                 <p class="text-xs text-slate-500 mt-0.5">Control de fiscalización comercial RACDA y monitoreo del balance semanal de desechos.</p>
             </div>
 
-            <!-- Botones de Acción según la Pestaña Activa -->
             <div class="flex items-center gap-2">
-                <!-- Botón PDF para Balance de Residuos -->
                 <button type="button" x-show="activeTab === 'declaraciones'" onclick="imprimirConFechas()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer">
                     <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                     <span>Imprimir Reporte Semanal</span>
                 </button>
 
-                <!-- Botón PDF con idéntica estética para el Directorio de Establecimientos RACDA -->
                 <button type="button" x-show="activeTab === 'empresas'" onclick="imprimirDirectorioEmpresas()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer">
                     <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                     <span>Imprimir Directorio de Empresas</span>
@@ -29,7 +25,6 @@
             </div>
         </div>
 
-        <!-- Selector de Bloques / Pestañas -->
         <div class="flex items-center gap-2 border-b border-slate-200 pb-1">
             <button @click="activeTab = 'declaraciones'" 
                 :class="activeTab === 'declaraciones' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
@@ -44,12 +39,9 @@
             </button>
         </div>
 
-        <!-- ========================================================= -->
-        <!-- BLOQUE 1: RESIDUOS DECLARADOS EN LA SEMANA X              -->
-        <!-- ========================================================= -->
+        <!-- BLOQUE 1: RESIDUOS DECLARADOS EN LA SEMANA X -->
         <div x-show="activeTab === 'declaraciones'" x-cloak class="space-y-6">
             
-            <!-- Selector de Rango Semanal con Contraste Corregido -->
             <div class="bg-slate-900 text-white rounded-3xl p-6 shadow-md flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                 <div>
                     <span class="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-widest rounded-md">Filtro de Fiscalización</span>
@@ -77,7 +69,6 @@
                 </form>
             </div>
 
-            <!-- Tarjetas de Resumen de Toneladas del Lapso -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2 border-l-4 border-l-emerald-500">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Toneladas Comunes</span>
@@ -107,7 +98,6 @@
                 </div>
             </div>
 
-            <!-- Tabla de Declaraciones Detalladas con Filtro por Rol -->
             <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Detalle de Declaraciones Recibidas en el Lapso</h3>
@@ -175,12 +165,9 @@
 
         </div>
 
-        <!-- ========================================================= -->
-        <!-- BLOQUE 2: LISTADO DE EMPRESAS Y FISCALIZACIÓN             -->
-        <!-- ========================================================= -->
+        <!-- BLOQUE 2: LISTADO DE EMPRESAS Y FISCALIZACIÓN -->
         <div x-show="activeTab === 'empresas'" x-cloak class="space-y-6">
             
-            <!-- Barra de Filtros del Directorio -->
             <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
                 <form method="GET" action="{{ route('alcaldesa.residuos') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end w-full">
                     <input type="hidden" name="tab" value="empresas">
@@ -219,7 +206,6 @@
                 </form>
             </div>
 
-            <!-- Tabla de Empresas Registradas -->
             <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
                 <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Directorio de Establecimientos Registrados ({{ $totalEmpresas }})</h3>
 
@@ -254,7 +240,8 @@
                                         </span>
                                     </td>
                                     <td class="py-3.5 px-4 text-right">
-                                        <button @click="currentRecord = {{ json_encode($empresa->load(['user', 'perfilAmbiental', 'documentosExpediente', 'declaracionesResiduos' => fn($q) => $q->latest(), 'sanciones' => fn($q) => $q->where('estatus', '!=', 'SUBSANADA')])) }}; modalOpen = true;" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                                        <!-- CORREGIDO: whereNotIn en lugar de != 'SUBSANADA' -->
+                                        <button @click="currentRecord = {{ json_encode($empresa->load(['user', 'perfilAmbiental', 'documentosExpediente.requisito', 'declaracionesResiduos' => fn($q) => $q->latest(), 'sanciones' => fn($q) => $q->whereNotIn('estatus', ['RESUELTA', 'ARCHIVADA', 'PAGADA', 'CONDONADA'])])) }}; modalOpen = true;" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 text-xs font-bold rounded-xl transition cursor-pointer">
                                             Ver Perfil
                                         </button>
                                     </td>
@@ -303,7 +290,6 @@
                     </div>
                 </div>
 
-                <!-- Resumen Operativo y Legal (Último reporte y Sanciones) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div class="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-1">
                         <p class="font-extrabold text-indigo-900 uppercase tracking-wider text-[10px]">Última Declaración de Residuos</p>
@@ -321,7 +307,6 @@
                     </div>
                 </div>
 
-                <!-- Documentos Consignados -->
                 <div class="space-y-2.5">
                     <p class="font-extrabold text-slate-700 uppercase tracking-wider text-[11px]">Documentos y Recaudos Consignados</p>
                     <template x-if="currentRecord.documentos_expediente && currentRecord.documentos_expediente.length > 0">
@@ -330,7 +315,8 @@
                                 <div class="p-3 rounded-xl border border-slate-200 bg-white flex flex-col justify-between gap-2 shadow-2xs">
                                     <div class="flex items-start justify-between gap-2">
                                         <div class="truncate">
-                                            <p class="text-xs font-bold text-slate-800 truncate" x-text="doc.nombre_requisito || 'Documento Oficial'"></p>
+                                            <!-- CORREGIDO: doc.requisito.nombre -->
+                                            <p class="text-xs font-bold text-slate-800 truncate" x-text="doc.requisito?.nombre || 'Documento Oficial'"></p>
                                             <div class="mt-1 flex items-center gap-1.5 flex-wrap">
                                                 <template x-if="doc.es_vitalicio">
                                                     <span class="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-800 rounded-md tracking-wider border border-emerald-200">Vitalicio</span>
@@ -356,7 +342,6 @@
 
     </div>
 
-    <!-- Script de Impresión -->
     <iframe id="pdfPrintFrame" style="display: none;"></iframe>
     <script>
         function imprimirConFechas() {

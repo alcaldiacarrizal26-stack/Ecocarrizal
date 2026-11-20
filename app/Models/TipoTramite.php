@@ -14,10 +14,11 @@ class TipoTramite extends Model
         'nombre',
         'descripcion',
         'plazo_dias',
+        'activo'
     ];
 
     public function recaudos(): HasMany
     {
-        return $this->hasMany(RecaudoCatalogo::class, 'tipo_tramite', 'slug');
+        return $this->hasMany(RecaudoCatalogo::class, 'tipo_tramite_id');
     }
 }

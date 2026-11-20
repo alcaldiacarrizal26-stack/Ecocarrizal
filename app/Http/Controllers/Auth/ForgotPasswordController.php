@@ -34,10 +34,11 @@ class ForgotPasswordController extends Controller
         // Enviamos la notificación por correo electrónico con la URL correspondiente
         $user->sendPasswordResetNotification($token);
 
+        // BITÁCORA: Nivel en UPPERCASE
         BitacoraEvento::registrar([
-            'modulo' => 'auth',
+            'modulo'      => 'auth',
             'tipo_evento' => 'SOLICITUD_RECUPERACION',
-            'nivel' => 'info',
+            'nivel'       => 'INFO',
             'descripcion' => "Se solicitó un enlace de recuperación de contraseña para el correo: {$user->correo}",
         ]);
 

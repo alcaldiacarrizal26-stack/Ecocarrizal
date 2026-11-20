@@ -33,6 +33,8 @@
             @php
                 $empresaRelacionada = $inspeccion->ordenInspeccion->empresa ?? $inspeccion->empresa ?? null;
                 $ordenRelacionada = $inspeccion->ordenInspeccion ?? null;
+                $dictamenShow = strtoupper($inspeccion->dictamen ?? '');
+                $estadoShow = strtoupper($inspeccion->estado ?? '');
             @endphp
 
             @if($empresaRelacionada)
@@ -45,7 +47,7 @@
                 <div>
                     <span class="text-xs text-emerald-800 block uppercase font-bold">Carácter de la Inspección</span>
                     @php
-                        $tipoInspeccion = $ordenRelacionada->tipo_inspeccion ?? $inspeccion->tipo_inspeccion ?? 'ORDINARIA';
+                        $tipoInspeccion = strtoupper($ordenRelacionada->tipo_inspeccion ?? $inspeccion->tipo_inspeccion ?? 'ORDINARIA');
                     @endphp
                     <span class="inline-block mt-1 px-2.5 py-1 text-xs font-bold rounded-lg {{ $tipoInspeccion === 'DE_OFICIO' ? 'bg-rose-100 text-rose-800' : 'bg-blue-100 text-blue-800' }}">
                         {{ $tipoInspeccion === 'DE_OFICIO' ? 'De Oficio / Sorpresa (Inopinada)' : 'Ordinaria / Programada' }}
@@ -66,10 +68,19 @@
                     </p>
                 </div>
                 <div>
-                    <span class="text-xs text-slate-400 block uppercase font-bold">Dictamen Emitido</span>
-                    <span class="inline-block mt-1 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-200 text-slate-800 uppercase">
-                        {{ str_replace('_', ' ', $inspeccion->dictamen) }}
-                    </span>
+                    <span class="text-xs text-slate-400 block uppercase font-bold">Dictamen / Estado del Acta</span>
+                    <div class="flex flex-wrap items-center gap-2 mt-1">
+                        @if($dictamenShow)
+                            <span class="inline-block px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-200 text-slate-800 uppercase">
+                                {{ str_replace('_', ' ', $dictamenShow) }}
+                            </span>
+                        @endif
+                        @if($estadoShow)
+                            <span class="inline-block px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+                                {{ str_replace('_', ' ', $estadoShow) }}
+                            </span>
+                        @endif
+                    </div>
                 </div>
             </div>
 

@@ -52,7 +52,7 @@ class BitacoraEvento extends Model
         $tipo_evento = $datos['tipo_evento'];
         $descripcion = $datos['descripcion'];
         $modulo = $datos['modulo'] ?? 'general';
-        $nivel = $datos['nivel'] ?? 'info';
+        $nivel = strtoupper($datos['nivel'] ?? 'INFO');
         $model = $datos['model'] ?? null;
         $anteriores = $datos['anteriores'] ?? null;
         $nuevos = $datos['nuevos'] ?? null;
@@ -60,8 +60,8 @@ class BitacoraEvento extends Model
         return self::create([
             'user_id'            => auth()->id(),
             'modulo'             => $modulo,
-            'tipo_evento'        => $tipo_evento, // 'crear', 'editar', 'eliminar', 'intento_fallido'
-            'nivel'              => $nivel,       // 'info', 'warning', 'danger', 'critical'
+            'tipo_evento'        => $tipo_evento,
+            'nivel'              => $nivel,
             'descripcion'        => $descripcion,
             'auditable_type'     => $model ? get_class($model) : null,
             'auditable_id'       => $model ? (string) $model->getKey() : null,

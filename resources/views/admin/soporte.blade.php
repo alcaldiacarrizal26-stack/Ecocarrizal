@@ -2,7 +2,7 @@
     <div class="p-6 max-w-7xl mx-auto space-y-6" 
          x-data="{ 
             modalOpen: false, 
-            ticketSeleccionado: { user: {}, asunto: '', mensaje: '', justificacion_alta: '', evidencia_path: '', respuesta_admin: '', estatus: 'EN_PROCESO' },
+            ticketSeleccionado: { user: {}, asunto: '', justificacion_alta: '', estatus: 'EN_PROCESO', mensajes: [] },
             abrirGestion(ticket) {
                 this.ticketSeleccionado = ticket;
                 this.modalOpen = true;
@@ -19,6 +19,12 @@
         @if(session('success'))
             <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm font-semibold shadow-sm">
                 {{ session('success') }}
+            </div>
+        @endif
+        
+        @if(session('error'))
+            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm font-semibold shadow-sm">
+                {{ session('error') }}
             </div>
         @endif
 
@@ -53,16 +59,15 @@
                                 </span>
                                 <div>
                                     <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase
-                                        {{ $ticket->estatus === 'RESUELTO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
+                                        {{ $ticket->estatus === 'RESUELTO' ? 'bg-emerald-100 text-emerald-800' : ($ticket->estatus === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800') }}">
                                         {{ str_replace('_', ' ', $ticket->estatus) }}
                                     </span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right space-x-2">
-                                <!-- Botón limpio que pasa el objeto directamente mediante un método seguro -->
                                 <button type="button" @click="abrirGestion(@js($ticket))" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5 shadow-sm cursor-pointer">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    <span>Gestionar Ticket</span>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                    <span>Gestionar Chat</span>
                                 </button>
                             </td>
                         </tr>
@@ -82,79 +87,93 @@
             </div>
         @endif
 
-        <!-- MODAL DESPLEGABLE DE DETALLES Y RESPUESTA (Sin x-cloak para evitar bloqueos visuales) -->
-        <div x-show="modalOpen" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
-            <div @click.outside="modalOpen = false" class="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl overflow-hidden shadow-2xl space-y-4 p-6 max-h-[90vh] overflow-y-auto">
+        <!-- MODAL DE CHAT PARA EL ADMIN -->
+        <div x-show="modalOpen" x-cloak class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div @click.outside="modalOpen = false" class="bg-white rounded-3xl border border-slate-200 w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col h-[85vh]">
                 
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 class="text-lg font-bold text-slate-800">Detalles del Reporte de Soporte</h3>
-                    <button type="button" @click="modalOpen = false" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+                <!-- Encabezado del Modal -->
+                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800" x-text="ticketSeleccionado.asunto"></h3>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs text-slate-500 font-medium" x-text="'Reportado por: ' + (ticketSeleccionado.user.nombre || '') + ' ' + (ticketSeleccionado.user.apellido || '')"></span>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" 
+                                  :class="ticketSeleccionado.prioridad === 'ALTA' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'"
+                                  x-text="'Prioridad: ' + ticketSeleccionado.prioridad"></span>
+                        </div>
+                    </div>
+                    <button type="button" @click="modalOpen = false" class="text-slate-400 hover:text-slate-700 text-2xl font-bold leading-none cursor-pointer">&times;</button>
                 </div>
 
-                <div class="space-y-4 text-xs">
-                    <!-- Info del Emisor -->
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 grid grid-cols-2 gap-2">
-                        <div>
-                            <span class="text-slate-400 block font-bold uppercase">Reportado por:</span>
-                            <strong class="text-slate-800 text-sm" x-text="(ticketSeleccionado.user.nombre || '') + ' ' + (ticketSeleccionado.user.apellido || '')"></strong>
-                        </div>
-                        <div>
-                            <span class="text-slate-400 block font-bold uppercase">Correo Institucional:</span>
-                            <strong class="text-slate-800" x-text="ticketSeleccionado.user.correo || 'N/A'"></strong>
-                        </div>
-                    </div>
-
-                    <!-- Asunto y Mensaje -->
-                    <div>
-                        <span class="text-slate-400 block font-bold uppercase mb-1">Asunto y Descripción del Problema:</span>
-                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                            <strong class="text-slate-900 text-sm block" x-text="ticketSeleccionado.asunto"></strong>
-                            <p class="text-slate-600 leading-relaxed" x-text="ticketSeleccionado.mensaje"></p>
-                        </div>
-                    </div>
-
-                    <!-- Justificación si es Alta -->
+                <!-- Historial de Mensajes (Chat) -->
+                <div class="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/50">
+                    <!-- Justificación Alta -->
                     <template x-if="ticketSeleccionado.justificacion_alta">
-                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 space-y-1">
-                            <span class="font-bold uppercase text-[10px] text-rose-700">Justificación de Urgencia Alta:</span>
-                            <p x-text="ticketSeleccionado.justificacion_alta"></p>
+                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 text-center w-full max-w-lg mx-auto">
+                            <strong>Justificación de urgencia:</strong> <span x-text="ticketSeleccionado.justificacion_alta"></span>
                         </div>
                     </template>
 
-                    <!-- Evidencia Adjunta si existe -->
-                    <template x-if="ticketSeleccionado.evidencia_path">
-                        <div>
-                            <span class="text-slate-400 block font-bold uppercase mb-1">Evidencia / Captura de Pantalla:</span>
-                            <a :href="'/storage/' + ticketSeleccionado.evidencia_path" target="_blank" class="px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold rounded-xl inline-flex items-center gap-2 hover:bg-emerald-100 transition">
-                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                Ver Captura Adjunta en Pantalla Completa
-                            </a>
+                    <!-- Burbujas del chat -->
+                    <template x-for="msg in ticketSeleccionado.mensajes" :key="msg.id">
+                        <div class="flex flex-col" :class="msg.es_admin ? 'items-end' : 'items-start'">
+                            <!-- Burbuja -->
+                            <div class="max-w-[75%] rounded-2xl p-3 text-sm shadow-sm"
+                                :class="msg.es_admin ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm'">
+                                <p class="whitespace-pre-line" x-text="msg.mensaje"></p>
+                                
+                                <!-- Evidencia adjunta en el mensaje -->
+                                <template x-if="msg.evidencia_path">
+                                    <a :href="'/storage/' + msg.evidencia_path" target="_blank" class="mt-2 block text-[11px] underline font-bold" :class="msg.es_admin ? 'text-indigo-200 hover:text-white' : 'text-indigo-600 hover:text-indigo-800'">
+                                        📎 Ver Archivo Adjunto
+                                    </a>
+                                </template>
+                            </div>
+                            
+                            <!-- Fecha y Autor -->
+                            <span class="text-[10px] text-slate-400 mt-1 px-1" 
+                                x-text="(msg.es_admin ? 'Tú (Soporte)' : (ticketSeleccionado.user.nombre || 'Usuario')) + ' • ' + new Date(msg.created_at).toLocaleString()">
+                            </span>
                         </div>
                     </template>
+                </div>
 
-                    <!-- Formulario de Respuesta del Admin -->
-                    <form :action="'/admin/soporte/' + ticketSeleccionado.id + '/responder'" method="POST" class="space-y-3 pt-2 border-t border-slate-100">
+                <!-- Formulario de Respuesta y Cambio de Estatus -->
+                <div class="p-5 bg-white border-t border-slate-100 shrink-0">
+                    <form :action="'/admin/soporte/' + ticketSeleccionado.id + '/responder'" method="POST" enctype="multipart/form-data" class="space-y-4">
                         @csrf
                         @method('PATCH')
 
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Respuesta o Solución Técnica *</label>
-                            <textarea name="respuesta_admin" rows="3" required x-model="ticketSeleccionado.respuesta_admin" placeholder="Escribe las instrucciones o el estatus de solución para el usuario..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs"></textarea>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Campo de texto para el mensaje -->
+                            <div class="md:col-span-2">
+                                <label class="block font-bold text-slate-700 uppercase mb-1 text-xs">Respuesta / Mensaje *</label>
+                                <textarea name="mensaje" rows="2" required placeholder="Escribe la solución o pregunta al usuario..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"></textarea>
+                            </div>
+
+                            <!-- Estatus y Archivo Adjunto -->
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block font-bold text-slate-700 uppercase mb-1 text-xs">Estatus del Ticket *</label>
+                                    <select name="estatus" x-model="ticketSeleccionado.estatus" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        <option value="ABIERTO">Abierto</option>
+                                        <option value="EN_PROCESO">En Proceso</option>
+                                        <option value="RESUELTO">Resuelto</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 uppercase mb-1 text-xs">Adjuntar Archivo (Opcional)</label>
+                                    <input type="file" name="evidencia" accept="image/*,.pdf" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Actualizar Estatus *</label>
-                                <select name="estatus" x-model="ticketSeleccionado.estatus" class="bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs">
-                                    <option value="EN_PROCESO">En Proceso</option>
-                                    <option value="RESUELTO">Resuelto</option>
-                                </select>
-                            </div>
-
-                            <div class="flex gap-2 pt-5">
-                                <button type="button" @click="modalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">Cancelar</button>
-                                <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-sm cursor-pointer">Guardar y Enviar Respuesta</button>
-                            </div>
+                        <!-- Botón de Enviar -->
+                        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                            <button type="button" @click="modalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition text-sm cursor-pointer">Cancelar</button>
+                            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-sm cursor-pointer text-sm">
+                                Enviar Respuesta
+                            </button>
                         </div>
                     </form>
                 </div>

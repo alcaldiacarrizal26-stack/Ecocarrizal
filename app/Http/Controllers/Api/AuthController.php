@@ -14,11 +14,11 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email'    => ['required', 'string', 'email'],
+            'correo'    => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $credentials['email'])->first();
+        $user = User::where('correo', $credentials['correo'])->first();
 
         // Hash::check procesa directamente los hashes $2a$ y $2b$ generados por Supabase GoTrue
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
@@ -28,7 +28,7 @@ class AuthController extends Controller
         }
 
         // Cargar perfil con rol para la respuesta
-        $user->load(['profile.role', 'profile.direccion']);
+        $user->load(['role', 'direccion']);
 
         // Revocar tokens anteriores si se requiere sesión única (opcional)
         $user->tokens()->delete();
@@ -54,7 +54,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load(['profile.role', 'profile.direccion']);
+        $user = $request->user()->load(['role', 'direccion']);
 
         return response()->json([
             'user' => $user,

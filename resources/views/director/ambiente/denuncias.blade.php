@@ -87,21 +87,26 @@
     </div>
 
     <!-- Barra de Filtro Manual Adaptativa -->
+    @php
+        $filtroActual = strtoupper($filtroEstatus ?? request('estado') ?? request('estatus') ?? 'TODOS');
+    @endphp
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <form method="GET" action="{{ route('director.ambiente.denuncias') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div class="flex items-center justify-between sm:justify-start gap-2 flex-1">
-                <label for="filtro_estatus" class="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Filtrar por estatus:</label>
+                <label for="filtro_estado" class="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Filtrar por estado:</label>
                 <select 
-                    id="filtro_estatus"
-                    name="estatus"
+                    id="filtro_estado"
+                    name="estado"
                     class="bg-slate-50/50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 block p-2.5 font-medium cursor-pointer w-full sm:w-auto"
                 >
-                    <option value="todos" {{ ($filtroEstatus ?? request('estatus')) == 'todos' || !request('estatus') ? 'selected' : '' }}>Todos los estatus</option>
-                    <option value="pendiente" {{ ($filtroEstatus ?? request('estatus')) == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                    <option value="inspector_asignado" {{ ($filtroEstatus ?? request('estatus')) == 'inspector_asignado' ? 'selected' : '' }}>Inspector Asignado</option>
-                    <option value="en_revision" {{ ($filtroEstatus ?? request('estatus')) == 'en_revision' ? 'selected' : '' }}>En Revisión</option>
-                    <option value="atendido" {{ ($filtroEstatus ?? request('estatus')) == 'atendido' ? 'selected' : '' }}>Atendido</option>
-                    <option value="desestimado" {{ ($filtroEstatus ?? request('estatus')) == 'desestimado' ? 'selected' : '' }}>Desestimado</option>
+                    <option value="TODOS" {{ $filtroActual === 'TODOS' ? 'selected' : '' }}>Todos los estados</option>
+                    <option value="PENDIENTE" {{ $filtroActual === 'PENDIENTE' ? 'selected' : '' }}>PENDIENTE</option>
+                    <option value="INSPECTOR_ASIGNADO" {{ $filtroActual === 'INSPECTOR_ASIGNADO' ? 'selected' : '' }}>INSPECTOR ASIGNADO</option>
+                    <option value="EN_INSPECCION" {{ $filtroActual === 'EN_INSPECCION' ? 'selected' : '' }}>EN INSPECCIÓN</option>
+                    <option value="EN_REVISION" {{ $filtroActual === 'EN_REVISION' ? 'selected' : '' }}>EN REVISIÓN</option>
+                    <option value="REQUIERE_REINSPECCION" {{ $filtroActual === 'REQUIERE_REINSPECCION' ? 'selected' : '' }}>REQUIERE REINSPECCIÓN</option>
+                    <option value="ATENDIDO" {{ $filtroActual === 'ATENDIDO' ? 'selected' : '' }}>ATENDIDO</option>
+                    <option value="DESESTIMADO" {{ $filtroActual === 'DESESTIMADO' ? 'selected' : '' }}>DESESTIMADO</option>
                 </select>
             </div>
 
@@ -109,7 +114,7 @@
                 <button type="submit" class="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer text-center">
                     Filtrar Resultados
                 </button>
-                @if(request('estatus') && request('estatus') !== 'todos')
+                @if($filtroActual !== 'TODOS')
                     <a href="{{ route('director.ambiente.denuncias') }}" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition text-center">
                         Limpiar
                     </a>
@@ -128,7 +133,7 @@
                         <th scope="col" class="px-6 py-3 whitespace-nowrap">Tipo Contaminación</th>
                         <th scope="col" class="px-6 py-3 whitespace-nowrap">Sector / Comuna</th>
                         <th scope="col" class="px-6 py-3 text-center whitespace-nowrap">Gravedad</th>
-                        <th scope="col" class="px-6 py-3 whitespace-nowrap">Estatus</th>
+                        <th scope="col" class="px-6 py-3 whitespace-nowrap">Estado</th>
                         <th scope="col" class="px-6 py-3 whitespace-nowrap">Inspector Asignado</th>
                         <th scope="col" class="px-6 py-3 whitespace-nowrap">Fecha</th>
                         <th scope="col" class="px-6 py-3 text-right whitespace-nowrap">Acciones</th>
@@ -136,12 +141,22 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($denuncias as $denuncia)
+                        @php
+                            $gravedad = strtoupper($denuncia->nivel_gravedad ?? 'BAJA');
+                            $estadoDenuncia = strtoupper($denuncia->estado ?? 'PENDIENTE');
+                            $badgeClasses = match($gravedad) {
+                                'BAJA' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                                'MEDIA' => 'bg-amber-100 text-amber-800 border-amber-200',
+                                'ALTA', 'CRITICA' => 'bg-rose-100 text-rose-800 border-rose-200 font-bold',
+                                default => 'bg-gray-100 text-gray-800 border-gray-200',
+                            };
+                        @endphp
                         <tr class="bg-white border-b hover:bg-gray-50 transition">
                             <td class="px-6 py-4 font-bold text-emerald-700 whitespace-nowrap">
-                                {{ $denuncia->codigo }}
+                                {{ $denuncia->codigo_denuncia }}
                             </td>
-                            <td class="px-6 py-4 capitalize font-medium text-gray-800 whitespace-nowrap">
-                                {{ strtolower($denuncia->tipo_contaminacion) === 'otro' ? ($denuncia->otro_tipo_contaminacion ?? 'Otro') : str_replace('_', ' ', $denuncia->tipo_contaminacion) }}
+                            <td class="px-6 py-4 font-medium text-gray-800 whitespace-nowrap">
+                                {{ strtoupper($denuncia->tipo_contaminacion) === 'OTRO' ? ($denuncia->otro_tipo_contaminacion ?? 'OTRO') : str_replace('_', ' ', strtoupper($denuncia->tipo_contaminacion)) }}
                             </td>
                             <td class="px-6 py-4 max-w-[240px]" title="{{ $denuncia->sector }} ({{ $denuncia->comuna }})">
                                 <div class="font-medium text-gray-800 truncate">{{ $denuncia->sector }}</div>
@@ -150,24 +165,15 @@
 
                             <!-- BADGE DE GRAVEDAD -->
                             <td class="px-6 py-4 text-center whitespace-nowrap">
-                                @php
-                                    $gravedad = strtolower($denuncia->nivel_gravedad);
-                                    $badgeClasses = match($gravedad) {
-                                        'baja' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
-                                        'media' => 'bg-amber-100 text-amber-800 border-amber-200',
-                                        'alta' => 'bg-rose-100 text-rose-800 border-rose-200 font-bold',
-                                        default => 'bg-gray-100 text-gray-800 border-gray-200',
-                                    };
-                                @endphp
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $badgeClasses }}">
-                                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full {{ $gravedad === 'alta' ? 'bg-rose-500' : ($gravedad === 'media' ? 'bg-amber-500' : 'bg-emerald-500') }}"></span>
-                                    {{ ucfirst($gravedad) }}
+                                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full {{ in_array($gravedad, ['ALTA', 'CRITICA']) ? 'bg-rose-500' : ($gravedad === 'MEDIA' ? 'bg-amber-500' : 'bg-emerald-500') }}"></span>
+                                    {{ $gravedad }}
                                 </span>
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 capitalize font-medium">
-                                    {{ str_replace('_', ' ', $denuncia->estatus) }}
+                                <span class="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
+                                    {{ str_replace('_', ' ', $estadoDenuncia) }}
                                 </span>
                             </td>
 
@@ -195,7 +201,7 @@
                                     onclick="abrirModalInspector({
                                         actionUrl: '{{ route('director.ambiente.denuncias.asignar', $denuncia->id) }}',
                                         method: 'PUT',
-                                        titulo: 'Asignar Inspector a la Denuncia {{ $denuncia->codigo }}',
+                                        titulo: 'Asignar Inspector a la Denuncia {{ $denuncia->codigo_denuncia }}',
                                         subtitulo: 'Sector: {{ $denuncia->sector }}'
                                     })"
                                     class="p-2 text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
@@ -214,7 +220,7 @@
 
                                 <button 
                                     type="button"
-                                    title="Rechazar Denuncia"
+                                    title="Desestimar Denuncia"
                                     @click="denunciaActual = {{ json_encode($denuncia) }}; modalRechazarDenunciaOpen = true"
                                     class="p-2 text-rose-600 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                 >
@@ -255,7 +261,7 @@
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                 <div>
                     <h3 class="text-lg font-bold text-gray-800">
-                        Detalle de la Denuncia: <span class="text-emerald-600" x-text="denunciaActual?.codigo"></span>
+                        Detalle de la Denuncia: <span class="text-emerald-600" x-text="denunciaActual?.codigo_denuncia"></span>
                     </h3>
                     <p class="text-xs text-gray-500" x-text="'Registrada el ' + (denunciaActual?.created_at ? new Date(denunciaActual.created_at).toLocaleString() : '')"></p>
                 </div>
@@ -269,19 +275,19 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
                         <span class="block text-xs text-gray-400 uppercase font-semibold">Tipo Contaminación</span>
-                        <span class="text-sm font-medium text-gray-800 capitalize" 
-                              x-text="denunciaActual?.tipo_contaminacion?.toLowerCase() === 'otro' ? (denunciaActual?.otro_tipo_contaminacion || 'Otro') : denunciaActual?.tipo_contaminacion?.replace('_', ' ')">
+                        <span class="text-sm font-medium text-gray-800" 
+                              x-text="denunciaActual?.tipo_contaminacion?.toUpperCase() === 'OTRO' ? (denunciaActual?.otro_tipo_contaminacion || 'OTRO') : denunciaActual?.tipo_contaminacion?.replace(/_/g, ' ')">
                         </span>
                     </div>
                     <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
                         <span class="block text-xs text-gray-400 uppercase font-semibold">Nivel de Gravedad</span>
-                        <span class="text-sm font-bold capitalize" 
+                        <span class="text-sm font-bold" 
                               :class="{
-                                  'text-emerald-600': denunciaActual?.nivel_gravedad === 'baja',
-                                  'text-amber-600': denunciaActual?.nivel_gravedad === 'media',
-                                  'text-rose-600': denunciaActual?.nivel_gravedad === 'alta'
+                                  'text-emerald-600': (denunciaActual?.nivel_gravedad || '').toUpperCase() === 'BAJA',
+                                  'text-amber-600': (denunciaActual?.nivel_gravedad || '').toUpperCase() === 'MEDIA',
+                                  'text-rose-600': ['ALTA', 'CRITICA'].includes((denunciaActual?.nivel_gravedad || '').toUpperCase())
                               }"
-                              x-text="denunciaActual?.nivel_gravedad">
+                              x-text="(denunciaActual?.nivel_gravedad || '').toUpperCase()">
                         </span>
                     </div>
                 </div>
@@ -294,7 +300,7 @@
                             x-text="denunciaActual?.inspector ? (denunciaActual.inspector.nombre + ' ' + (denunciaActual.inspector.apellido || '')).trim() : (denunciaActual?.inspector?.name || 'Ninguno (Sin asignar)')">
                         </span>
                     </div>
-                    <span class="text-xs px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 capitalize font-medium" x-text="denunciaActual?.estatus?.replace('_', ' ') || 'Sin Estatus'"></span>
+                    <span class="text-xs px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 font-semibold" x-text="(denunciaActual?.estado || '').replace(/_/g, ' ') || 'SIN ESTADO'"></span>
                 </div>
 
                 <!-- Justificación de Gravedad (si existe) -->
@@ -345,7 +351,7 @@
                     @click="modalOpen = false; abrirModalInspector({
                         actionUrl: '/director/ambiente/denuncias/' + denunciaActual.id + '/asignar',
                         method: 'PUT',
-                        titulo: 'Asignar Inspector a ' + denunciaActual.codigo,
+                        titulo: 'Asignar Inspector a ' + denunciaActual.codigo_denuncia,
                         subtitulo: 'Sector: ' + denunciaActual.sector
                     })"
                     class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors inline-flex items-center"
@@ -363,20 +369,20 @@
     <!-- COMPONENTE REUTILIZABLE NORMALIZADO PARA ASIGNACIÓN DE INSPECTORES -->
     <x-modal-asignar-inspector />
 
-    <!-- MODAL RECHAZAR DENUNCIA -->
+    <!-- MODAL DESESTIMAR / RECHAZAR DENUNCIA -->
     <div x-show="modalRechazarDenunciaOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
         <div @click.away="modalRechazarDenunciaOpen = false" class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <h3 class="text-base font-bold text-gray-800">Rechazar Denuncia: <span class="text-rose-600" x-text="denunciaActual?.codigo"></span></h3>
+            <h3 class="text-base font-bold text-gray-800">Desestimar Denuncia: <span class="text-rose-600" x-text="denunciaActual?.codigo_denuncia"></span></h3>
             <form :action="'/director/ambiente/denuncias/' + denunciaActual?.id + '/rechazar'" method="POST" class="space-y-3">
                 @csrf
                 @method('PUT')
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Motivo del Rechazo <span class="text-rose-500">*</span></label>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Motivo de Desestimación <span class="text-rose-500">*</span></label>
                     <textarea name="motivo_rechazo" rows="3" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-rose-500 focus:border-rose-500" placeholder="Indique la justificación técnica..." required></textarea>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" @click="modalRechazarDenunciaOpen = false" class="px-3 py-1.5 bg-gray-200 text-gray-800 text-xs rounded-lg cursor-pointer">Cancelar</button>
-                    <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg cursor-pointer">Confirmar Rechazo</button>
+                    <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg cursor-pointer">Confirmar</button>
                 </div>
             </form>
         </div>

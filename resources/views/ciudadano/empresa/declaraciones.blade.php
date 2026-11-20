@@ -131,11 +131,13 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     @php
+                                        // CORREGIDO: Usar los valores del ENUM
                                         $badgeClasses = match($dec->estatus) {
-                                            'CONFORME'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                            'CONFORME', 'APROBADA' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                                             'OBSERVADA' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                            'BORRADOR'  => 'bg-slate-100 text-slate-600 border-slate-200',
-                                            default     => 'bg-blue-50 text-blue-700 border-blue-200', // PRESENTADA
+                                            'PRESENTADA' => 'bg-blue-50 text-blue-700 border-blue-200',
+                                            'RECHAZADA' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                            default     => 'bg-slate-100 text-slate-600 border-slate-200',
                                         };
                                     @endphp
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ $badgeClasses }}">
@@ -143,9 +145,10 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    @if($dec->observaciones_fiscalia)
+                                    {{-- CORREGIDO: observaciones_administrativas --}}
+                                    @if($dec->observaciones_administrativas)
                                         <button type="button" title="Ver Observaciones" 
-                                            onclick="alert('Observaciones de la Dirección:\n\n{{ addslashes($dec->observaciones_fiscalia) }}')"
+                                            onclick="alert('Observaciones de la Dirección:\n\n{{ addslashes($dec->observaciones_administrativas) }}')"
                                             class="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors border border-amber-200">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -167,7 +170,6 @@
                 </table>
             </div>
 
-            <!-- Paginación -->
             @if($declaraciones->hasPages())
                 <div class="p-4 border-t border-slate-200 bg-slate-50">
                     {{ $declaraciones->links() }}

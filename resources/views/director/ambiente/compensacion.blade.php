@@ -8,7 +8,7 @@
                 <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
                 Compensación Ambiental
             </h1>
-            <p class="text-sm text-slate-500 mt-1">Verificación de entregas de plantas y árboles para solicitudes autorizadas.</p>
+            <p class="text-sm text-slate-500 mt-1">Verificación de entregas de ejemplares para compensaciones autorizadas.</p>
         </div>
     </div>
 
@@ -18,6 +18,15 @@
             <div class="flex items-center gap-2">
                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span class="font-medium">{{ session('success') }}</span>
+            </div>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="p-4 mb-4 text-sm text-rose-900 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="font-medium">{{ session('error') }}</span>
             </div>
         </div>
     @endif
@@ -38,10 +47,10 @@
             <table class="w-full text-sm text-left text-slate-700 min-w-[750px]">
                 <thead class="text-xs uppercase bg-slate-100 text-slate-700 border-b border-slate-200 font-bold tracking-wider">
                     <tr>
-                        <th class="px-6 py-3.5">Resolución</th>
+                        <th class="px-6 py-3.5">Compensación</th>
                         <th class="px-6 py-3.5">Ciudadano</th>
-                        <th class="px-6 py-3.5">Cantidad</th>
-                        <th class="px-6 py-3.5">Especie Entregada</th>
+                        <th class="px-6 py-3.5">Cantidad Entregada</th>
+                        <th class="px-6 py-3.5">Estatus Entrega</th>
                         <th class="px-6 py-3.5">Comprobante</th>
                         <th class="px-6 py-3.5 text-right">Acciones</th>
                     </tr>
@@ -50,7 +59,7 @@
                     @forelse($entregasPendientes as $entrega)
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 font-mono font-bold text-slate-900">
-                                {{ $entrega->compensacion->codigo_resolucion ?? 'S/R' }}
+                                {{ $entrega->compensacion->codigo_compensacion ?? 'S/C' }}
                             </td>
                             <td class="px-6 py-4">
                                 <div class="font-bold text-slate-900">{{ $entrega->user->nombre ?? '' }} {{ $entrega->user->apellido ?? '' }}</div>
@@ -59,8 +68,14 @@
                             <td class="px-6 py-4 font-bold text-emerald-700">
                                 {{ $entrega->cantidad_entregada }} ejemplares
                             </td>
-                            <td class="px-6 py-4 font-medium text-slate-800">
-                                {{ $entrega->especie_entregada }}
+                            <td class="px-6 py-4">
+                                @php
+                                    $estatusEntrega = strtoupper($entrega->estatus ?? 'PENDIENTE');
+                                @endphp
+                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase inline-block
+                                    {{ $estatusEntrega === 'EN_REVISION' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-amber-100 text-amber-800 border border-amber-200' }}">
+                                    {{ str_replace('_', ' ', $estatusEntrega) }}
+                                </span>
                             </td>
                             <td class="px-6 py-4">
                                 @if($entrega->comprobante_path)
@@ -75,11 +90,13 @@
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <button 
+                                        type="button"
                                         @click="entregaSeleccionada = {{ json_encode($entrega) }}; modalAprobar = true"
                                         class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer">
                                         Aprobar
                                     </button>
                                     <button 
+                                        type="button"
                                         @click="entregaSeleccionada = {{ json_encode($entrega) }}; modalRechazar = true"
                                         class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer">
                                         Rechazar
@@ -111,7 +128,7 @@
                     <tr>
                         <th class="px-6 py-3.5">Código</th>
                         <th class="px-6 py-3.5">Ciudadano</th>
-                        <th class="px-6 py-3.5">Especie Solicitada</th>
+                        <th class="px-6 py-3.5">Solicitud Asociada</th>
                         <th class="px-6 py-3.5">Progreso de Entrega</th>
                         <th class="px-6 py-3.5 text-center">Estatus</th>
                     </tr>
@@ -120,16 +137,17 @@
                     @forelse($compensaciones as $comp)
                         @php
                             $porcentaje = $comp->cantidad_asignada > 0 ? min(100, round(($comp->cantidad_entregada / $comp->cantidad_asignada) * 100)) : 0;
+                            $estatusComp = strtoupper($comp->estatus ?? 'PENDIENTE');
                         @endphp
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 font-mono font-bold text-slate-900">
-                                {{ $comp->codigo_resolucion }}
+                                {{ $comp->codigo_compensacion }}
                             </td>
                             <td class="px-6 py-4 font-medium text-slate-800">
                                 {{ $comp->user->nombre ?? 'N/A' }} {{ $comp->user->apellido ?? '' }}
                             </td>
-                            <td class="px-6 py-4 font-medium text-slate-800">
-                                {{ $comp->especie_requerida }}
+                            <td class="px-6 py-4 font-mono text-slate-700">
+                                {{ $comp->solicitud->codigo_solicitud ?? 'Directa / Sin solicitud' }}
                             </td>
                             <td class="px-6 py-4">
                                 <div class="w-full max-w-xs">
@@ -143,17 +161,17 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                @if($comp->estatus === 'COMPLETADO')
+                                @if($estatusComp === 'COMPLETADO')
                                     <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase inline-block">
-                                        Completado
+                                        COMPLETADO
                                     </span>
-                                @elseif($comp->estatus === 'PARCIAL')
+                                @elseif($estatusComp === 'PARCIAL')
                                     <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-sky-100 text-sky-800 border border-sky-200 uppercase inline-block">
-                                        Parcial
+                                        PARCIAL
                                     </span>
                                 @else
                                     <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200 uppercase inline-block">
-                                        Pendiente
+                                        PENDIENTE
                                     </span>
                                 @endif
                             </td>

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Comprobante Oficial de Solicitud — {{ $solicitud->codigo_expediente }}</title>
+    <title>Comprobante Oficial de Solicitud — {{ $solicitud->codigo_solicitud }}</title>
     <style>
         @page { size: letter; margin: 0; }
         body {
@@ -107,7 +107,8 @@
         <div class="header-left">
             <span style="font-size: 9px; font-weight: bold; color: #047857; text-transform: uppercase;">Alcaldía del Municipio Carrizal • Dirección de Ambiente</span>
             <h1 class="titulo-expediente">Comprobante de Registro de Solicitud</h1>
-            <p style="margin:0; font-size: 10px; color: #64748b;">Código de Expediente: <strong style="color: #0f172a;">{{ $solicitud->codigo_expediente }}</strong></p>
+            {{-- CORREGIDO: codigo_solicitud --}}
+            <p style="margin:0; font-size: 10px; color: #64748b;">Código de Solicitud: <strong style="color: #0f172a;">{{ $solicitud->codigo_solicitud }}</strong></p>
         </div>
         <div class="header-right">
             <span class="badge-estatus">Estatus: {{ strtoupper($solicitud->estado) }}</span>
@@ -120,15 +121,17 @@
     <table class="data-table">
         <tr>
             <th>Tipo de Trámite</th>
-            <td><strong>{{ strtoupper(str_replace('_', ' ', $solicitud->tipo_tramite)) }}</strong></td>
+            {{-- CORREGIDO: Usar la relación tipoTramite --}}
+            <td><strong>{{ strtoupper($solicitud->tipoTramite->nombre ?? 'TRÁMITE') }}</strong></td>
         </tr>
         <tr>
             <th>Solicitante</th>
             <td>
                 @php
-                    $u = $solicitud->usuario ?? null;
-                    $nombreCompleto = trim(($u->nombre ?? $u->name ?? '') . ' ' . ($u->apellido ?? $u->last_name ?? ''));
-                    $cedula = $u->cedula ?? $u->dni ?? 'N/D';
+                    // CORREGIDO: Los campos reales del modelo User son nombre, apellido y cedula
+                    $u = $solicitud->usuario ?? $solicitud->solicitante ?? null;
+                    $nombreCompleto = trim(($u->nombre ?? '') . ' ' . ($u->apellido ?? ''));
+                    $cedula = $u->cedula ?? 'N/D';
                 @endphp
                 <strong>{{ $nombreCompleto !== '' ? $nombreCompleto : 'Ciudadano (ID: ' . $solicitud->user_id . ')' }}</strong> — C.I.: {{ $cedula }}
             </td>
@@ -159,7 +162,8 @@
         <tbody>
             @forelse($solicitud->recaudos as $rec)
                 <tr>
-                    <td><strong>{{ strtoupper(str_replace('_', ' ', $rec->tipo_recaudo)) }}</strong></td>
+                    {{-- CORREGIDO: Usar la relación recaudoCatalogo --}}
+                    <td><strong>{{ strtoupper($rec->recaudoCatalogo->label ?? $rec->recaudoCatalogo->key ?? 'DOCUMENTO') }}</strong></td>
                     <td style="text-align: center; color: #059669; font-weight: bold;">CONSIGNADO</td>
                 </tr>
             @empty
@@ -176,7 +180,7 @@
         <tr>
             <td style="width: 70%; vertical-align: top; padding-right: 15px; border: none;">
                 <p style="font-size: 9px; color: #475569; margin-top: 0;">
-                    El presente documento certifica que la solicitud identificada con el expediente <strong>{{ $solicitud->codigo_expediente }}</strong> se encuentra formalmente registrada en el <strong>Sistema Ecosocialista de la Alcaldía de Carrizal</strong> y ha cumplido con la entrega inicial de recaudos exigidos.
+                    El presente documento certifica que la solicitud identificada con el código <strong>{{ $solicitud->codigo_solicitud }}</strong> se encuentra formalmente registrada en el <strong>Sistema Ecosocialista de la Alcaldía de Carrizal</strong> y ha cumplido con la entrega inicial de recaudos exigidos.
                 </p>
                 <p style="font-size: 8px; color: #94a3b8; font-style: italic;">
                     Nota: Este comprobante no constituye la aprobación final del permiso o inspección. Escanee el código QR adjunto para verificar la validez de este documento en el portal oficial municipal.

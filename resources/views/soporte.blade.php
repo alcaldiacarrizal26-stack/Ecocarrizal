@@ -1,5 +1,13 @@
 <x-layouts.app title="Soporte Técnico" active="soporte">
-    <div class="p-6 max-w-5xl mx-auto space-y-6" x-data="{ prioridad: 'MEDIA' }">
+    <div class="p-6 max-w-7xl mx-auto space-y-6" x-data="{ 
+        prioridad: 'MEDIA',
+        chatAbierto: false,
+        ticketSeleccionado: null,
+        abrirChat(ticket) {
+            this.ticketSeleccionado = ticket;
+            this.chatAbierto = true;
+        }
+    }">
         
         <div class="flex items-center justify-between">
             <div>
@@ -14,6 +22,12 @@
             </div>
         @endif
 
+        @if(session('error'))
+            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm font-semibold">
+                {{ session('error') }}
+            </div>
+        @endif
+
         @if ($errors->any())
             <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs space-y-1">
                 <strong class="font-bold block">Por favor corrige los siguientes errores:</strong>
@@ -25,21 +39,22 @@
             </div>
         @endif
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Formulario de Envío de Ticket -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm md:col-span-1">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- COLUMNA IZQUIERDA: Formulario de Nuevo Ticket -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm lg:col-span-1 h-fit">
                 <h2 class="text-base font-bold text-slate-800 mb-4">Nuevo Reporte de Fallo</h2>
                 
                 <form action="{{ route('soporte.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
                     @csrf
                     <div>
                         <label class="block font-bold text-slate-700 uppercase mb-1">Asunto del Problema *</label>
-                        <input type="text" name="asunto" value="{{ old('asunto') }}" required placeholder="Ej. Error al guardar inspección..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5">
+                        <input type="text" name="asunto" value="{{ old('asunto') }}" required placeholder="Ej. Error al guardar inspección..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     </div>
 
                     <div>
                         <label class="block font-bold text-slate-700 uppercase mb-1">Prioridad *</label>
-                        <select name="prioridad" x-model="prioridad" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5">
+                        <select name="prioridad" x-model="prioridad" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                             <option value="BAJA">Baja</option>
                             <option value="MEDIA">Media</option>
                             <option value="ALTA">Alta (Bloqueante / Crítico)</option>
@@ -49,28 +64,23 @@
                     <!-- Justificación obligatoria condicional si es ALTA -->
                     <div x-show="prioridad === 'ALTA'" x-cloak class="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-1">
                         <label class="block font-bold text-rose-800 uppercase">Justificación de Urgencia Alta *</label>
-                        <p class="text-[10px] text-rose-600">Explica por qué este fallo impide continuar con las operaciones del sistema:</p>
-                        <textarea name="justificacion_alta" rows="2" placeholder="Describe el bloqueo operativo..." class="w-full bg-white border border-rose-300 rounded-lg p-2 text-xs">{{ old('justificacion_alta') }}</textarea>
+                        <p class="text-[10px] text-rose-600">Explica por qué este fallo impide continuar con las operaciones:</p>
+                        <textarea name="justificacion_alta" rows="2" placeholder="Describe el bloqueo operativo..." class="w-full bg-white border border-rose-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none">{{ old('justificacion_alta') }}</textarea>
                     </div>
 
                     <div>
                         <label class="block font-bold text-slate-700 uppercase mb-1">Descripción Detallada *</label>
-                        <textarea name="mensaje" rows="3" required placeholder="Explica detalladamente el error..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5">{{ old('mensaje') }}</textarea>
+                        <textarea name="mensaje" rows="4" required placeholder="Explica detalladamente el error..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none">{{ old('mensaje') }}</textarea>
                     </div>
 
-                    <!-- Cuadro para anexar evidencia (Captura de pantalla) con Previsualización -->
+                    <!-- Evidencia (Captura) -->
                     <div>
                         <label class="block font-bold text-slate-700 uppercase mb-1">Captura de Pantalla / Evidencia</label>
-                        
                         <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/30 rounded-xl p-4 transition group text-center cursor-pointer">
-                            <input type="file" name="evidencia" id="evidencia_input" accept="image/*,.pdf"
-                                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewSoporteImage(event)">
-                            
+                            <input type="file" name="evidencia" id="evidencia_input" accept="image/*,.pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewSoporteImage(event)">
                             <div class="space-y-1.5 pointer-events-none">
                                 <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm border border-slate-200 group-hover:scale-110 transition">
-                                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
+                                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 </div>
                                 <div class="text-xs text-slate-600">
                                     <span class="font-semibold text-emerald-600">Haz clic para subir</span> o arrastra tu archivo
@@ -78,8 +88,6 @@
                                 <p class="text-[10px] text-slate-400">PNG, JPG, WEBP o PDF (Máx. 5MB)</p>
                             </div>
                         </div>
-
-                        <!-- Previsualización de la Imagen / Archivo seleccionado -->
                         <div id="soporte_preview_container" class="mt-2 hidden">
                             <div class="flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-[11px]">
                                 <span id="soporte_file_name" class="truncate font-semibold"></span>
@@ -94,57 +102,121 @@
                 </form>
             </div>
 
-            <!-- Historial de Tickets del Usuario -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm md:col-span-2 space-y-4">
-                <h2 class="text-base font-bold text-slate-800">Mis Reportes Enviados</h2>
+            <!-- COLUMNA DERECHA: Mis Tickets (Tarjetas) -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
+                <h2 class="text-base font-bold text-slate-800">Mis Conversaciones de Soporte</h2>
 
-                <div class="space-y-3">
+                <div class="grid grid-cols-1 gap-3">
                     @forelse($tickets as $ticket)
-                        <div class="border border-slate-100 bg-slate-50/50 p-4 rounded-xl space-y-2 text-xs">
-                            <div class="flex items-center justify-between">
+                        @php
+                            $ultimoMensaje = $ticket->mensajes->sortByDesc('created_at')->first();
+                        @endphp
+                        <div @click="abrirChat({{ json_encode($ticket) }})" class="border border-slate-200 bg-slate-50 hover:bg-slate-100 p-4 rounded-xl cursor-pointer transition-colors flex justify-between items-center group">
+                            <div class="space-y-1 pr-4">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold text-slate-900 text-sm">{{ $ticket->asunto }}</span>
+                                    <span class="font-bold text-slate-900 text-sm group-hover:text-emerald-700 transition">{{ $ticket->asunto }}</span>
                                     <span class="px-2 py-0.5 rounded font-bold text-[10px] uppercase 
-                                        {{ $ticket->prioridad === 'ALTA' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-200 text-slate-700' }}">
+                                        {{ $ticket->prioridad === 'ALTA' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700' }}">
                                         {{ $ticket->prioridad }}
                                     </span>
                                 </div>
-                                <span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase
+                                <p class="text-xs text-slate-500 line-clamp-1">
+                                    {{ $ultimoMensaje ? $ultimoMensaje->mensaje : 'Sin mensajes...' }}
+                                </p>
+                                <p class="text-[10px] text-slate-400">Última actualización: {{ $ticket->updated_at->diffForHumans() }}</p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="px-2.5 py-1 rounded-full font-bold text-[10px] uppercase
                                     {{ $ticket->estatus === 'RESUELTO' ? 'bg-emerald-100 text-emerald-800' : ($ticket->estatus === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800') }}">
                                     {{ str_replace('_', ' ', $ticket->estatus) }}
                                 </span>
-                            </div>
-                            <p class="text-slate-600">{{ $ticket->mensaje }}</p>
-
-                            @if($ticket->justificacion_alta)
-                                <div class="p-2 bg-rose-50/60 border border-rose-200 rounded-lg text-rose-900 text-[11px]">
-                                    <strong>Justificación Urgencia:</strong> {{ $ticket->justificacion_alta }}
+                                <div class="mt-2 text-emerald-600 font-semibold text-xs group-hover:underline">
+                                    Abrir Chat &rarr;
                                 </div>
-                            @endif
-
-                            @if($ticket->evidencia_path)
-                                <div>
-                                    <a href="{{ asset('storage/' . $ticket->evidencia_path) }}" target="_blank" class="text-emerald-600 font-bold hover:underline inline-flex items-center gap-1">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                        Ver Captura / Evidencia Adjunta
-                                    </a>
-                                </div>
-                            @endif
-
-                            @if($ticket->respuesta_admin)
-                                <div class="mt-3 p-3 bg-emerald-50/80 border border-emerald-200 rounded-lg text-emerald-900 space-y-1">
-                                    <strong class="block uppercase text-[10px] text-emerald-700">Respuesta del Administrador:</strong>
-                                    <p>{{ $ticket->respuesta_admin }}</p>
-                                </div>
-                            @endif
-                            <div class="text-[10px] text-slate-400 text-right">
-                                Enviado el: {{ $ticket->created_at->format('d/m/Y h:i A') }}
                             </div>
                         </div>
                     @empty
-                        <p class="text-slate-400 text-center py-8 text-xs">No has enviado ningún reporte de soporte técnico.</p>
+                        <div class="text-center py-12">
+                            <svg class="w-12 h-12 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                            <p class="text-slate-400 text-sm">No has enviado ningún reporte de soporte técnico.</p>
+                        </div>
                     @endforelse
                 </div>
+            </div>
+        </div>
+
+        <!-- MODAL DE CHAT -->
+        <div x-show="chatAbierto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+            <div @click.outside="chatAbierto = false" class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col h-[80vh] overflow-hidden">
+                
+                <!-- Encabezado del Chat -->
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800" x-text="ticketSeleccionado?.asunto"></h3>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[10px] text-slate-500" x-text="'Prioridad: ' + ticketSeleccionado?.prioridad"></span>
+                            <span class="px-2 py-0.5 rounded-full font-bold text-[9px] uppercase border"
+                                :class="{
+                                    'bg-emerald-50 text-emerald-700 border-emerald-200': ticketSeleccionado?.estatus === 'RESUELTO',
+                                    'bg-blue-50 text-blue-700 border-blue-200': ticketSeleccionado?.estatus === 'EN_PROCESO',
+                                    'bg-amber-50 text-amber-700 border-amber-200': ticketSeleccionado?.estatus === 'ABIERTO'
+                                }" 
+                                x-text="ticketSeleccionado?.estatus ? ticketSeleccionado.estatus.replace('_', ' ') : ''">
+                            </span>
+                        </div>
+                    </div>
+                    <button @click="chatAbierto = false" type="button" class="text-slate-400 hover:text-slate-700 text-2xl font-bold cursor-pointer leading-none">&times;</button>
+                </div>
+
+                <!-- Historial de Mensajes (Scroll) -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+                    <template x-if="ticketSeleccionado?.justificacion_alta">
+                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 mx-auto text-center w-full max-w-md">
+                            <strong>Justificación de urgencia:</strong> <span x-text="ticketSeleccionado.justificacion_alta"></span>
+                        </div>
+                    </template>
+
+                    <template x-for="msg in ticketSeleccionado?.mensajes" :key="msg.id">
+                        <div class="flex flex-col" :class="msg.es_admin ? 'items-start' : 'items-end'">
+                            <!-- Burbuja del Mensaje -->
+                            <div class="max-w-[80%] rounded-2xl p-3 text-xs shadow-xs"
+                                :class="msg.es_admin ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm' : 'bg-emerald-600 text-white rounded-tr-sm'">
+                                <p class="whitespace-pre-line" x-text="msg.mensaje"></p>
+                                
+                                <template x-if="msg.evidencia_path">
+                                    <a :href="'/storage/' + msg.evidencia_path" target="_blank" class="mt-2 block text-[10px] underline font-bold" :class="msg.es_admin ? 'text-indigo-600' : 'text-emerald-100'">
+                                        📎 Ver Archivo Adjunto
+                                    </a>
+                                </template>
+                            </div>
+                            
+                            <!-- Fecha y Remitente -->
+                            <span class="text-[9px] text-slate-400 mt-1 px-1" 
+                                x-text="(msg.es_admin ? 'Soporte Técnico' : 'Tú') + ' • ' + new Date(msg.created_at).toLocaleString()">
+                            </span>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Formulario de Respuesta -->
+                <div class="p-4 bg-white border-t border-slate-100 shrink-0">
+                    <template x-if="ticketSeleccionado?.estatus !== 'RESUELTO'">
+                        <!-- CORREGIDO: La ruta usa url() para no depender del nombre de la ruta -->
+                        <form x-bind:action="'{{ url('/soporte') }}/' + ticketSeleccionado?.id + '/responder'" method="POST" class="flex gap-2">
+                            @csrf
+                            <textarea name="mensaje" rows="1" required placeholder="Escribe un mensaje..." class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
+                            <button type="submit" class="px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                            </button>
+                        </form>
+                    </template>
+                    <template x-if="ticketSeleccionado?.estatus === 'RESUELTO'">
+                        <div class="text-center p-2 bg-emerald-50 rounded-xl text-emerald-800 text-xs font-bold">
+                            Este ticket ha sido marcado como RESUELTO. Si el problema persiste, por favor crea un nuevo ticket.
+                        </div>
+                    </template>
+                </div>
+
             </div>
         </div>
 

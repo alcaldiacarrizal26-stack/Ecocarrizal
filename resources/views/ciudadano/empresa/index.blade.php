@@ -51,7 +51,8 @@
         </div>
     @else
         @php
-            $sancionesActivas = $empresa->sanciones ? $empresa->sanciones->whereIn('estatus', ['NOTIFICADA', 'EN_REVISION', 'PENDIENTE_NOTIFICACION']) : collect();
+            // CORREGIDO: EN_SUBSANACION reemplaza a los estados viejos
+            $sancionesActivas = $empresa->sanciones ? $empresa->sanciones->whereIn('estatus', ['NOTIFICADA', 'EN_SUBSANACION']) : collect();
         @endphp
 
         <!-- ALERTA DE OBSERVACIONES O RECHAZO DE LA DIRECCIÓN -->
@@ -65,7 +66,7 @@
                         <h4 class="text-xs font-extrabold uppercase tracking-wide text-rose-800">Su expediente comercial requiere correcciones</h4>
                         <p class="text-xs text-rose-700 leading-relaxed">
                             <strong>Motivo / Observaciones de la Dirección:</strong> 
-                            {{ $empresa->observaciones_fiscalia ?? 'Por favor verifique los recaudos y datos suministrados según la normativa ambiental vigente.' }}
+                            {{ $empresa->observaciones_administrativas ?? 'Por favor verifique los recaudos y datos suministrados según la normativa ambiental vigente.' }}
                         </p>
                     </div>
                 </div>
@@ -170,7 +171,8 @@
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="space-y-0.5">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-bold text-gray-900 text-sm">{{ $doc->nombre_requisito }}</span>
+                                        {{-- CORREGIDO: Usar la relación requisito --}}
+                                        <span class="font-bold text-gray-900 text-sm">{{ $doc->requisito->nombre ?? 'Requisito' }}</span>
                                         <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded uppercase {{ $doc->estado_revision === 'VALIDO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-850' }}">
                                             {{ $doc->estado_revision }}
                                         </span>

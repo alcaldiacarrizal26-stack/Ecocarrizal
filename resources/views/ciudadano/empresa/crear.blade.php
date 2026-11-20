@@ -15,7 +15,7 @@
             </div>
             <p class="text-xs text-rose-700 leading-relaxed pl-7">
                 <strong>Motivo / Observaciones de la Dirección:</strong> 
-                {{ $empresa->observaciones_fiscalia ?? 'Por favor verifique los recaudos y datos suministrados según la normativa ambiental vigente.' }}
+                {{ $empresa->observaciones_administrativas ?? 'Por favor verifique los recaudos y datos suministrados según la normativa ambiental vigente.' }}
             </p>
         </div>
     @endif
@@ -748,7 +748,6 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
         },
 
         handleKeydownEnter(event) {
-            // Prevenir envío accidental al presionar Enter a menos que esté en el botón de finalizar del paso 3
             if (this.step < 3) {
                 event.preventDefault();
                 this.nextStep();
@@ -815,16 +814,17 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
             // Precarga del Bloque 3: Fechas y Vigencias de Documentos del Expediente
             if (data.documentos_expediente && Array.isArray(data.documentos_expediente)) {
                 data.documentos_expediente.forEach(doc => {
-                    // Mapeo inverso del código (ej: REGISTRO_RENMA o doc_renma)
-                    const key = doc.codigo_requisito ? doc.codigo_requisito.toLowerCase() : '';
+                    // CORREGIDO: Mapeo inverso usando el requisito_id para buscar el código
+                    const reqMatch = this.requisitos.find(r => r.id === doc.requisito_id);
+                    const key = reqMatch ? reqMatch.codigo.toLowerCase() : '';
                     
-                    if (this.fechasEmision.hasOwnProperty(key)) {
+                    if (key && this.fechasEmision.hasOwnProperty(key)) {
                         this.fechasEmision[key] = doc.fecha_emision ? doc.fecha_emision.substring(0, 10) : '';
                     }
-                    if (this.fechasVencimiento.hasOwnProperty(key)) {
+                    if (key && this.fechasVencimiento.hasOwnProperty(key)) {
                         this.fechasVencimiento[key] = doc.fecha_vencimiento ? doc.fecha_vencimiento.substring(0, 10) : '';
                     }
-                    if (this.esVitalicio.hasOwnProperty(key)) {
+                    if (key && this.esVitalicio.hasOwnProperty(key)) {
                         this.esVitalicio[key] = !!doc.es_vitalicio;
                     }
                 });
@@ -947,7 +947,6 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
                 }
             }
 
-            // Validación estricta para impedir avanzar al envío si faltan documentos clave en el Paso 3
             if (this.step === 3) {
                 if (!this.files.doc_renma) {
                     this.showModal('El registro RENMA es un recaudo obligatorio. Por favor adjunte el archivo PDF o imagen.');

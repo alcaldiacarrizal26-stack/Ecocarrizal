@@ -15,7 +15,7 @@ class Sancion extends Model
     protected $table = 'sanciones';
 
     protected $fillable = [
-        'codigo_expediente',
+        'codigo_sancion',
         'empresa_id',
         'director_id',
         'inspeccion_id',

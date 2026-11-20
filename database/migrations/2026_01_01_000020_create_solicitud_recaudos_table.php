@@ -10,16 +10,17 @@ return new class extends Migration
     {
         Schema::create('solicitud_recaudos', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('solicitud_id')->constrained('solicitudes')->onDelete('cascade');
-            $table->string('tipo_recaudo');
+            $table->foreignUuid('solicitud_id')->constrained('solicitudes')->cascadeOnDelete();
+            $table->foreignId('recaudo_catalogo_id')
+                ->constrained('recaudos_catalogo')
+                ->restrictOnDelete();
             $table->string('nombre_archivo');
-            $table->string('bucket_path');
-            $table->string('archivo_url');
-            $table->boolean('es_evidencia_fotografica')->default(false);
-            
+            $table->text('bucket_path');
+            $table->text('archivo_url');
             $table->timestampsTz();
 
             $table->index('solicitud_id');
+            $table->index('recaudo_catalogo_id');
         });
     }
 

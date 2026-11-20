@@ -7,16 +7,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('sectores', function (Blueprint $table) {
+        Schema::create('territorios', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('territorio_id')->constrained('territorios')->onDelete('cascade');
-            $table->string('name'); // Nombre del Sector
-            $table->timestamps();
+            $table->string('name')->unique(); // Nombre de la Comuna
+            $table->timestampsTz();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('sectores');
+        Schema::dropIfExists('territorios');
     }
 };

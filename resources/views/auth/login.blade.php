@@ -3,7 +3,6 @@
         <div class="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-8 shadow-xl space-y-6">
             
             <div class="text-center">
-                <!-- Contenedor horizontal limpio sin el cuadro verde forzado -->
                 <div class="flex items-center justify-center mx-auto mb-3">
                     <img src="{{ asset('images/carrizal_logo.png') }}" alt="Alcaldía de Carrizal" class="h-10 w-auto object-contain">
                 </div>

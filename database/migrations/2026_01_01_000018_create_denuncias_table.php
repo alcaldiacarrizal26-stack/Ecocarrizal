@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('denuncias', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('codigo', 20)->unique();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('inspector_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('codigo_denuncia', 20)->unique();
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('inspector_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->string('tipo_contaminacion');
             $table->string('otro_tipo_contaminacion')->nullable();
@@ -21,30 +21,31 @@ return new class extends Migration
             $table->string('sector');
             $table->string('punto_referencia');
             
-            $table->enum('nivel_gravedad', ['baja', 'media', 'alta'])->default('baja');
+            $table->enum('nivel_gravedad', ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'])->default('BAJA');
             $table->text('justificacion_gravedad')->nullable();
             
             $table->text('descripcion');
             $table->jsonb('evidencias')->nullable();
             
-            $table->enum('estatus', [
-                'pendiente', 
-                'inspector_asignado', 
-                'en_inspeccion', 
-                'en_revision',
-                'requiere_reinspeccion',
-                'atendido', 
-                'desestimado'
-            ])->default('pendiente');
+            $table->enum('estado', [
+                'PENDIENTE', 
+                'INSPECTOR_ASIGNADO', 
+                'EN_INSPECCION', 
+                'EN_REVISION',
+                'REQUIERE_REINSPECCION',
+                'ATENDIDO', 
+                'DESESTIMADO'
+            ])->default('PENDIENTE');
+            
             $table->text('observaciones')->nullable();
             
             $table->timestampTz('fecha_asignacion_inspector')->nullable();
-            $table->timestampTz('fecha_inicio_inspeccion')->nullable();
+            // fecha_inicio_inspeccion eliminada por redundancia
             $table->timestampTz('fecha_cierre')->nullable();
 
             $table->timestampsTz();
 
-            $table->index('estatus');
+            $table->index('estado');
             $table->index('created_at');
         });
     }

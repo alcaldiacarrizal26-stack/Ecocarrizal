@@ -214,7 +214,7 @@ class DeclaracionResiduoController extends Controller
                         'user_id'  => $dir->id,
                         'titulo'   => 'Nueva Declaración de Residuos',
                         'mensaje'  => "La empresa {$empresa->razon_social} ha presentado una nueva declaración para el período {$validated['periodo']}.",
-                        'tipo'     => 'info',
+                        'tipo'     => 'INFORMACION',
                         'link_url' => route('director.residuos.declaraciones.show', $declaracionId),
                     ]);
                 }

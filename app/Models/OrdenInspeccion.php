@@ -21,12 +21,10 @@ class OrdenInspeccion extends Model
         'director_id',
         'tipo_inspeccion',
         'base_legal_inspeccion',
-        'observaciones_campo',
         'orden_adjunta_path',
         'estatus',
         'fecha_visita_programada',
         'fecha_asignacion_inspector',
-        'fecha_inicio_inspeccion',
         'fecha_cierre',
     ];
 
@@ -56,7 +54,7 @@ class OrdenInspeccion extends Model
     }
 
     // Relación inversa con el Acta de Inspección resultante
-    public function inspeccion()
+    public function inspecciones(): HasMany
     {
         return $this->hasOne(Inspeccion::class, 'orden_inspeccion_id');
     }

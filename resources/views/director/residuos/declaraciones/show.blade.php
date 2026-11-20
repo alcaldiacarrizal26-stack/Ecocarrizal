@@ -1,4 +1,4 @@
-<x-layouts.app title="Evaluación de Declaración de Residuos" active="director_residuos_declaraciones">
+<x-layouts.app title="Evaluación de Declaración de Residuos" active="residuos_declaraciones">
     <div class="p-6 max-w-5xl mx-auto space-y-6 bg-slate-50 min-h-screen">
         
         <!-- Header de Navegación -->
@@ -54,15 +54,15 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
                             <span class="block text-[10px] font-bold text-slate-400 uppercase">Desechos Comunes</span>
-                            <span class="block text-lg font-mono font-bold text-slate-800">{{ number_format($declaracion->toneladas_comunes, 3) }} <span class="text-xs font-normal text-slate-500">TON</span></span>
+                            <span class="block text-lg font-mono font-bold text-slate-800">{{ number_format((float) $declaracion->toneladas_comunes, 3) }} <span class="text-xs font-normal text-slate-500">TON</span></span>
                         </div>
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
                             <span class="block text-[10px] font-bold text-emerald-600 uppercase">Desechos Reciclables</span>
-                            <span class="block text-lg font-mono font-bold text-emerald-700">{{ number_format($declaracion->toneladas_reciclables, 3) }} <span class="text-xs font-normal text-slate-500">TON</span></span>
+                            <span class="block text-lg font-mono font-bold text-emerald-700">{{ number_format((float) $declaracion->toneladas_reciclables, 3) }} <span class="text-xs font-normal text-slate-500">TON</span></span>
                         </div>
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
                             <span class="block text-[10px] font-bold text-amber-600 uppercase">Desechos Peligrosos</span>
-                            <span class="block text-lg font-mono font-bold text-amber-700">{{ number_format($declaracion->toneladas_peligrosas, 3) }} <span class="text-xs font-normal text-slate-500">TON</span></span>
+                            <span class="block text-lg font-mono font-bold text-amber-700">{{ number_format((float) $declaracion->toneladas_peligrosas, 3) }} <span class="text-xs font-normal text-slate-500">TON</span></span>
                         </div>
                     </div>
 
@@ -142,8 +142,8 @@
                                                 <span class="text-[10px] text-slate-400 uppercase">{{ $det->tipo_operacion ?? 'N/A' }}</span>
                                             </td>
                                             <td class="py-3.5 px-4 font-semibold text-slate-700">{{ $det->nombre_residuo ?? 'N/A' }}</td>
-                                            <td class="py-3.5 px-4 font-mono text-slate-600">{{ number_format($det->cantidad ?? 0, 2) }} {{ $det->unidad_medida }}</td>
-                                            <td class="py-3.5 px-4 font-mono font-bold text-indigo-600">{{ number_format($det->cantidad_toneladas ?? 0, 3) }} TON</td>
+                                            <td class="py-3.5 px-4 font-mono text-slate-600">{{ number_format((float) ($det->cantidad ?? 0), 2) }} {{ $det->unidad_medida }}</td>
+                                            <td class="py-3.5 px-4 font-mono font-bold text-indigo-600">{{ number_format((float) ($det->cantidad_toneladas ?? 0), 3) }} TON</td>
                                             <td class="py-3.5 px-4 text-right">
                                                 @if(!empty($det->manifiesto_path))
                                                     @php
@@ -186,9 +186,10 @@
 
                         <div x-show="estatusSeleccionado === 'RECHAZADA'" x-cloak class="space-y-1">
                             <label for="motivo_rechazo" class="block text-xs font-bold text-rose-600 mb-1">Motivo del Rechazo *</label>
-                            <textarea id="motivo_rechazo" name="motivo_rechazo" rows="3" 
+                            <textarea id="motivo_rechazo" name="motivo_rechazo" rows="3"
+                                      :required="estatusSeleccionado === 'RECHAZADA'"
                                       class="w-full bg-rose-50/50 border border-rose-200 rounded-xl p-3 text-xs text-slate-800 focus:bg-white transition outline-none"
-                                      placeholder="Explique detalladamente el motivo por el cual se rechaza la declaración..."></textarea>
+                                      placeholder="Explique detalladamente el motivo por el cual se rechaza la declaración...">{{ old('motivo_rechazo', $declaracion->motivo_rechazo) }}</textarea>
                         </div>
 
                         <div>
@@ -199,13 +200,19 @@
                         </div>
 
                         <div class="flex flex-col gap-2.5 pt-2">
-                            <button type="submit" @click="estatusSeleccionado = 'APROBADA'"
+                            <button type="submit"
+                                    @click="estatusSeleccionado = 'APROBADA'"
+                                    :disabled="submitting"
+                                    :class="submitting ? 'opacity-50 cursor-not-allowed' : ''"
                                     class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer">
-                                Aprobar Declaración
+                                <span x-text="submitting && estatusSeleccionado === 'APROBADA' ? 'Procesando...' : 'Aprobar Declaración'"></span>
                             </button>
-                            <button type="submit" @click="estatusSeleccionado = 'RECHAZADA'"
+                            <button type="submit"
+                                    @click="estatusSeleccionado = 'RECHAZADA'"
+                                    :disabled="submitting"
+                                    :class="submitting ? 'opacity-50 cursor-not-allowed' : ''"
                                     class="w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl transition cursor-pointer">
-                                Rechazar Declaración
+                                <span x-text="submitting && estatusSeleccionado === 'RECHAZADA' ? 'Procesando...' : 'Rechazar Declaración'"></span>
                             </button>
                         </div>
                     </form>

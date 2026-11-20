@@ -14,7 +14,6 @@ class RespaldoController extends Controller
 {
     public function index()
     {
-        // Listar respaldos almacenados en el storage (carpeta backups)
         $archivos = collect(Storage::files('backups'))
             ->filter(fn($file) => str_ends_with($file, '.sql') || str_ends_with($file, '.zip'))
             ->map(function ($file) {
@@ -40,7 +39,6 @@ class RespaldoController extends Controller
                 mkdir(storage_path('app/private/backups'), 0755, true);
             }
 
-            // 1. Respaldo de Base de Datos PostgreSQL (.sql)
             $database = config('database.connections.pgsql.database');
             $username = config('database.connections.pgsql.username');
             $password = config('database.connections.pgsql.password');
@@ -62,7 +60,6 @@ class RespaldoController extends Controller
 
             exec($command, $output, $returnVar);
 
-            // 2. Respaldo de Archivos Físicos y Documentos Adjuntos (.zip)
             $zipFileName = 'backup_archivos_' . $timestamp . '.zip';
             $zipFilePath = storage_path('app/private/backups/' . $zipFileName);
 
@@ -80,11 +77,10 @@ class RespaldoController extends Controller
                 $zip->close();
             }
 
-            // Registrar en Bitácora
             BitacoraEvento::registrar([
                 'modulo' => 'respaldos',
                 'tipo_evento' => 'GENERAR_BACKUP',
-                'nivel' => 'info',
+                'nivel' => 'INFO', // <-- MAYÚSCULAS
                 'descripcion' => "Se generó el paquete completo de respaldo (Base de datos y archivos adjuntos) con fecha {$timestamp}.",
             ]);
 
@@ -104,7 +100,7 @@ class RespaldoController extends Controller
             BitacoraEvento::registrar([
                 'modulo' => 'respaldos',
                 'tipo_evento' => 'DESCARGAR_BACKUP',
-                'nivel' => 'warning',
+                'nivel' => 'WARNING', // <-- MAYÚSCULAS
                 'descripcion' => "Se descargó el archivo de respaldo: " . basename($file),
             ]);
 
@@ -125,7 +121,7 @@ class RespaldoController extends Controller
             BitacoraEvento::registrar([
                 'modulo' => 'respaldos',
                 'tipo_evento' => 'ELIMINAR_BACKUP',
-                'nivel' => 'danger',
+                'nivel' => 'DANGER', // <-- MAYÚSCULAS
                 'descripcion' => "Se eliminó el archivo de respaldo: " . basename($file),
             ]);
 

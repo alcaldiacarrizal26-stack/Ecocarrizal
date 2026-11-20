@@ -3,7 +3,6 @@
         <div class="w-full max-w-xl bg-white border border-slate-200 rounded-3xl p-8 shadow-xl space-y-6">
             
             <div class="text-center">
-                <!-- Contenedor horizontal limpio sin el cuadro verde forzado -->
                 <div class="flex items-center justify-center mx-auto mb-3">
                     <img src="{{ asset('images/carrizal_logo.png') }}" alt="Alcaldía de Carrizal" class="h-10 w-auto object-contain">
                 </div>
@@ -26,10 +25,10 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Cédula o RIF</label>
                     <div class="flex gap-2">
                         <select name="nacionalidad" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-bold focus:bg-white focus:border-emerald-600 transition">
-                            <option value="V">V-</option>
-                            <option value="E">E-</option>
-                            <option value="J">J-</option>
-                            <option value="G">G-</option>
+                            <option value="V" {{ old('nacionalidad') === 'V' ? 'selected' : '' }}>V-</option>
+                            <option value="E" {{ old('nacionalidad') === 'E' ? 'selected' : '' }}>E-</option>
+                            <option value="J" {{ old('nacionalidad') === 'J' ? 'selected' : '' }}>J-</option>
+                            <option value="G" {{ old('nacionalidad') === 'G' ? 'selected' : '' }}>G-</option>
                         </select>
                         <input type="text" name="cedula_num" value="{{ old('cedula_num') }}" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required placeholder="12345678" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:border-emerald-600 transition">
                     </div>
@@ -55,11 +54,11 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Teléfono Móvil</label>
                     <div class="flex gap-2">
                         <select name="prefijo_telefono" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-bold focus:bg-white focus:border-emerald-600 transition">
-                            <option value="0412">0412</option>
-                            <option value="0414">0414</option>
-                            <option value="0424">0424</option>
-                            <option value="0416">0416</option>
-                            <option value="0426">0426</option>
+                            <option value="0412" {{ old('prefijo_telefono') === '0412' ? 'selected' : '' }}>0412</option>
+                            <option value="0414" {{ old('prefijo_telefono') === '0414' ? 'selected' : '' }}>0414</option>
+                            <option value="0424" {{ old('prefijo_telefono') === '0424' ? 'selected' : '' }}>0424</option>
+                            <option value="0416" {{ old('prefijo_telefono') === '0416' ? 'selected' : '' }}>0416</option>
+                            <option value="0426" {{ old('prefijo_telefono') === '0426' ? 'selected' : '' }}>0426</option>
                         </select>
                         <input type="text" name="telefono_num" value="{{ old('telefono_num') }}" maxlength="7" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required placeholder="1234567" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:border-emerald-600 transition">
                     </div>

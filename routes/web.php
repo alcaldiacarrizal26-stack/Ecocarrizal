@@ -156,6 +156,7 @@ Route::middleware(['auth'])->group(function () {
     // Soporte Técnico General
     Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte');
     Route::post('/soporte', [SoporteController::class, 'store'])->name('soporte.store');
+    Route::post('/soporte/{id}/responder', [SoporteController::class, 'responder'])->name('soporte.responder');
     Route::get('/perfil', [PerfilController::class, 'show'])->name('perfil.show');
 });
 

@@ -13,7 +13,8 @@ return new class extends Migration {
             $table->string('nombre');          // 'Solicitud de Inspección TÉCNICA'
             $table->text('descripcion');       // Descripción detallada
             $table->integer('plazo_dias')->default(0); // Plazo en días
-            $table->timestamps();
+            $table->boolean('activo')->default(true);
+            $table->timestampsTz();
         });
     }
 

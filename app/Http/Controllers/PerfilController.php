@@ -12,7 +12,7 @@ class PerfilController extends Controller
      */
     public function show()
     {
-        $user = auth()->user()->load(['role', 'direccion', 'inspector']);
+        $user = auth()->user()->load(['role', 'direccion', 'credencialInspector']);
 
         return view('perfil.show', compact('user'));
     }

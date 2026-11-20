@@ -18,13 +18,13 @@
                x-model="search" 
                @focus="open = true" 
                @click.away="open = false"
-               placeholder="🔍 Buscar por nombre o cédula..."
+               placeholder="🔍 Buscar por nombre, apellido o cédula..."
                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all">
         
         <button type="button" 
                 x-show="selectedId" 
                 @click="limpiar()" 
-                class="absolute right-3 top-2 text-slate-400 hover:text-red-500 font-bold text-xs">
+                class="absolute right-3 top-2 text-slate-400 hover:text-red-500 font-bold text-xs cursor-pointer">
             &times;
         </button>
     </div>
@@ -44,7 +44,7 @@
             <div @click="seleccionar(item)" 
                  class="p-2.5 hover:bg-emerald-50 cursor-pointer transition-colors flex items-center justify-between">
                 <div>
-                    <div class="font-bold text-slate-800" x-text="item.nombre"></div>
+                    <div class="font-bold text-slate-800" x-text="nombreCompleto(item)"></div>
                     <div class="text-[11px] text-slate-400">
                         C.I: <span x-text="item.cedula || 'N/P'"></span> | Credencial: <span x-text="item.credencial || 'S/C'"></span>
                     </div>
@@ -66,10 +66,15 @@ function selectInspectorSearch() {
         init() {
             window.addEventListener('cargar-inspectores-select', (e) => {
                 this.items = e.detail || [];
-                // Resetear búsqueda e ID al abrir la modal para una nueva asignación
                 this.selectedId = '';
                 this.search = '';
             });
+        },
+
+        nombreCompleto(item) {
+            const base = (item.nombre || '').trim();
+            const ape = (item.apellido || '').trim();
+            return ape ? `${base} ${ape}`.trim() : (base || 'Funcionario');
         },
 
         get filtrados() {
@@ -78,7 +83,7 @@ function selectInspectorSearch() {
             }
             const q = this.search.toLowerCase().trim();
             return this.items.filter(i => {
-                const nombre = (i.nombre || '').toLowerCase();
+                const nombre = this.nombreCompleto(i).toLowerCase();
                 const cedula = (i.cedula || '').toString().toLowerCase();
                 const credencial = (i.credencial || '').toLowerCase();
                 return nombre.includes(q) || cedula.includes(q) || credencial.includes(q);
@@ -87,7 +92,7 @@ function selectInspectorSearch() {
 
         seleccionar(item) {
             this.selectedId = item.id;
-            this.search = `${item.nombre} (C.I: ${item.cedula || 'N/P'})`;
+            this.search = `${this.nombreCompleto(item)} (C.I: ${item.cedula || 'N/P'})`;
             this.open = false;
         },
 

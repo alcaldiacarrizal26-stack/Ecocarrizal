@@ -39,6 +39,7 @@
             text-transform: uppercase;
         }
         .badge-success { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .badge-warning { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
         .badge-danger { background-color: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
         .seccion-titulo {
             font-size: 10.5px;
@@ -94,6 +95,17 @@
         </button>
     </div>
 
+    @php
+        $dictamenActa = strtoupper($inspeccion->dictamen ?? '');
+        $badgeClass = match($dictamenActa) {
+            'APROBADO' => 'badge-success',
+            'RECHAZADO' => 'badge-danger',
+            default => 'badge-warning'
+        };
+        $empresa = $inspeccion->ordenInspeccion->empresa ?? $inspeccion->empresa ?? null;
+        $orden = $inspeccion->ordenInspeccion ?? null;
+    @endphp
+
     <!-- CABECERA INSTITUCIONAL -->
     <div class="header-container">
         <div class="header-left">
@@ -102,15 +114,10 @@
             <p style="margin:0; font-size: 9.5px; color: #64748b;">Código de Acta: <strong style="color: #0f172a;">{{ $inspeccion->codigo_acta }}</strong></p>
         </div>
         <div class="header-right">
-            <span class="badge badge-success">Dictamen: {{ str_replace('_', ' ', $inspeccion->dictamen) }}</span>
+            <span class="badge {{ $badgeClass }}">Dictamen: {{ str_replace('_', ' ', $dictamenActa) }}</span>
             <p style="margin: 4px 0 0 0; font-size: 8.5px; color: #64748b;">Fecha Visita: {{ \Carbon\Carbon::parse($inspeccion->fecha_visita)->format('d/m/Y h:i A') }}</p>
         </div>
     </div>
-
-    @php
-        $empresa = $inspeccion->ordenInspeccion->empresa ?? $inspeccion->empresa ?? null;
-        $orden = $inspeccion->ordenInspeccion ?? null;
-    @endphp
 
     @if($empresa)
     <div class="seccion-titulo">1. Datos de la Entidad o Empresa Fiscalizada</div>

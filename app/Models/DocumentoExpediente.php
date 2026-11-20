@@ -16,14 +16,15 @@ class DocumentoExpediente extends Model
 
     protected $fillable = [
         'empresa_id',
-        'codigo_requisito',
-        'nombre_requisito',
+        'requisito_id',
         'numero_folio',
         'archivo_path',
         'fecha_emision',
         'fecha_vencimiento',
         'es_vitalicio',
         'estado_revision',
+        'revisado_por',
+        'fecha_revision',
         'observaciones',
     ];
 
@@ -37,6 +38,11 @@ class DocumentoExpediente extends Model
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function requisito(): BelongsTo // <-- NUEVA RELACIÓN
+    {
+        return $this->belongsTo(RequisitoEmpresaCatalogo::class, 'requisito_id');
     }
 
     public function getEstatusVigenciaAttribute(): string

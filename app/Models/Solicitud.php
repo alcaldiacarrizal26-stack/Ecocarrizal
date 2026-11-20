@@ -18,7 +18,7 @@ class Solicitud extends Model
     protected string $moduloBitacora = 'solicitudes';
 
     protected $fillable = [
-        'codigo_expediente',
+        'codigo_solicitud',
         'user_id',
         'inspector_id',
         'comuna',
@@ -26,12 +26,11 @@ class Solicitud extends Model
         'direccion_exacta',
         'motivo_descripcion',
         'datos_especificos',
-        'tipo_tramite',
+        'tipo_tramite_id',
         'estado',
         'observaciones',
         'fecha_limite_documentos',
         'fecha_asignacion_inspector', // <-- Agregado
-        'fecha_inicio_inspeccion',
         'fecha_cierre',
     ];
 
@@ -53,6 +52,11 @@ class Solicitud extends Model
     public function inspector(): BelongsTo
     {
         return $this->belongsTo(User::class, 'inspector_id');
+    }
+
+    public function tipoTramite(): BelongsTo // <-- AGREGADO
+    {
+        return $this->belongsTo(TipoTramite::class, 'tipo_tramite_id');
     }
 
     public function recaudos(): HasMany

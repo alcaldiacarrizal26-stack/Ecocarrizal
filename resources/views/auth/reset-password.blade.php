@@ -2,7 +2,6 @@
     <div class="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl space-y-6">
         
         <div class="text-center">
-            <!-- Contenedor horizontal limpio -->
             <div class="flex items-center justify-center mx-auto mb-3">
                 <img src="{{ asset('images/carrizal_logo.png') }}" alt="Logo Carrizal" class="h-10 w-auto object-contain">
             </div>
@@ -18,7 +17,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('password.update') }}" class="space-y-4" x-data="{ showPass: false, submitting: false }" @submit="submitting = true">
+        <form method="POST" action="{{ route('password.update') }}" class="space-y-4" x-data="{ showPass: false, submitting: false }" @submit="if(submitting) { $event.preventDefault(); } else { submitting = true; }">
             @csrf
             <input type="hidden" name="token" value="{{ $token }}">
 
@@ -49,8 +48,10 @@
                 </div>
             </div>
 
-            <!-- Botón actualizado a verde esmeralda -->
-            <button type="submit" :disabled="submitting" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
+            <button type="submit"
+                    :disabled="submitting"
+                    :class="submitting ? 'bg-emerald-800/60 text-emerald-100 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'"
+                    class="w-full py-3 font-bold text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-2">
                 <span x-text="submitting ? 'Actualizando...' : 'Restablecer Contraseña'"></span>
             </button>
         </form>

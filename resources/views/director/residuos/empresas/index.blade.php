@@ -66,7 +66,7 @@
                 </div>
 
                 <div class="flex items-end gap-2">
-                    <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-xl shadow-sm transition-colors">
+                    <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-xl shadow-sm transition-colors cursor-pointer">
                         Filtrar
                     </button>
                     @if(request()->hasAny(['buscar', 'estatus', 'vista']))
@@ -97,7 +97,7 @@
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-2">
                                         <span class="font-bold text-slate-800">
-                                            {{ Str::title($empresa->razon_social ?? $empresa->nombre_comercial) }}
+                                            {{ \Illuminate\Support\Str::title($empresa->razon_social ?? $empresa->nombre_comercial) }}
                                         </span>
 
                                         <!-- Badge de Alerta para Sanciones Activas -->
@@ -138,7 +138,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-xs text-slate-500">
-                                    {{ $empresa->created_at ? $empresa->created_at->format('d/m/Y') : 'N/A' }}
+                                    {{ $empresa->created_at ? \Carbon\Carbon::parse($empresa->created_at)->format('d/m/Y') : 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
                                     <!-- Botón Inspecciones -->

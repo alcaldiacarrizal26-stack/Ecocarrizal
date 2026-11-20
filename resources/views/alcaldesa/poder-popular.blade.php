@@ -4,9 +4,8 @@
         currentRecord: {} 
     }">
         
-        <!-- Cabecera Institucional (Alcaldía del Municipio Carrizal) -->
+        <!-- Cabecera Institucional -->
         <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row items-start justify-between gap-4 border-l-4 border-l-emerald-600">
-            <!-- Contenedor de Texto -->
             <div class="space-y-1 max-w-xl">
                 <div class="flex items-center gap-2">
                     <span class="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-emerald-200">
@@ -18,7 +17,6 @@
                 <p class="text-xs text-slate-500">Seguimiento institucional y gestión territorial de incidencias por comunas.</p>
             </div>
             
-            <!-- Botón de Impresión Formal en la Misma Vista -->
             <div class="shrink-0 self-start no-print">
                 <button type="button" 
                         onclick="imprimirInformeEnMismaVista('{{ route('alcaldesa.poderPopular.pdf', ['tipo' => $tipoRegistro, 'comuna' => request('comuna')]) }}')" 
@@ -31,14 +29,11 @@
             </div>
         </div>
 
-        <!-- Frame Oculto para Impresión en Segundo Plano -->
         <iframe id="pdfPrintFrame" class="hidden w-0 h-0 border-0"></iframe>
 
-        <!-- Sección de Filtros (Estructura Grid Fluida) -->
         <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
             <form method="GET" action="{{ route('alcaldesa.poderPopular') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end w-full">
                 
-                <!-- Tipo de Registro -->
                 <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Tipo de Registro</label>
                     <select name="tipo" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition cursor-pointer">
@@ -47,13 +42,11 @@
                     </select>
                 </div>
 
-                <!-- Código -->
                 <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Código</label>
                     <input type="text" name="codigo" value="{{ request('codigo') }}" placeholder="Ej. 2026-..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
                 </div>
 
-                <!-- Comuna -->
                 <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Comuna</label>
                     <select name="comuna" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition cursor-pointer">
@@ -64,19 +57,16 @@
                     </select>
                 </div>
 
-                <!-- Fecha Inicio -->
                 <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Desde</label>
                     <input type="date" name="fecha_inicio" value="{{ request('fecha_inicio') }}" class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
                 </div>
 
-                <!-- Fecha Fin -->
                 <div class="w-full">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Hasta</label>
                     <input type="date" name="fecha_fin" value="{{ request('fecha_fin') }}" class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white transition">
                 </div>
 
-                <!-- Botones de Acción -->
                 <div class="w-full flex items-center gap-1.5 pt-1 sm:pt-0">
                     <button type="submit" title="Aplicar Filtros" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center">
                         <svg class="w-4 h-4 mr-1 sm:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -90,7 +80,6 @@
             </form>
         </div>
 
-        <!-- Tabla de Registros -->
         <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
             <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">
                 Resultados de {{ ucfirst($tipoRegistro) }}s
@@ -111,15 +100,17 @@
                     <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
                         @forelse($registros as $item)
                             <tr class="hover:bg-slate-50/50 transition">
+                                <!-- CORREGIDO: codigo_solicitud y codigo_denuncia -->
                                 <td class="py-3.5 px-4 font-mono font-bold text-indigo-600">
-                                    {{ $tipoRegistro === 'solicitud' ? $item->codigo_expediente : $item->codigo }}
+                                    {{ $tipoRegistro === 'solicitud' ? $item->codigo_solicitud : $item->codigo_denuncia }}
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <span class="font-bold block text-slate-800">{{ $item->comuna }}</span>
                                     <span class="text-[11px] text-slate-400">Sector: {{ $item->sector ?? 'N/D' }}</span>
                                 </td>
+                                <!-- CORREGIDO: relación tipoTramite -->
                                 <td class="py-3.5 px-4 font-medium">
-                                    {{ $tipoRegistro === 'solicitud' ? ucfirst($item->tipo_tramite) : $item->tipo_contaminacion }}
+                                    {{ $tipoRegistro === 'solicitud' ? ($item->tipoTramite->nombre ?? 'N/A') : $item->tipo_contaminacion }}
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <span class="block text-slate-700 font-medium">Emisión: {{ $item->created_at?->format('d/m/Y') }}</span>
@@ -130,8 +121,9 @@
                                     @endif
                                 </td>
                                 <td class="py-3.5 px-4">
+                                    <!-- CORREGIDO: Ambos usan 'estado' ahora -->
                                     <span class="px-2 py-0.5 text-[10px] font-bold rounded-md uppercase bg-slate-100 text-slate-700">
-                                        {{ $tipoRegistro === 'solicitud' ? $item->estado : $item->estatus }}
+                                        {{ $item->estado }}
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-4 text-right">
@@ -161,7 +153,8 @@
                 <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div>
                         <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">Detalle del Expediente</span>
-                        <h3 class="text-xl font-bold text-slate-800 mt-1" x-text="currentRecord.codigo || currentRecord.codigo_expediente"></h3>
+                        <!-- CORREGIDO: codigo_denuncia o codigo_solicitud -->
+                        <h3 class="text-xl font-bold text-slate-800 mt-1" x-text="currentRecord.codigo_denuncia || currentRecord.codigo_solicitud"></h3>
                     </div>
                     <button @click="modalOpen = false" class="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">✕</button>
                 </div>
@@ -226,7 +219,6 @@
 
     </div>
 
-    <!-- Script para Impresión del Reporte Formal en Segundo Plano -->
     <script>
         function imprimirInformeEnMismaVista(url) {
             const frame = document.getElementById('pdfPrintFrame');

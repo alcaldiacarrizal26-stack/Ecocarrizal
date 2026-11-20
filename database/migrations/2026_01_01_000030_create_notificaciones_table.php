@@ -10,15 +10,15 @@ return new class extends Migration
     {
         Schema::create('notificaciones', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
             
             $table->string('titulo');
             $table->text('mensaje');
-            $table->string('tipo')->default('info'); // success, warning, danger, info
-            $table->string('link_url')->nullable(); // Redirección directa al hacer clic
+            $table->string('tipo')->default('INFO');
+            $table->string('link_url')->nullable();
             
-            $table->timestamp('leido_at')->nullable();
-            $table->timestamps();
+            $table->timestampTz('leido_at')->nullable();
+            $table->timestampsTz();
 
             $table->index(['user_id', 'leido_at']);
         });

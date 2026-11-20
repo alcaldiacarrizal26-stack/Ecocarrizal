@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('direcciones', function (Blueprint $table) {
-            $table->id('id_direccion');
+            $table->id('id');
             $table->string('nombre_direc')->unique();
             $table->text('descripcion_direc')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 

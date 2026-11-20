@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Ciudadano;
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\Sancion;
-use App\Models\PerfilAmbiental;
+use App\Models\RequisitoEmpresaCatalogo;
 use App\Models\DocumentoExpediente;
 use App\Services\TerritorioService;
 use Illuminate\Http\Request;
@@ -16,21 +16,11 @@ use Illuminate\Support\Str;
 
 class EmpresaController extends Controller
 {
-    /**
-     * Muestra el estado actual o expediente de la empresa del ciudadano.
-     */
     public function index(Request $request)
     {
         $user = auth()->user();
+        $empresa = $user->empresa()->with(['perfilAmbiental', 'documentosExpediente.requisito', 'sanciones'])->first();
 
-        // Cargar la empresa vinculada al usuario junto con sus relaciones (incluyendo sanciones)
-        $empresa = $user->empresa()->with([
-            'perfilAmbiental',
-            'documentosExpediente',
-            'sanciones'
-        ])->first();
-
-        // Si no tiene empresa registrada, lo enviamos al formulario de registro
         if (!$empresa) {
             return redirect()->route('ciudadano.empresas.create');
         }
@@ -38,39 +28,25 @@ class EmpresaController extends Controller
         return view('ciudadano.empresa.index', compact('empresa'));
     }
 
-    /**
-     * Alias de index() por si alguna ruta apunta a show().
-     */
     public function show(Request $request)
     {
         return $this->index($request);
     }
 
-    /**
-     * Retorna la vista del formulario para registrar o corregir una empresa.
-     */
     public function create()
     {
         $user = auth()->user();
-        
-        // Cargamos la empresa junto con su perfil ambiental y sus documentos previos
         $empresa = $user->empresa()->with(['perfilAmbiental', 'documentosExpediente'])->first();
 
-        // Si ya tiene una empresa aprobada o pendiente, redirigir al panel principal
         if ($empresa && !in_array($empresa->estatus, ['OBSERVADO', 'RECHAZADO'])) {
             return redirect()->route('ciudadano.empresas');
         }
 
-        // Obtener el catálogo dinámico de requisitos de empresas
-        $requisitosCatalogo = \App\Models\RequisitoEmpresaCatalogo::all();
+        $requisitosCatalogo = RequisitoEmpresaCatalogo::all();
 
-        // Si está observada o rechazada, se pasa a la vista con toda su data y el catálogo
         return view('ciudadano.empresa.crear', compact('empresa', 'requisitosCatalogo'));
     }
 
-    /**
-     * Muestra el historial dedicado de sanciones y citaciones para la empresa del ciudadano.
-     */
     public function sancionesIndex(Request $request)
     {
         $user = auth()->user();
@@ -80,22 +56,16 @@ class EmpresaController extends Controller
             return redirect()->route('ciudadano.empresas.create');
         }
 
-        $sanciones = Sancion::where('empresa_id', $empresa->id)
-            ->latest()
-            ->get();
+        $sanciones = Sancion::where('empresa_id', $empresa->id)->latest()->get();
 
         return view('ciudadano.empresa.sanciones', compact('empresa', 'sanciones'));
     }
 
-    /**
-     * Almacena o actualiza la empresa vinculada al ciudadano autenticado (Soporta reenvío por observaciones).
-     */
     public function store(Request $request)
     {
         $user = auth()->id();
         $empresaExistente = Empresa::where('user_id', $user)->first();
 
-        // Si ya tiene una empresa y su estatus NO es corregible (OBSERVADO o RECHAZADO), bloquear
         if ($empresaExistente && !in_array($empresaExistente->estatus, ['OBSERVADO', 'RECHAZADO'])) {
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'Ya posees una empresa registrada y activa.'], 422);
@@ -103,7 +73,6 @@ class EmpresaController extends Controller
             return redirect()->route('ciudadano.empresas')->with('error', 'Ya tienes una empresa vinculada a tu cuenta.');
         }
 
-        // Validación de datos de entrada (ignorando el RIF único si pertenece a la misma empresa en corrección)
         $rifRule = $empresaExistente 
             ? 'required|string|unique:empresas,rif,' . $empresaExistente->id 
             : 'required|string|unique:empresas,rif';
@@ -114,7 +83,7 @@ class EmpresaController extends Controller
             'numero_cuenta_patente' => 'required|string',
             'correo_comercial'      => 'required|email',
             'telefono_comercial'    => 'required|string',
-            'comuna'                => 'required|string|exists:territorios,name', // <--- Añadido exists en BD
+            'comuna'                => 'required|string|exists:territorios,name',
             'sector'                => 'required|string',
             'calle_avenida'         => 'required|string',
             'edificio_galpon_local' => 'required|string',
@@ -127,23 +96,18 @@ class EmpresaController extends Controller
             'es_vitalicio'          => 'nullable|array',
         ]);
 
-        // Validación cruzada estricta: verificar que el sector pertenezca a la comuna indicada
-        if (!\App\Services\TerritorioService::verificarExistencia($request->input('comuna'), $request->input('sector'))) {
+        if (!TerritorioService::verificarExistencia($request->input('comuna'), $request->input('sector'))) {
             if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'El sector seleccionado no pertenece a la comuna indicada.'], 422);
+                return response()->json(['success' => false, 'message' => 'El sector no pertenece a la comuna indicada.'], 422);
             }
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'El sector seleccionado no pertenece a la comuna indicada.');
+            return redirect()->back()->withInput()->with('error', 'El sector no pertenece a la comuna indicada.');
         }
 
-        // BLINDAJE CONTRA RACE CONDITION: Candado atómico por 5 segundos para el registro/actualización de empresas
         $lockKey = 'empresa_store_lock_' . $user;
 
         return Cache::lock($lockKey, 5)->get(function () use ($request, $empresaExistente, $user) {
             return DB::transaction(function () use ($request, $empresaExistente, $user) {
                 if ($empresaExistente) {
-                    // Actualizar empresa existente bajo observación/rechazo
                     $empresaExistente->update([
                         'rif'                    => strtoupper(trim($request->rif)),
                         'razon_social'           => trim($request->razon_social),
@@ -155,15 +119,12 @@ class EmpresaController extends Controller
                         'sector'                 => trim($request->sector),
                         'calle_avenida'          => trim($request->calle_avenida),
                         'edificio_galpon_local'  => trim($request->edificio_galpon_local),
-                        'estatus'                => 'PENDIENTE_APROBACION', // Regresa a revisión
-                        'observaciones_fiscalia' => null, // Limpia la observación anterior tras corregir
+                        'estatus'                => 'PENDIENTE_APROBACION',
+                        'observaciones_administrativas' => null, // <-- CORREGIDO
                     ]);
                     $empresa = $empresaExistente;
-
-                    // Actualizar o recrear el perfil ambiental
                     $empresa->perfilAmbiental()->delete();
                 } else {
-                    // Crear nueva empresa
                     $empresa = Empresa::create([
                         'user_id'               => $user,
                         'rif'                   => strtoupper(trim($request->rif)),
@@ -204,17 +165,6 @@ class EmpresaController extends Controller
                     $esGenerador = ($rolAmbiental === 'GENERADOR');
                     $esManejador = ($rolAmbiental === 'MANEJADOR');
 
-                    $modalidadManejadora  = $esGenerador ? ($perfilData['modalidad_manejadora'] ?? 'PROPIA') : null;
-                    $manejadoraContratada = $esGenerador ? ($perfilData['manejadora_contratada'] ?? $perfilData['manejadora_nombre'] ?? null) : null;
-                    $manejadoraRif        = $esGenerador ? ($perfilData['manejadora_rif'] ?? null) : null;
-                    $manejadoraRacda      = $esGenerador ? ($perfilData['manejadora_racda'] ?? null) : null;
-
-                    $modalidadAtencion        = $esManejador ? ($perfilData['modalidad_atencion_manejador'] ?? 'MULTICLIENTE') : null;
-                    $generadorExclusivoNombre = $esManejador ? ($perfilData['generador_exclusivo_nombre'] ?? null) : null;
-                    $generadorExclusivoRif    = $esManejador ? ($perfilData['generador_exclusivo_rif'] ?? null) : null;
-                    $generadorExclusivoRacda  = $esManejador ? ($perfilData['generador_exclusivo_racda'] ?? null) : null;
-                    $actividadesManejador     = $esManejador ? $cleanArray('actividades_manejador') : null;
-
                     $empresa->perfilAmbiental()->create([
                         'rol_ambiental'                => $rolAmbiental,
                         'subtipo_generador'            => $esGenerador ? ($perfilData['subtipo_generador'] ?? 'PEQUENO') : null,
@@ -226,17 +176,17 @@ class EmpresaController extends Controller
                         'genera_ruidos'                => filter_var($perfilData['genera_ruidos'] ?? false, FILTER_VALIDATE_BOOLEAN),
                         'usa_pozo_agua'                => filter_var($perfilData['usa_pozo_agua'] ?? false, FILTER_VALIDATE_BOOLEAN),
 
-                        'modalidad_manejadora'         => $modalidadManejadora,
-                        'manejadora_contratada'        => $manejadoraContratada,
-                        'manejadora_rif'               => $manejadoraRif,
-                        'manejadora_racda'             => $manejadoraRacda,
+                        'modalidad_manejadora'         => $esGenerador ? ($perfilData['modalidad_manejadora'] ?? 'PROPIA') : null,
+                        'manejadora_contratada'        => $esGenerador ? ($perfilData['manejadora_contratada'] ?? $perfilData['manejadora_nombre'] ?? null) : null,
+                        'manejadora_rif'               => $esGenerador ? ($perfilData['manejadora_rif'] ?? null) : null,
+                        'manejadora_racda'             => $esGenerador ? ($perfilData['manejadora_racda'] ?? null) : null,
 
-                        'modalidad_atencion_manejador' => $modalidadAtencion,
-                        'generador_exclusivo_nombre'   => $generadorExclusivoNombre,
-                        'generador_exclusivo_rif'      => $generadorExclusivoRif,
-                        'generador_exclusivo_racda'    => $generadorExclusivoRacda,
+                        'modalidad_atencion_manejador' => $esManejador ? ($perfilData['modalidad_atencion_manejador'] ?? 'MULTICLIENTE') : null,
+                        'generador_exclusivo_nombre'   => $esManejador ? ($perfilData['generador_exclusivo_nombre'] ?? null) : null,
+                        'generador_exclusivo_rif'      => $esManejador ? ($perfilData['generador_exclusivo_rif'] ?? null) : null,
+                        'generador_exclusivo_racda'    => $esManejador ? ($perfilData['generador_exclusivo_racda'] ?? null) : null,
 
-                        'actividades_manejador'        => $actividadesManejador,
+                        'actividades_manejador'        => $esManejador ? $cleanArray('actividades_manejador') : null,
                         'sustancias_manejadas'         => $perfilData['sustancias_manejadas'] ?? null,
                         'residuos_tipos'               => $cleanArray('residuos_tipos'),
                         'residuos_comunes'             => $cleanArray('residuos_comunes'),
@@ -256,26 +206,25 @@ class EmpresaController extends Controller
 
                             $vitalicio = filter_var($esVitalicio[$codigoRequisito] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-                            // Consultar el nombre oficial desde el catálogo en la BD
-                            $catalogoRequisito = \App\Models\RequisitoEmpresaCatalogo::where('codigo', strtoupper($codigoRequisito))->first();
-                            $nombreRequisitoOficial = $catalogoRequisito ? $catalogoRequisito->nombre : 'Documento Adjunto';
-
-                            $empresa->documentosExpediente()->updateOrCreate(
-                                ['codigo_requisito' => strtoupper($codigoRequisito)],
-                                [
-                                    'nombre_requisito'  => $nombreRequisitoOficial,
-                                    'archivo_path'      => $path,
-                                    'fecha_emision'     => $fechasEmision[$codigoRequisito] ?? null,
-                                    'fecha_vencimiento' => $vitalicio ? null : ($fechasVencimiento[$codigoRequisito] ?? null),
-                                    'es_vitalicio'      => $vitalicio,
-                                    'estado_revision'   => 'PENDIENTE',
-                                ]
-                            );
+                            // CORREGIDO: Obtener el ID del catálogo
+                            $catalogoRequisito = RequisitoEmpresaCatalogo::where('codigo', strtoupper($codigoRequisito))->first();
+                            
+                            if ($catalogoRequisito) {
+                                $empresa->documentosExpediente()->updateOrCreate(
+                                    ['requisito_id' => $catalogoRequisito->id], // <-- BUSCAMOS POR ID
+                                    [
+                                        'archivo_path'      => $path,
+                                        'fecha_emision'     => $fechasEmision[$codigoRequisito] ?? null,
+                                        'fecha_vencimiento' => $vitalicio ? null : ($fechasVencimiento[$codigoRequisito] ?? null),
+                                        'es_vitalicio'      => $vitalicio,
+                                        'estado_revision'   => 'OBSERVADO', // <-- CORREGIDO (PENDIENTE no existe)
+                                    ]
+                                );
+                            }
                         }
                     }
                 }
 
-                // NOTIFICAR AL DIRECTOR DE RESIDUOS SOBRE LA NUEVA EMPRESA
                 $directoresResiduos = \App\Models\User::whereHas('role', function ($q) {
                     $q->whereIn('nombre', ['admin', 'director', 'director_residuos']);
                 })->get();
@@ -283,9 +232,9 @@ class EmpresaController extends Controller
                 foreach ($directoresResiduos as $dir) {
                     \App\Models\Notificacion::create([
                         'user_id'  => $dir->id,
-                        'titulo'   => 'Nueva Empresa / Expediente Comercial',
+                        'titulo'   => 'Nueva Empresa / Expediente',
                         'mensaje'  => "Se ha registrado la empresa {$empresa->razon_social} (RIF: {$empresa->rif}) y espera validación.",
-                        'tipo'     => 'info',
+                        'tipo'     => 'INFORMACION', // <-- CORREGIDO
                         'link_url' => route('director.residuos.empresas.show', $empresa->id),
                     ]);
                 }
@@ -299,9 +248,6 @@ class EmpresaController extends Controller
         }) ?: back()->withErrors(['rif' => 'Se está procesando una solicitud idéntica de registro de empresa. Por favor espera un momento.'])->withInput();
     }
 
-    /**
-     * Sirve archivos del expediente validando la propiedad de la empresa o roles administrativos.
-     */
     public function verDocumento(DocumentoExpediente $documento)
     {
         $user = auth()->user();
@@ -350,7 +296,7 @@ class EmpresaController extends Controller
             'fecha_emision'     => $request->fecha_emision,
             'fecha_vencimiento' => $vitalicio ? null : $request->fecha_vencimiento,
             'es_vitalicio'      => $vitalicio,
-            'estado_revision'   => 'PENDIENTE',
+            'estado_revision'   => 'OBSERVADO', // <-- CORREGIDO
         ]);
 
         return redirect()->route('ciudadano.empresas')->with('success', 'Documento actualizado y enviado a revisión correctamente.');

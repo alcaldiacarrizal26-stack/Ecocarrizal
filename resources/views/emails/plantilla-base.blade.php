@@ -6,10 +6,10 @@
     <title>{{ $titulo ?? 'Alcaldía de Carrizal' }}</title>
 </head>
 <body style="font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; -webkit-text-size-adjust: none; text-size-adjust: none;">
-    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 40px 10px;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" role="presentation" style="background-color: #f1f5f9; padding: 40px 10px;">
         <tr>
             <td align="center">
-                <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+                <table width="600" border="0" cellspacing="0" cellpadding="0" role="presentation" style="width: 100%; max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
                     
                     <!-- 1. HEADER INSTITUCIONAL NORMALIZADO -->
                     <tr>
@@ -26,21 +26,21 @@
                     <!-- 2. CUERPO CONTENIDO DINÁMICO -->
                     <tr>
                         <td style="padding: 36px 32px; color: #334155;">
-                            @if(isset($subtitulo))
+                            @if(!empty($subtitulo))
                                 <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 0; margin-bottom: 16px;">
                                     {{ $subtitulo }}
                                 </h2>
                             @endif
 
                             <div style="font-size: 14px; line-height: 1.6; color: #475569;">
-                                {!! $contenido !!}
+                                {!! $contenido ?? '' !!}
                             </div>
 
-                            @if(isset($urlAccion) && isset($textoAccion))
-                                <table border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0;">
+                            @if(!empty($urlAccion) && !empty($textoAccion))
+                                <table border="0" cellspacing="0" cellpadding="0" role="presentation" style="margin: 28px 0;">
                                     <tr>
                                         <td align="center" style="border-radius: 10px;" bgcolor="#10b981">
-                                            <a href="{{ $urlAccion }}" target="_blank" style="font-size: 14px; font-weight: bold; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; border: 1px solid #10b981; display: inline-block; background-color: #10b981;">
+                                            <a href="{{ $urlAccion }}" target="_blank" rel="noopener noreferrer" style="font-size: 14px; font-weight: bold; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; border: 1px solid #10b981; display: inline-block; background-color: #10b981;">
                                                 {{ $textoAccion }}
                                             </a>
                                         </td>

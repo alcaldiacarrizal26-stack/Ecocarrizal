@@ -1,7 +1,6 @@
 <x-layouts.auth title="Enlace Expirado - Alcaldía de Carrizal">
     <div class="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-6">
         
-        <!-- Icono de advertencia -->
         <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -15,7 +14,6 @@
             </p>
         </div>
 
-        <!-- Formulario directo para solicitar un nuevo enlace sin salir de la vista -->
         <form action="{{ route('password.email') }}" method="POST" class="space-y-3 pt-2 text-left bg-slate-50 p-4 rounded-2xl border border-slate-200">
             @csrf
             <div>
@@ -23,6 +21,7 @@
                 <input 
                     type="email" 
                     name="email" 
+                    value="{{ old('email', old('correo')) }}"
                     required 
                     placeholder="ejemplo@carrizal.gob.ve"
                     class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none"

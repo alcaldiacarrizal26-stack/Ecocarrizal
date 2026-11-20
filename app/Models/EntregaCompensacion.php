@@ -19,7 +19,6 @@ class EntregaCompensacion extends Model
         'compensacion_id',
         'user_id',
         'cantidad_entregada',
-        'especie_entregada',
         'comprobante_path',
         'observacion_ciudadano',
         'observacion_director',

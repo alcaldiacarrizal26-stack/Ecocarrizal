@@ -1,7 +1,6 @@
 @props(['active' => null])
 
 @php
-    // ... (Todo tu bloque PHP se mantiene exactamente igual) ...
     $user = auth()->user();
     $rol = strtolower($user->role->nombre ?? $user->role ?? 'ciudadano'); 
     $direccionId = (int) ($user->direccion_id ?? 0);
@@ -75,7 +74,7 @@
     $soporteRoute = Route::has("{$prefix}.soporte") ? route("{$prefix}.soporte") : (Route::has('soporte') ? route('soporte') : url('/soporte'));
 @endphp
 
-<!-- Overlay para pantallas móviles (Simplificado para evitar bugs al cambiar de pestaña) -->
+<!-- Overlay para pantallas móviles -->
 <div 
     x-show="sidebarOpen" 
     x-cloak
@@ -90,7 +89,7 @@
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
     class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 will-change-transform"
 >
-    <!-- 1. Header / Identificación institucional (Fijo arriba) -->
+    <!-- 1. Header / Identificación institucional -->
     <div class="p-5 flex items-center gap-3 border-b border-slate-800 shrink-0">
         <div class="flex items-center justify-center shrink-0">
             <img src="{{ asset('images/carrizal_logo.png') }}" alt="Carrizal Logo" class="h-8 w-auto object-contain">
@@ -101,7 +100,7 @@
         </div>
     </div>
 
-    <!-- 2. Navegación por Roles (Área intermedia con Scroll independiente) -->
+    <!-- 2. Navegación por Roles -->
     <div class="flex-1 overflow-y-auto min-h-0 py-4 px-3">
         <nav class="space-y-1.5 font-medium text-sm">
 
@@ -137,7 +136,7 @@
                         <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                         <span>Registrar Empresa</span>
                     </a>
-                @elseif($empresa->estatus === 'APROBADO')
+                @elseif(strtoupper($empresa->estatus ?? '') === 'APROBADO')
                     <a href="{{ Route::has('ciudadano.empresas') ? route('ciudadano.empresas') : url('/ciudadano/empresas') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'empresas' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7m4 0V7m0 0h4m-4 0H7"/></svg>
                         <span class="truncate">{{ $empresa->razon_social ?? 'Mi Empresa' }}</span>
@@ -148,13 +147,16 @@
                         <span>Declaración Residuos</span>
                     </a>
                 @else
+                    @php
+                        $estatusEmpresa = strtoupper($empresa->estatus ?? 'PENDIENTE');
+                    @endphp
                     <a href="{{ Route::has('ciudadano.empresas') ? route('ciudadano.empresas') : url('/ciudadano/empresas') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'empresas' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
                         <div class="flex items-center gap-3 overflow-hidden">
                             <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span class="truncate">Estatus Empresa</span>
                         </div>
-                        <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider {{ $empresa->estatus === 'PENDIENTE' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30' }}">
-                            {{ $empresa->estatus }}
+                        <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider {{ $estatusEmpresa === 'PENDIENTE' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30' }}">
+                            {{ $estatusEmpresa }}
                         </span>
                     </a>
                 @endif
@@ -326,7 +328,7 @@
         </nav>
     </div>
 
-    <!-- 3. Footer / Soporte Técnico (Fijo y anclado al fondo real del sidebar) -->
+    <!-- 3. Footer / Soporte Técnico -->
     <div class="p-3 border-t border-slate-800 shrink-0 bg-slate-900">
         <a href="{{ $soporteRoute }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all font-medium text-sm {{ $currentActive === 'soporte' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636l3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>

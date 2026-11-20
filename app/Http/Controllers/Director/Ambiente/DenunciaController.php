@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Director\Ambiente;
 use App\Http\Controllers\Controller;
 use App\Models\Denuncia;
 use App\Models\User;
-use App\Models\Inspector;
 use App\Models\Notificacion;
 use Illuminate\Http\Request;
 
@@ -13,29 +12,28 @@ class DenunciaController extends Controller
 {
     public function index(Request $request)
     {
-        $filtroEstatus = $request->get('estatus', 'todos');
+        $filtroEstatus = $request->get('estado', 'TODOS'); // <-- Cambiado a estado
 
         $query = Denuncia::with(['user', 'inspector']);
 
-        if ($filtroEstatus !== 'todos') {
-            $query->where('estatus', $filtroEstatus);
+        if ($filtroEstatus !== 'TODOS') {
+            $query->where('estado', $filtroEstatus); // <-- estado
         }
 
         $denuncias = $query->latest()->paginate(10);
 
-        // Obtener funcionarios activos con sus relaciones (Inspectores y Directores)
         $funcionarios = User::whereHas('role', function ($q) {
                 $q->whereIn('nombre', ['director', 'inspector']);
             })
             ->where('is_active', true)
-            ->with(['role', 'direccion', 'inspector'])
+            ->with(['role', 'direccion', 'credencialInspector']) // <-- Corregido
             ->get();
 
         $stats = [
             'total_denuncias'  => Denuncia::count(),
-            'atendidas'        => Denuncia::where('estatus', 'atendido')->count(),
-            'pendientes'       => Denuncia::where('estatus', 'pendiente')->count(),
-            'inspecciones_mes' => Denuncia::whereIn('estatus', ['inspector_asignado', 'en_revision'])
+            'atendidas'        => Denuncia::where('estado', 'ATENDIDO')->count(), // <-- MAYÚSCULAS
+            'pendientes'       => Denuncia::where('estado', 'PENDIENTE')->count(), // <-- MAYÚSCULAS
+            'inspecciones_mes' => Denuncia::whereIn('estado', ['INSPECTOR_ASIGNADO', 'EN_REVISION'])
                                     ->whereMonth('created_at', now()->month)
                                     ->count(),
         ];
@@ -48,9 +46,6 @@ class DenunciaController extends Controller
         ));
     }
 
-    /**
-     * Asignar un inspector o director a la denuncia.
-     */
     public function asignar(Request $request, Denuncia $denuncia)
     {
         $request->validate([
@@ -72,17 +67,16 @@ class DenunciaController extends Controller
         ]);
 
         $denuncia->inspector_id               = $request->user_id;
-        $denuncia->estatus                    = 'inspector_asignado';
+        $denuncia->estado                     = 'INSPECTOR_ASIGNADO'; // <-- estado y MAYÚSCULAS
         $denuncia->fecha_asignacion_inspector = now();
         $denuncia->save();
 
-        // Notificar al ciudadano que creó la denuncia
         if ($denuncia->user_id) {
             Notificacion::create([
                 'user_id'  => $denuncia->user_id,
                 'titulo'   => 'Denuncia en Proceso de Verificación',
                 'mensaje'  => 'Tu denuncia ambiental ha sido asignada a un funcionario para su inspección y atención.',
-                'tipo'     => 'info',
+                'tipo'     => 'INFORMACION', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }
@@ -94,22 +88,19 @@ class DenunciaController extends Controller
     {
         $request->validate([
             'motivo_rechazo' => 'required|string|max:500',
-        ], [
-            'motivo_rechazo.required' => 'El motivo del rechazo es obligatorio.',
         ]);
 
-        $denuncia->estatus       = 'desestimado'; // O 'rechazada' según tu ENUM, el código actual usa desestimado
+        $denuncia->estado        = 'DESESTIMADO'; // <-- estado y MAYÚSCULAS
         $denuncia->observaciones = $request->motivo_rechazo;
         $denuncia->fecha_cierre  = now();
         $denuncia->save();
 
-        // Notificar al ciudadano
         if ($denuncia->user_id) {
             Notificacion::create([
                 'user_id'  => $denuncia->user_id,
                 'titulo'   => 'Denuncia Ambiental Desestimada / Rechazada',
                 'mensaje'  => 'Tu denuncia ambiental ha sido rechazada por la Dirección de Ambiente. Motivo: ' . $request->motivo_rechazo,
-                'tipo'     => 'danger',
+                'tipo'     => 'ERROR', // <-- MAYÚSCULAS
                 'link_url' => '#',
             ]);
         }

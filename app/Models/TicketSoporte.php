@@ -17,17 +17,19 @@ class TicketSoporte extends Model
     protected $fillable = [
         'user_id',
         'asunto',
-        'mensaje',
         'prioridad',
         'justificacion_alta',
-        'evidencia_path',
         'estatus',
-        'respuesta_admin',
         'fecha_resolucion',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function mensajes(): HasMany // <-- NUEVA RELACIÓN
+    {
+        return $this->hasMany(TicketMensaje::class, 'ticket_id');
     }
 }

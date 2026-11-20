@@ -11,9 +11,9 @@ return new class extends Migration
     {
         Schema::create('solicitudes', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('codigo_expediente')->unique();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('inspector_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->string('codigo_solicitud')->unique();
+            $table->foreignUuid('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignUuid('inspector_id')->nullable()->constrained('users')->onDelete('set null');
 
             $table->string('comuna');
             $table->string('sector');
@@ -24,7 +24,7 @@ return new class extends Migration
             
             $table->timestampTz('fecha_limite_documentos')->nullable();
             $table->timestampTz('fecha_asignacion_inspector')->nullable();
-            $table->timestampTz('fecha_inicio_inspeccion')->nullable();
+            // fecha_inicio_inspeccion eliminada por redundancia (vive en inspecciones)
             $table->timestampTz('fecha_cierre')->nullable();
             
             $table->timestampsTz();
@@ -32,22 +32,18 @@ return new class extends Migration
             $table->index(['user_id', 'created_at']);
         });
 
+        Schema::table('solicitudes', function (Blueprint $table) {
+            $table->foreignId('tipo_tramite_id')
+                ->constrained('tipos_tramites')
+                ->restrictOnDelete();
+        });
+
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("
                 ALTER TABLE solicitudes 
-                ADD COLUMN tipo_tramite tipo_tramite_enum NOT NULL,
-                ADD COLUMN estado estado_solicitud_enum NOT NULL DEFAULT 'pendiente';
+                ADD COLUMN estado estado_solicitud_enum NOT NULL DEFAULT 'PENDIENTE';
             ");
-        } else {
-            Schema::table('solicitudes', function (Blueprint $table) {
-                $table->enum('tipo_tramite', ['inspeccion', 'poda_deshierbe', 'desmalezamiento_conformacion', 'tala']);
-                $table->enum('estado', ['pendiente', 'incompleta', 'en_revision', 'inspector_asignado', 'en_inspeccion', 'requiere_reinspeccion', 'aprobado', 'rechazado'])->default('pendiente');
-            });
         }
-
-        Schema::table('solicitudes', function (Blueprint $table) {
-            $table->index('estado');
-        });
     }
 
     public function down(): void

@@ -26,12 +26,14 @@
         @endif
 
         @php
-            // Determinamos si el expediente actual es una Orden de Empresa ('orden') o un trámite tradicional
             $esOrdenEmpresa = isset($tipoOrigen) && $tipoOrigen === 'orden';
             $evaluador = auth()->user();
             $nombreEvaluador = $evaluador->nombre ?? $evaluador->name ?? 'Funcionario';
             $apellidoEvaluador = $evaluador->apellido ?? '';
             $cargoEvaluador = $evaluador->role->nombre ?? 'Inspector Ambiental';
+
+            $slugTramite = strtolower($expediente->tipoTramite->slug ?? $expediente->tipo_tramite ?? '');
+            $nombreTramite = $expediente->tipoTramite->nombre ?? strtoupper(str_replace('_', ' ', $slugTramite ?: 'Solicitud'));
 
             if ($esOrdenEmpresa) {
                 $empresa = $expediente->empresa ?? null;
@@ -43,14 +45,20 @@
                 $solicitante = $expediente->solicitante ?? $expediente->user ?? $expediente->usuario ?? null;
                 $sector = $expediente->sector ?? $expediente->ubicacion_sector ?? 'N/E';
                 $comuna = $expediente->comuna ?? $expediente->ubicacion_comuna ?? 'N/E';
-                $esTala = ($tipoOrigen === 'solicitud' && ($expediente->tipo_tramite ?? '') === 'tala');
+                $esTala = ($tipoOrigen === 'solicitud' && $slugTramite === 'tala');
             }
 
-            $estadoActual = $expediente->estado ?? $expediente->estatus ?? '';
+            $estadoActual = strtoupper($expediente->estado ?? $expediente->estatus ?? '');
+            $codigoReferencia = $expediente->codigo_orden
+                ?? $expediente->codigo_solicitud
+                ?? $expediente->codigo_denuncia
+                ?? $expediente->codigo_expediente
+                ?? $expediente->codigo
+                ?? 'N/A';
         @endphp
 
         <!-- Aviso de Reinspección -->
-        @if($estadoActual === 'requiere_reinspeccion')
+        @if($estadoActual === 'REQUIERE_REINSPECCION')
             <div class="p-4 bg-purple-50 border border-purple-200 text-purple-900 rounded-2xl text-xs flex items-center gap-3 shadow-xs">
                 <div class="p-2 bg-purple-100 text-purple-700 rounded-xl shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,14 +87,14 @@
                         @if($esOrdenEmpresa)
                             Fiscalización de Residuos ({{ $expediente->tipo_inspeccion ?? 'ORDINARIA' }})
                         @else
-                            {{ $tipoOrigen === 'solicitud' ? 'Trámite: ' . strtoupper($expediente->tipo_tramite ?? 'Solicitud') : 'Denuncia Ambiental' }}
+                            {{ $tipoOrigen === 'solicitud' ? 'Trámite: ' . $nombreTramite : 'Denuncia Ambiental' }}
                         @endif
                     </strong>
                 </div>
 
                 <div>
                     <span class="text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Código Referencia / Orden:</span>
-                    <strong class="text-slate-800 text-sm font-mono text-indigo-600">{{ $expediente->codigo_orden ?? $expediente->codigo_expediente ?? $expediente->codigo }}</strong>
+                    <strong class="text-slate-800 text-sm font-mono text-indigo-600">{{ $codigoReferencia }}</strong>
                 </div>
 
                 <!-- Datos del Solicitante / Representante de la Empresa -->
@@ -184,14 +192,9 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Especie a Solicitar (Entrega)</label>
-                            <select name="especie_compensacion" class="w-full px-4 py-2.5 bg-white border border-emerald-200 rounded-xl text-xs text-slate-800 focus:border-indigo-600 transition">
-                                <option value="Araguaney" {{ old('especie_compensacion') === 'Araguaney' ? 'selected' : '' }}>Araguaney (Árbol Nacional)</option>
-                                <option value="Apamate" {{ old('especie_compensacion') === 'Apamate' ? 'selected' : '' }}>Apamate</option>
-                                <option value="Bucare" {{ old('especie_compensacion') === 'Bucare' ? 'selected' : '' }}>Bucare</option>
-                                <option value="Cuji Yaque" {{ old('especie_compensacion') === 'Cuji Yaque' ? 'selected' : '' }}>Cují Yaque</option>
-                                <option value="Caoba" {{ old('especie_compensacion') === 'Caoba' ? 'selected' : '' }}>Caoba</option>
-                            </select>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Fecha Límite de Compensación (Opcional)</label>
+                            <input type="date" name="fecha_limite_compensacion" value="{{ old('fecha_limite_compensacion') }}"
+                                   class="w-full px-4 py-2.5 bg-white border border-emerald-200 rounded-xl text-xs text-slate-800 focus:border-indigo-600 transition">
                         </div>
                     </div>
 
@@ -321,7 +324,7 @@
             if (!cantInput || !totalBadge) return;
 
             const cant = Math.max(1, parseInt(cantInput.value) || 1);
-            const ratio = 8; // Ratio fijo universal 1x8
+            const ratio = 8;
 
             totalBadge.textContent = cant * ratio;
             

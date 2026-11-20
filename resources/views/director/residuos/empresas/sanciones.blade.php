@@ -9,7 +9,7 @@
                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span>{{ session('success') }}</span>
             </div>
-            <button type="button" @click="$el.parentElement.remove()" class="text-emerald-500 font-bold">&times;</button>
+            <button type="button" @click="$el.parentElement.remove()" class="text-emerald-500 font-bold cursor-pointer">&times;</button>
         </div>
     @endif
 
@@ -31,7 +31,7 @@
             <a href="{{ route('director.residuos.empresas.show', $empresa->id) }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition" translate="no">
                 &larr; Volver a Empresa
             </a>
-            <button type="button" @click="modalNuevaSancion = true" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2" translate="no">
+            <button type="button" @click="modalNuevaSancion = true" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2 cursor-pointer" translate="no">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                 Aperturar Sanción / Citación
             </button>
@@ -116,7 +116,7 @@
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap">
                                 @if($s->fecha_limite_subsanacion)
-                                    <div class="font-bold text-slate-700">{{ $s->fecha_limite_subsanacion->format('d/m/Y') }}</div>
+                                    <div class="font-bold text-slate-700">{{ \Carbon\Carbon::parse($s->fecha_limite_subsanacion)->format('d/m/Y') }}</div>
                                     <div class="text-[10px] text-slate-400">Según LOPA / LOA</div>
                                 @else
                                     <span class="text-slate-400 italic">Sin plazo fijado</span>
@@ -139,7 +139,7 @@
                             <td class="px-4 py-3 whitespace-nowrap">
                                 @if(!empty($s->evidencias_fiscalia))
                                     @foreach($s->evidencias_fiscalia as $file)
-                                        <a href="{{ asset('storage/' . $file) }}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 hover:underline font-semibold text-[11px]">
+                                        <a href="{{ asset('storage/' . ltrim($file, '/')) }}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 hover:underline font-semibold text-[11px]">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                             Ver Acta
                                         </a>
@@ -152,11 +152,11 @@
                                 @if(in_array($s->estatus, ['NOTIFICADA', 'EN_REVISION', 'PENDIENTE_NOTIFICACION']))
                                     <button type="button" 
                                             @click="sancionSeleccionada = {{ json_encode($s) }}; modalResolver = true"
-                                            class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] transition shadow-xs">
+                                            class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] transition shadow-xs cursor-pointer">
                                         Evaluar / Retirar Sanción
                                     </button>
                                 @else
-                                    <span class="text-slate-400 text-[11px] italic">Resuelta el {{ $s->fecha_resolucion ? $s->fecha_resolucion->format('d/m/Y') : '' }}</span>
+                                    <span class="text-slate-400 text-[11px] italic">Resuelta el {{ $s->fecha_resolucion ? \Carbon\Carbon::parse($s->fecha_resolucion)->format('d/m/Y') : '' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -251,7 +251,7 @@
                                 x-model="baseLegal" 
                                 :readonly="tipoInfraccion !== 'OTRO'"
                                 required 
-                                placeholder="Ej: Art. 45 Ordenanza Municipal / Art. 72 LOA" 
+                                placeholder="Ej: Art. 45 de la Ordenanza Municipal / Art. 72 LOA" 
                                 :class="tipoInfraccion !== 'OTRO' ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed' : 'bg-slate-50 text-slate-800 border-slate-300 focus:ring-2 focus:ring-emerald-500'"
                                 class="w-full rounded-xl p-2.5 transition-all">
                         </div>

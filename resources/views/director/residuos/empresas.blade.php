@@ -27,13 +27,22 @@
                         <tr>
                             <th scope="col" class="px-6 py-4">Empresa / RIF</th>
                             <th scope="col" class="px-6 py-4">Representante</th>
-                            <th scope="col" class="px-6 py-4">Estado Dictamen</th>
+                            <th scope="col" class="px-6 py-4">Estatus Dictamen</th>
                             <th scope="col" class="px-6 py-4">Registro</th>
                             <th scope="col" class="px-6 py-4 text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-slate-800/60">
                         @forelse($empresas as $empresa)
+                            @php
+                                $estatus = strtoupper($empresa->estatus ?? 'PENDIENTE');
+                                $badgeClasses = match($estatus) {
+                                    'APROBADO' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
+                                    'RECHAZADO' => 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
+                                    'SUSPENDIDO' => 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
+                                    default => 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700',
+                                };
+                            @endphp
                             <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors">
                                 <td class="px-6 py-4">
                                     <div class="font-medium text-gray-900 dark:text-white">{{ $empresa->razon_social ?? $empresa->nombre_comercial }}</div>
@@ -48,17 +57,8 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    @php
-                                        $estado = strtolower($empresa->estado_evaluacion ?? 'pendiente');
-                                        $badgeClasses = match($estado) {
-                                            'aprobado' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
-                                            'rechazado' => 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
-                                            'observado' => 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
-                                            default => 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700',
-                                        };
-                                    @endphp
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize {{ $badgeClasses }}">
-                                        {{ $estado }}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border {{ $badgeClasses }}">
+                                        {{ $estatus }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-xs text-gray-500 dark:text-slate-400">

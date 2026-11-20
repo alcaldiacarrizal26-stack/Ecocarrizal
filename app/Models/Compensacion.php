@@ -41,11 +41,9 @@ class Compensacion extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'codigo_resolucion',
+        'codigo_compensacion',
         'solicitud_id',
         'user_id',
-        'inspeccion_id',
-        'especie_requerida',
         'cantidad_asignada',
         'cantidad_entregada',
         'fecha_limite',
@@ -84,14 +82,6 @@ class Compensacion extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
-    }
-
-    /**
-     * Relación con la inspección asociada (opcional).
-     */
-    public function inspeccion(): BelongsTo
-    {
-        return $this->belongsTo(Inspeccion::class, 'inspeccion_id');
     }
 
     /**

@@ -8,14 +8,19 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Auth\Notifications\ResetPassword as ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable implements CanResetPasswordContract
 {
-    use HasFactory, Notifiable, Auditable, CanResetPassword;
+    use HasFactory, Notifiable, Auditable, CanResetPassword, HasUuids;
 
     protected string $moduloBitacora = 'users';
+    protected $keyType = 'string';
+    public $incrementing = false;
+
 
     protected $fillable = [
         'role_id',
@@ -33,7 +38,7 @@ class User extends Authenticatable implements CanResetPasswordContract
 
     protected $hidden = [
         'password',
-        'rememberToken',
+        'remember_token',
     ];
 
     protected $casts = [
@@ -45,17 +50,17 @@ class User extends Authenticatable implements CanResetPasswordContract
     // Relaciones
     public function role()
     {
-        return $this->belongsTo(Role::class, 'role_id', 'id_roles');
+        return $this->belongsTo(Role::class, 'role_id', 'id');
     }
 
     public function direccion()
     {
-        return $this->belongsTo(Direccion::class, 'direccion_id', 'id_direccion');
+        return $this->belongsTo(Direccion::class, 'direccion_id', 'id');
     }
 
-    public function inspector()
+    public function credencialInspector()
     {
-        return $this->hasOne(Inspector::class, 'user_id');
+        return $this->hasOne(CredencialInspector::class, 'user_id');
     }
 
     // Helper Métodos de Verificación de Roles

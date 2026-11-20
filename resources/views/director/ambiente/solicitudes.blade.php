@@ -7,74 +7,6 @@
         modalRechazarSolicitudOpen: false,
         solicitudActual: null,
 
-        tiposTramites: {
-            'inspeccion': {
-                nombre: 'Solicitud de Inspección TÉCNICA',
-                requisitosObligatorios: [{ key: 'cedula', label: 'Copia de la Cédula de Identidad' }],
-                requisitosCondicionales: [],
-                requisitosOpcionales: []
-            },
-            'poda_deshierbe': {
-                nombre: 'Solicitud de Permiso para Poda o Deshierbe',
-                requisitosObligatorios: [
-                    { key: 'cedula', label: 'Copia de la Cédula de Identidad' },
-                    { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar' }
-                ],
-                requisitosCondicionales: [
-                    { key: 'autorizacion_propietario', label: 'Autorización del Propietario' },
-                    { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)' },
-                    { key: 'registro_mercantil', label: 'Copia del Registro Mercantil' },
-                    { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa' }
-                ],
-                requisitosOpcionales: [
-                    { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado' },
-                    { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno' },
-                    { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente' },
-                    { key: 'constancia_catastral', label: 'Constancia Catastral Vigente' }
-                ]
-            },
-            'tala': {
-                nombre: 'Solicitud de Permiso para Tala de Árboles',
-                requisitosObligatorios: [
-                    { key: 'cedula', label: 'Copia de la Cédula de Identidad' },
-                    { key: 'carta_explicativa', label: 'Carta Justificativa de Tala' },
-                    { key: 'carta_compromiso', label: 'Carta de Compromiso de Compensación Ambiental' }
-                ],
-                requisitosCondicionales: [
-                    { key: 'autorizacion_propietario', label: 'Autorización del Propietario' },
-                    { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)' },
-                    { key: 'registro_mercantil', label: 'Copia del Registro Mercantil' },
-                    { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa' }
-                ],
-                requisitosOpcionales: [
-                    { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado' },
-                    { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno' },
-                    { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente' },
-                    { key: 'constancia_catastral', label: 'Constancia Catastral Vigente' }
-                ]
-            },
-            'desmalezamiento_conformacion': {
-                nombre: 'Permiso de Desmalezamiento y Conformación de Terreno',
-                requisitosObligatorios: [
-                    { key: 'cedula', label: 'Copia de la Cédula de Identidad' },
-                    { key: 'carta_explicativa', label: 'Carta Explicativa del Trabajo a Realizar' }
-                ],
-                requisitosCondicionales: [
-                    { key: 'autorizacion_propietario', label: 'Autorización del Propietario' },
-                    { key: 'variables_ambientales', label: 'Variables Ambientales (MINEC)' },
-                    { key: 'registro_mercantil', label: 'Copia del Registro Mercantil' },
-                    { key: 'rif_empresa', label: 'Copia del RIF Vigente de la Empresa' }
-                ],
-                requisitosOpcionales: [
-                    { key: 'doc_propiedad', label: 'Documento de Propiedad Registrado' },
-                    { key: 'plano_ubicacion', label: 'Plano de Ubicación del Terreno' },
-                    { key: 'solvencia_municipal', label: 'Solvencia Municipal Vigente' },
-                    { key: 'constancia_catastral', label: 'Constancia Catastral Vigente' },
-                    { key: 'carta_compromiso', label: 'Carta de Compromiso de Reposición' }
-                ]
-            }
-        },
-
         get datosEspecificosModal() {
             if (!this.solicitudActual || !this.solicitudActual.datos_especificos) return {};
             let datos = this.solicitudActual.datos_especificos;
@@ -94,23 +26,20 @@
             return Boolean(valor);
         },
 
+        obtenerNombreTramite(sol) {
+            if (!sol) return 'N/A';
+            if (sol.tipo_tramite?.nombre) return sol.tipo_tramite.nombre;
+            if (sol.tipoTramite?.nombre) return sol.tipoTramite.nombre;
+            if (typeof sol.tipo_tramite === 'string') return sol.tipo_tramite.replace(/_/g, ' ');
+            return 'Trámite Ambiental';
+        },
+
         obtenerEtiquetaRecaudo(recaudo) {
-            if (!this.solicitudActual) return recaudo.nombre_archivo || recaudo.tipo_recaudo;
-            const config = this.tiposTramites[this.solicitudActual.tipo_tramite];
-            if (!config) return recaudo.nombre_archivo || recaudo.tipo_recaudo;
-
-            const todosRequisitos = [
-                ...(config.requisitosObligatorios || []),
-                ...(config.requisitosCondicionales || []),
-                ...(config.requisitosOpcionales || [])
-            ];
-
-            const reqConfig = todosRequisitos.find(r => r.key === recaudo.tipo_recaudo);
-            return reqConfig ? reqConfig.label : (recaudo.nombre_archivo || recaudo.tipo_recaudo);
+            return recaudo.catalogo?.label || recaudo.recaudo_catalogo?.label || recaudo.catalogo?.key || recaudo.nombre_archivo || 'Documento adjunto';
         },
 
         puedeReasignar(estado) {
-            return ['pendiente', 'inspector_asignado', 'requiere_reinspeccion'].includes(estado);
+            return ['PENDIENTE', 'INSPECTOR_ASIGNADO', 'REQUIERE_REINSPECCION'].includes((estado || '').toUpperCase());
         }
     }"
 >
@@ -203,6 +132,9 @@
     </div>
 
     <!-- Barra de Filtro Adaptativa para Solicitudes -->
+    @php
+        $estadoFiltro = strtoupper(request('estado') ?? 'TODOS');
+    @endphp
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <form method="GET" action="{{ route('director.ambiente.solicitudes') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div class="flex items-center justify-between sm:justify-start gap-2 flex-1">
@@ -212,13 +144,15 @@
                     name="estado" 
                     class="bg-slate-50/50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 block p-2.5 font-medium cursor-pointer w-full sm:w-auto"
                 >
-                    <option value="todos" {{ request('estado') == 'todos' || !request('estado') ? 'selected' : '' }}>Todos los estados</option>
-                    <option value="incompleta" {{ request('estado') == 'incompleta' ? 'selected' : '' }}>Documentación incompleta</option>
-                    <option value="pendiente" {{ request('estado') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                    <option value="inspector_asignado" {{ request('estado') == 'inspector_asignado' ? 'selected' : '' }}>Inspector asignado</option>
-                    <option value="en_inspeccion" {{ request('estado') == 'en_inspeccion' ? 'selected' : '' }}>En inspección</option>
-                    <option value="aprobada" {{ request('estado') == 'aprobada' ? 'selected' : '' }}>Aprobada</option>
-                    <option value="rechazada" {{ request('estado') == 'rechazada' ? 'selected' : '' }}>Rechazada</option>
+                    <option value="TODOS" {{ $estadoFiltro === 'TODOS' ? 'selected' : '' }}>Todos los estados</option>
+                    <option value="INCOMPLETA" {{ $estadoFiltro === 'INCOMPLETA' ? 'selected' : '' }}>INCOMPLETA</option>
+                    <option value="PENDIENTE" {{ $estadoFiltro === 'PENDIENTE' ? 'selected' : '' }}>PENDIENTE</option>
+                    <option value="EN_REVISION" {{ $estadoFiltro === 'EN_REVISION' ? 'selected' : '' }}>EN REVISIÓN</option>
+                    <option value="INSPECTOR_ASIGNADO" {{ $estadoFiltro === 'INSPECTOR_ASIGNADO' ? 'selected' : '' }}>INSPECTOR ASIGNADO</option>
+                    <option value="EN_INSPECCION" {{ $estadoFiltro === 'EN_INSPECCION' ? 'selected' : '' }}>EN INSPECCIÓN</option>
+                    <option value="REQUIERE_REINSPECCION" {{ $estadoFiltro === 'REQUIERE_REINSPECCION' ? 'selected' : '' }}>REQUIERE REINSPECCIÓN</option>
+                    <option value="APROBADO" {{ $estadoFiltro === 'APROBADO' ? 'selected' : '' }}>APROBADO</option>
+                    <option value="RECHAZADO" {{ $estadoFiltro === 'RECHAZADO' ? 'selected' : '' }}>RECHAZADO</option>
                 </select>
             </div>
 
@@ -226,7 +160,7 @@
                 <button type="submit" class="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer text-center">
                     Filtrar Resultados
                 </button>
-                @if(request('estado') && request('estado') !== 'todos')
+                @if($estadoFiltro !== 'TODOS')
                     <a href="{{ route('director.ambiente.solicitudes') }}" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition text-center">
                         Limpiar
                     </a>
@@ -241,7 +175,7 @@
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
                     <tr>
-                        <th scope="col" class="px-6 py-3 whitespace-nowrap">Expediente</th>
+                        <th scope="col" class="px-6 py-3 whitespace-nowrap">Código</th>
                         <th scope="col" class="px-6 py-3 whitespace-nowrap">Tipo de Trámite</th>
                         <th scope="col" class="px-6 py-3 whitespace-nowrap">Solicitante</th>
                         <th scope="col" class="px-6 py-3 whitespace-nowrap">Estado del Flujo</th>
@@ -254,55 +188,67 @@
                     @forelse ($solicitudes as $solicitud)
                         @php
                             $userSolicitante = $solicitud->solicitante ?? $solicitud->user;
+                            $estadoSol = strtoupper($solicitud->estado ?? 'PENDIENTE');
+                            $nombreTramiteFila = $solicitud->tipoTramite->nombre ?? str_replace('_', ' ', $solicitud->tipo_tramite ?? 'Trámite');
                         @endphp
                         <tr class="bg-white border-b hover:bg-gray-50 transition">
                             <td class="px-6 py-4 font-bold text-emerald-700 whitespace-nowrap">
-                                {{ $solicitud->codigo_expediente }}
+                                {{ $solicitud->codigo_solicitud }}
                             </td>
-                            <td class="px-6 py-4 font-medium text-gray-800 whitespace-nowrap capitalize">
-                                {{ str_replace('_', ' ', $solicitud->tipo_tramite) }}
+                            <td class="px-6 py-4 font-medium text-gray-800 whitespace-nowrap">
+                                {{ $nombreTramiteFila }}
                             </td>
                             <td class="px-6 py-4 max-w-[200px]">
                                 <div class="font-medium text-gray-800 truncate">{{ $userSolicitante->nombre ?? 'N/A' }} {{ $userSolicitante->apellido ?? '' }}</div>
-                                <div class="text-xs text-gray-400 truncate">{{ $userSolicitante->cedula ?? $userSolicitante->email ?? 'Sin dato' }}</div>
+                                <div class="text-xs text-gray-400 truncate">{{ $userSolicitante->cedula ?? $userSolicitante->correo ?? $userSolicitante->email ?? 'Sin dato' }}</div>
                             </td>
 
                             <!-- Badges del Estado -->
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @switch($solicitud->estado)
-                                    @case('incompleta')
+                                @switch($estadoSol)
+                                    @case('INCOMPLETA')
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold" style="background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;">
-                                            Documentación incompleta
+                                            INCOMPLETA
                                         </span>
                                         @break
-                                    @case('pendiente')
+                                    @case('PENDIENTE')
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE;">
-                                            Pendiente
+                                            PENDIENTE
                                         </span>
                                         @break
-                                    @case('inspector_asignado')
+                                    @case('EN_REVISION')
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #F0FDF4; color: #166534; border: 1px solid #BBF7D0;">
+                                            EN REVISIÓN
+                                        </span>
+                                        @break
+                                    @case('INSPECTOR_ASIGNADO')
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE;">
-                                            Inspector asignado
+                                            INSPECTOR ASIGNADO
                                         </span>
                                         @break
-                                    @case('en_inspeccion')
+                                    @case('EN_INSPECCION')
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #F3E8FF; color: #6B21A8; border: 1px solid #E9D5FF;">
-                                            En inspección
+                                            EN INSPECCIÓN
                                         </span>
                                         @break
-                                    @case('aprobada')
+                                    @case('REQUIERE_REINSPECCION')
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #FFF7ED; color: #9A3412; border: 1px solid #FED7AA;">
+                                            REQUIERE REINSPECCIÓN
+                                        </span>
+                                        @break
+                                    @case('APROBADO')
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0;">
-                                            Aprobada
+                                            APROBADO
                                         </span>
                                         @break
-                                    @case('rechazada')
+                                    @case('RECHAZADO')
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #FFE4E6; color: #9F1239; border: 1px solid #FECDD3;">
-                                            Rechazada
+                                            RECHAZADO
                                         </span>
                                         @break
                                     @default
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium" style="background-color: #F1F5F9; color: #334155;">
-                                            {{ str_replace('_', ' ', $solicitud->estado) }}
+                                            {{ str_replace('_', ' ', $estadoSol) }}
                                         </span>
                                 @endswitch
                             </td>
@@ -323,13 +269,13 @@
                                 {{ $solicitud->created_at ? $solicitud->created_at->format('d/m/Y h:i A') : 'N/A' }}
                             </td>
 
-                            <!-- ACCIONES CON RESTRICCIÓN DE RECHAZO SOLO PARA PENDIENTES -->
+                            <!-- ACCIONES -->
                             <td class="px-6 py-4 text-right whitespace-nowrap space-x-1">
-                                <template x-if="puedeReasignar('{{ $solicitud->estado }}')">
+                                <template x-if="puedeReasignar('{{ $estadoSol }}')">
                                     <button 
                                         type="button"
                                         title="{{ $solicitud->inspector ? 'Reasignar Inspector' : 'Asignar Inspector' }}"
-                                        @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos'])) }}; modalAsignarOpen = true"
+                                        @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos.catalogo', 'tipoTramite'])) }}; modalAsignarOpen = true"
                                         class="p-2 text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                     >
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
@@ -339,17 +285,17 @@
                                 <button 
                                     type="button"
                                     title="Ver Detalles"
-                                    @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos'])) }}; modalOpen = true"
+                                    @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos.catalogo', 'tipoTramite'])) }}; modalOpen = true"
                                     class="p-2 text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                 </button>
 
-                                <!-- BOTÓN DE RECHAZO SOLO SI EL ESTADO ES 'pendiente' -->
-                                <template x-if="'{{ $solicitud->estado }}' === 'pendiente'">
+                                <!-- BOTÓN DE RECHAZO SOLO SI EL ESTADO ES 'PENDIENTE' -->
+                                <template x-if="'{{ $estadoSol }}' === 'PENDIENTE'">
                                     <button 
                                         type="button"
-                                        title="Rechazar Expediente"
+                                        title="Rechazar Solicitud"
                                         @click="solicitudActual = {{ json_encode($solicitud) }}; modalRechazarSolicitudOpen = true"
                                         class="p-2 text-rose-600 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                     >
@@ -389,7 +335,7 @@
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                 <div>
                     <h3 class="text-lg font-bold text-gray-800">
-                        Expediente: <span class="text-emerald-600" x-text="solicitudActual?.codigo_expediente"></span>
+                        Solicitud: <span class="text-emerald-600" x-text="solicitudActual?.codigo_solicitud"></span>
                     </h3>
                     <p class="text-xs text-gray-500" x-text="'Fecha de creación: ' + (solicitudActual?.created_at ? new Date(solicitudActual.created_at).toLocaleString() : '')"></p>
                 </div>
@@ -402,22 +348,22 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
                         <span class="block text-xs text-gray-400 uppercase font-semibold">Tipo de Trámite</span>
-                        <span class="text-sm font-medium text-gray-800 capitalize" x-text="solicitudActual?.tipo_tramite?.replace(/_/g, ' ')"></span>
+                        <span class="text-sm font-medium text-gray-800" x-text="obtenerNombreTramite(solicitudActual)"></span>
                     </div>
                     <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
                         <span class="block text-xs text-gray-400 uppercase font-semibold">Estado de la Solicitud</span>
-                        <span class="text-sm font-bold text-slate-800 capitalize" x-text="solicitudActual?.estado?.replace(/_/g, ' ')"></span>
+                        <span class="text-sm font-bold text-slate-800" x-text="(solicitudActual?.estado || '').replace(/_/g, ' ')"></span>
                     </div>
                 </div>
 
-                <template x-if="solicitudActual?.estado === 'incompleta'">
+                <template x-if="(solicitudActual?.estado || '').toUpperCase() === 'INCOMPLETA'">
                     <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200 flex items-start gap-3">
                         <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
                         <div class="text-xs text-amber-900">
                             <strong class="font-bold block mb-0.5">Asignación bloqueada: Documentación incompleta</strong>
-                            El ciudadano debe consignar los documentos o requisitos faltantes antes de poder asignar un inspector técnico a este expediente.
+                            El ciudadano debe consignar los documentos o requisitos faltantes antes de poder asignar un inspector técnico a esta solicitud.
                         </div>
                     </div>
                 </template>
@@ -429,11 +375,11 @@
                               x-text="solicitudActual?.inspector ? (solicitudActual.inspector.nombre + ' ' + (solicitudActual.inspector.apellido || '')).trim() : 'Ninguno (Sin asignar)'">
                         </span>
                     </div>
-                    <span class="text-xs px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 capitalize font-medium" x-text="solicitudActual?.estado?.replace(/_/g, ' ') || 'Sin Estatus'"></span>
+                    <span class="text-xs px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 font-semibold" x-text="(solicitudActual?.estado || '').replace(/_/g, ' ') || 'SIN ESTADO'"></span>
                 </div>
 
                 <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
-                    <span class="block text-xs text-slate-500 uppercase font-bold">Condiciones Específicas del Expediente</span>
+                    <span class="block text-xs text-slate-500 uppercase font-bold">Condiciones Específicas</span>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                         <div class="p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full" :class="evaluarBool(datosEspecificosModal?.aplica_autorizacion_propietario) ? 'bg-amber-500' : 'bg-emerald-500'"></span>
@@ -456,7 +402,7 @@
                     <span class="block text-xs text-gray-400 uppercase font-semibold mb-1">Datos del Solicitante</span>
                     <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">
                         <strong x-text="(solicitudActual?.solicitante?.nombre || solicitudActual?.user?.nombre || '') + ' ' + (solicitudActual?.solicitante?.apellido || solicitudActual?.user?.apellido || '')"></strong><br>
-                        <span class="text-xs text-gray-500" x-text="'Cédula/RIF: ' + (solicitudActual?.solicitante?.cedula || solicitudActual?.user?.cedula || 'N/A') + ' | Correo: ' + (solicitudActual?.solicitante?.email || solicitudActual?.user?.email || 'N/A')"></span>
+                        <span class="text-xs text-gray-500" x-text="'Cédula/RIF: ' + (solicitudActual?.solicitante?.cedula || solicitudActual?.user?.cedula || 'N/A') + ' | Correo: ' + (solicitudActual?.solicitante?.correo || solicitudActual?.user?.correo || solicitudActual?.solicitante?.email || solicitudActual?.user?.email || 'N/A')"></span>
                     </p>
                 </div>
 
@@ -532,8 +478,8 @@
         >
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                 <h3 class="text-base font-bold text-gray-800">
-                    <span x-text="solicitudActual?.inspector ? 'Reasignar Inspector' : 'Asignar Inspector'"></span> al Expediente 
-                    <span class="text-indigo-600" x-text="solicitudActual?.codigo_expediente"></span>
+                    <span x-text="solicitudActual?.inspector ? 'Reasignar Inspector' : 'Asignar Inspector'"></span> a la Solicitud 
+                    <span class="text-indigo-600" x-text="solicitudActual?.codigo_solicitud"></span>
                 </h3>
                 <button @click="modalAsignarOpen = false" class="text-gray-400 hover:text-gray-600 focus:outline-none">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -584,7 +530,7 @@
     <!-- MODAL RECHAZAR SOLICITUD -->
     <div x-show="modalRechazarSolicitudOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
         <div @click.away="modalRechazarSolicitudOpen = false" class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <h3 class="text-base font-bold text-gray-800">Rechazar Expediente: <span class="text-rose-600" x-text="solicitudActual?.codigo_expediente"></span></h3>
+            <h3 class="text-base font-bold text-gray-800">Rechazar Solicitud: <span class="text-rose-600" x-text="solicitudActual?.codigo_solicitud"></span></h3>
             <form :action="'/director/ambiente/solicitudes/' + solicitudActual?.id + '/rechazar'" method="POST" class="space-y-3">
                 @csrf
                 @method('PUT')
