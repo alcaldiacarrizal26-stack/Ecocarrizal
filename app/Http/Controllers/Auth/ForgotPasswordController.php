@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\BitacoraEvento;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
-use App\Models\User;
-use App\Models\BitacoraEvento;
 
 class ForgotPasswordController extends Controller
 {
@@ -24,8 +24,10 @@ class ForgotPasswordController extends Controller
         // Buscamos por la columna 'correo' personalizada en la BD
         $user = User::where('correo', $request->email)->first();
 
-        if (!$user) {
-            return back()->withErrors(['email' => 'No encontramos ningún usuario registrado con este correo electrónico.']);
+        if (! $user) {
+            return back()->withErrors([
+                'email' => 'No encontramos ningún usuario registrado con este correo electrónico.',
+            ]);
         }
 
         // Generamos el token de restablecimiento
@@ -34,7 +36,6 @@ class ForgotPasswordController extends Controller
         // Enviamos la notificación por correo electrónico con la URL correspondiente
         $user->sendPasswordResetNotification($token);
 
-        // BITÁCORA: Nivel en UPPERCASE
         BitacoraEvento::registrar([
             'modulo'      => 'auth',
             'tipo_evento' => 'SOLICITUD_RECUPERACION',

@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use App\Models\BitacoraEvento;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class ResetPasswordController extends Controller
 {
@@ -19,28 +19,27 @@ class ResetPasswordController extends Controller
         $correo = $request->query('correo');
 
         // 1. Buscar si existe el registro del token para este correo
-        // (La tabla de Laravel usa 'email' como nombre de columna por defecto)
         $record = DB::table('password_reset_tokens')
-            ->where('email', $correo) 
+            ->where('email', $correo)
             ->first();
 
         // 2. Si no existe el registro o no coincide el hash/token
-        if (!$record || !Hash::check($token, $record->token)) {
+        if (! $record || ! Hash::check($token, $record->token)) {
             return response()->view('auth.token-expirado', [
-                'motivo' => 'El enlace de recuperación es inválido o ya ha sido utilizado.'
+                'motivo' => 'El enlace de recuperación es inválido o ya ha sido utilizado.',
             ], 403);
         }
 
-        // 3. Verificar si el token expiró (60 minutos configurados)
+        // 3. Verificar si el token expiró
         $expireInMinutes = config('auth.passwords.users.expire', 60);
         if (Carbon::parse($record->created_at)->addMinutes($expireInMinutes)->isPast()) {
             return response()->view('auth.token-expirado', [
-                'motivo' => 'El tiempo de validez de este enlace (60 minutos) ha caducado.'
+                'motivo' => 'El tiempo de validez de este enlace (60 minutos) ha caducado.',
             ], 403);
         }
 
         return view('auth.reset-password', [
-            'token' => $token,
+            'token'  => $token,
             'correo' => $correo,
         ]);
     }
@@ -48,49 +47,65 @@ class ResetPasswordController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'token' => 'required',
-            'correo' => 'required|email',
+            'token'    => 'required',
+            'correo'   => 'required|email',
             'password' => 'required|min:6|confirmed',
         ], [
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+            'password.min'       => 'La contraseña debe tener al menos 6 caracteres.',
         ]);
 
-        // IMPORTANTE: Password::reset espera la llave 'email' por defecto.
-        // Aunque internamente nuestro modelo User mapea 'correo' a email, 
-        // el array debe llevar la llave 'email'.
-        $status = Password::reset(
-            [
-                'email'    => $request->correo,
-                'password' => $request->password,
-                'password_confirmation' => $request->password_confirmation,
-                'token'    => $request->token,
-            ],
-            function ($user, $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                ])->setRememberToken(Str::random(60));
+        $user = User::where('correo', $request->correo)->first();
 
-                // Si el correo aún no está verificado (como ocurre con los nuevos inspectores),
-                // lo marcamos como verificado automáticamente al configurar su contraseña.
-                if (is_null($user->email_verified_at)) {
-                    $user->email_verified_at = now();
-                }
+        if (! $user) {
+            return back()->withErrors([
+                'correo' => ['No se encontró ningún usuario asociado a este correo electrónico.'],
+            ]);
+        }
 
-                $user->save();
+        $record = DB::table('password_reset_tokens')
+            ->where('email', $request->correo)
+            ->first();
 
-                // BITÁCORA: Nivel en UPPERCASE
-                BitacoraEvento::registrar([
-                    'modulo'      => 'auth',
-                    'tipo_evento' => 'CAMBIO_CONTRASENA',
-                    'nivel'       => 'WARNING',
-                    'descripcion' => "El usuario {$user->correo} configuró/restableció su contraseña exitosamente.",
-                ]);
-            }
-        );
+        $expireInMinutes = config('auth.passwords.users.expire', 60);
+        $tokenValido = $record
+            && Hash::check($request->token, $record->token)
+            && ! Carbon::parse($record->created_at)->addMinutes($expireInMinutes)->isPast();
 
-        return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('success', '¡Tu contraseña ha sido configurada exitosamente! Ya puedes iniciar sesión con tus credenciales.')
-            : back()->withErrors(['correo' => ['No se pudo completar el restablecimiento. El enlace puede haber expirado o los datos son incorrectos.']]);
+        if (! $tokenValido) {
+            return back()->withErrors([
+                'correo' => ['No se pudo completar el restablecimiento. El enlace puede haber expirado o los datos son incorrectos.'],
+            ]);
+        }
+
+        // Evitamos doble hash si el modelo User tiene cast 'password' => 'hashed'
+        $casts = $user->getCasts();
+        $passwordValue = (($casts['password'] ?? null) === 'hashed')
+            ? $request->password
+            : Hash::make($request->password);
+
+        $user->forceFill([
+            'password' => $passwordValue,
+        ])->setRememberToken(Str::random(60));
+
+        if (is_null($user->email_verified_at)) {
+            $user->email_verified_at = now();
+        }
+
+        $user->save();
+
+        DB::table('password_reset_tokens')
+            ->where('email', $request->correo)
+            ->delete();
+
+        BitacoraEvento::registrar([
+            'modulo'      => 'auth',
+            'tipo_evento' => 'CAMBIO_CONTRASENA',
+            'nivel'       => 'WARNING',
+            'descripcion' => "El usuario {$user->correo} configuró/restableció su contraseña exitosamente.",
+        ]);
+
+        return redirect()->route('login')
+            ->with('success', '¡Tu contraseña ha sido configurada exitosamente! Ya puedes iniciar sesión con tus credenciales.');
     }
 }
