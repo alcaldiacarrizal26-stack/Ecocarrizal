@@ -103,7 +103,7 @@
                                         <!-- Badge de Alerta para Sanciones Activas -->
                                         @php
                                             $sancionesActivas = $empresa->sanciones 
-                                                ? $empresa->sanciones->whereIn('estatus', ['NOTIFICADA', 'EN_REVISION', 'PENDIENTE_NOTIFICACION'])->count() 
+                                                ? $empresa->sanciones->whereIn('estatus', ['NOTIFICADA', 'EN_SUBSANACION'])->count() 
                                                 : 0;
                                         @endphp
 

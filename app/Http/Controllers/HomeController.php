@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RequisitoEmpresaCatalogo;
+use App\Models\TipoTramite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -12,7 +14,20 @@ class HomeController extends Controller
      */
     public function index()
     {
-        return view('welcome');
+        $tramitesCiviles = TipoTramite::where('activo', true)
+            ->with(['recaudos' => function ($query) {
+                $query->orderBy('id');
+            }])
+            ->orderBy('id')
+            ->get();
+
+        $requisitosEmpresas = RequisitoEmpresaCatalogo::where('activo', true)
+            ->orderBy('tipo_requisito')
+            ->orderBy('orden')
+            ->orderBy('id')
+            ->get();
+
+        return view('welcome', compact('tramitesCiviles', 'requisitosEmpresas'));
     }
 
     /**

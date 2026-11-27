@@ -53,7 +53,7 @@
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-xs font-semibold text-rose-600 uppercase">Activas / Notificadas</p>
-                <p class="text-2xl font-bold text-rose-600 mt-1">{{ $sanciones->whereIn('estatus', ['NOTIFICADA', 'PENDIENTE_NOTIFICACION'])->count() }}</p>
+                <p class="text-2xl font-bold text-rose-600 mt-1">{{ $sanciones->whereIn('estatus', ['NOTIFICADA', 'EN_SUBSANACION'])->count() }}</p>
             </div>
             <div class="p-3 bg-rose-50 text-rose-600 rounded-xl">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -63,7 +63,7 @@
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-xs font-semibold text-emerald-600 uppercase">Subsanadas / Retiradas</p>
-                <p class="text-2xl font-bold text-emerald-600 mt-1">{{ $sanciones->where('estatus', 'SUBSANADA')->count() }}</p>
+                <p class="text-2xl font-bold text-emerald-600 mt-1">{{ $sanciones->whereIn('estatus', ['RESUELTA', 'PAGADA', 'CONDONADA', 'ARCHIVADA'])->count() }}</p>
             </div>
             <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -94,7 +94,7 @@
                     @forelse($sanciones as $s)
                         <tr class="hover:bg-slate-50/80 transition">
                             <td class="px-4 py-3 font-bold text-slate-800 whitespace-nowrap font-mono">
-                                {{ $s->codigo_expediente }}
+                                {{ $s->codigo_sancion }}
                             </td>
                             <td class="px-4 py-3">
                                 <span class="font-semibold text-slate-800 block">{{ str_replace('_', ' ', $s->tipo_infraccion) }}</span>
@@ -105,8 +105,8 @@
                                 @php
                                     $badgeG = match($s->gravedad) {
                                         'LEVE' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                        'GRAVE' => 'bg-orange-50 text-orange-700 border-orange-200 font-bold',
-                                        'MUY_GRAVE' => 'bg-rose-100 text-rose-800 border-rose-300 font-bold',
+                                        'MEDIA' => 'bg-orange-50 text-orange-700 border-orange-200 font-bold',
+                                        'GRAVE' => 'bg-rose-100 text-rose-800 border-rose-300 font-bold',
                                         default => 'bg-slate-100 text-slate-600 border-slate-200'
                                     };
                                 @endphp
@@ -126,9 +126,11 @@
                                 @php
                                     $badgeE = match($s->estatus) {
                                         'NOTIFICADA' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                        'EN_REVISION' => 'bg-purple-50 text-purple-700 border-purple-200',
-                                        'SUBSANADA' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                        'DESESTIMADA' => 'bg-slate-100 text-slate-600 border-slate-200',
+                                        'EN_SUBSANACION' => 'bg-purple-50 text-purple-700 border-purple-200',
+                                        'RESUELTA' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                        'PAGADA' => 'bg-blue-50 text-blue-700 border-blue-200',
+                                        'CONDONADA' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                        'ARCHIVADA' => 'bg-slate-100 text-slate-600 border-slate-200',
                                         default => 'bg-slate-100 text-slate-600'
                                     };
                                 @endphp
@@ -149,7 +151,7 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
-                                @if(in_array($s->estatus, ['NOTIFICADA', 'EN_REVISION', 'PENDIENTE_NOTIFICACION']))
+                                @if(in_array($s->estatus, ['NOTIFICADA', 'EN_SUBSANACION']))
                                     <button type="button" 
                                             @click="sancionSeleccionada = {{ json_encode($s) }}; modalResolver = true"
                                             class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] transition shadow-xs cursor-pointer">
@@ -260,9 +262,9 @@
                             <div>
                                 <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Gravedad *</label>
                                 <select name="gravedad" x-model="gravedad" @change="actualizarUnidadesTributarias()" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500" translate="no">
-                                    <option value="LEVE" translate="no">LEVE</option>
-                                    <option value="GRAVE" translate="no">GRAVE</option>
-                                    <option value="MUY_GRAVE" translate="no">MUY GRAVE</option>
+                                    <option value="LEVE">LEVE</option>
+                                    <option value="MEDIA">MEDIA</option>
+                                    <option value="GRAVE">GRAVE</option>
                                 </select>
                             </div>
 
@@ -401,7 +403,7 @@
             <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center shrink-0">
                 <div translate="no">
                     <h3 class="font-bold text-slate-800 text-base">Evaluación y Resolución de Sanción (Presencial)</h3>
-                    <p class="text-xs text-slate-500 font-mono" x-text="sancionSeleccionada?.codigo_expediente"></p>
+                    <p class="text-xs text-slate-500 font-mono" x-text="sancionSeleccionada?.codigo_sancion"></p>
                 </div>
                 <button type="button" @click="modalResolver = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">&times;</button>
             </div>
@@ -426,8 +428,8 @@
                     <div>
                         <label class="block font-bold text-slate-700 uppercase mb-1" translate="no">Dictamen Final del Director *</label>
                         <select name="estatus" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-emerald-500" translate="no">
-                            <option value="SUBSANADA" translate="no">SUBSANADA (Aprobada subsanación presencial y retirada la sanción)</option>
-                            <option value="DESESTIMADA" translate="no">DESESTIMADA (Anulada por improcedencia)</option>
+                            <option value="RESUELTA">RESUELTA (Aprobada subsanación presencial y retirada la sanción)</option>
+                            <option value="ARCHIVADA">ARCHIVADA (Anulada por improcedencia)</option>
                         </select>
                     </div>
 
@@ -522,11 +524,11 @@ function sancionManager() {
         },
 
         actualizarUnidadesTributarias() {
-            const valores = {
-                'LEVE': 20,
-                'GRAVE': 50,
-                'MUY_GRAVE': 100
-            };
+                const valores = {
+                    'LEVE': 20,
+                    'MEDIA': 50,
+                    'GRAVE': 100
+                };
             this.unidadesTributarias = valores[this.gravedad] || 20;
         },
 

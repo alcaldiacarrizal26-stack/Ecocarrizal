@@ -42,7 +42,11 @@ class EmpresaController extends Controller
             return redirect()->route('ciudadano.empresas');
         }
 
-        $requisitosCatalogo = RequisitoEmpresaCatalogo::all();
+        // Requisitos activos, con toda la metadata nueva
+        $requisitosCatalogo = RequisitoEmpresaCatalogo::where('activo', true)
+            ->orderBy('orden')
+            ->orderBy('nombre')
+            ->get();
 
         return view('ciudadano.empresa.crear', compact('empresa', 'requisitosCatalogo'));
     }
@@ -165,6 +169,24 @@ class EmpresaController extends Controller
                     $esGenerador = ($rolAmbiental === 'GENERADOR');
                     $esManejador = ($rolAmbiental === 'MANEJADOR');
 
+                    // SALVAGUARDA: Si el rol es NO_APLICA, forzar todos los flags a false
+                    if ($rolAmbiental === 'NO_APLICA') {
+                        $perfilData['genera_efluentes']  = false;
+                        $perfilData['genera_emisiones']  = false;
+                        $perfilData['genera_peligrosos'] = false;
+                        $perfilData['genera_ruidos']     = false;
+                        $perfilData['usa_pozo_agua']     = false;
+                        $perfilData['modalidad_manejadora'] = null;
+                        $perfilData['modalidad_atencion_manejador'] = null;
+                        $perfilData['manejadora_contratada'] = null;
+                        $perfilData['manejadora_rif'] = null;
+                        $perfilData['manejadora_racda'] = null;
+                        $perfilData['generador_exclusivo_nombre'] = null;
+                        $perfilData['generador_exclusivo_rif'] = null;
+                        $perfilData['generador_exclusivo_racda'] = null;
+                        $perfilData['subtipo_generador'] = null;
+                    }
+
                     $empresa->perfilAmbiental()->create([
                         'rol_ambiental'                => $rolAmbiental,
                         'subtipo_generador'            => $esGenerador ? ($perfilData['subtipo_generador'] ?? 'PEQUENO') : null,
@@ -195,32 +217,65 @@ class EmpresaController extends Controller
                     ]);
                 }
 
+                // VALIDACIÓN SERVER-SIDE DE REQUISITOS OBLIGATORIOS
+                if (!isset($perfilData)) {
+                    $perfilData = $request->input('perfil', []);
+                    if (is_string($perfilData)) {
+                        $perfilData = json_decode($perfilData, true) ?: [];
+                    }
+                }
+
+                $requisitosInfo = $this->getRequisitosEsperados($perfilData, $request->rif);
+                $documentosSubidosIds = array_map('intval', array_keys($request->file('documentos', []) ?: []));
+
+                $faltantes = $requisitosInfo['obligatorios']
+                    ->filter(fn($req) => !in_array($req->id, $documentosSubidosIds))
+                    ->pluck('nombre')
+                    ->values()
+                    ->toArray();
+
+                if (!empty($faltantes)) {
+                    $mensaje = 'Faltan los siguientes recaudos obligatorios: ' . implode(', ', $faltantes);
+
+                    if ($request->wantsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $mensaje,
+                            'errors'  => ['documentos' => [$mensaje]],
+                        ], 422);
+                    }
+
+                    return redirect()->back()->withInput()->withErrors(['documentos' => $mensaje]);
+                }
+
                 if ($request->hasFile('documentos')) {
                     $fechasEmision     = $request->input('fechas_emision', []);
                     $fechasVencimiento = $request->input('fechas_vencimiento', []);
                     $esVitalicio       = $request->input('es_vitalicio', []);
 
-                    foreach ($request->file('documentos') as $codigoRequisito => $file) {
+                    foreach ($request->file('documentos') as $requisitoId => $file) {
                         if ($file && $file->isValid()) {
                             $path = $file->store("expedientes/{$empresa->id}", 'public');
 
-                            $vitalicio = filter_var($esVitalicio[$codigoRequisito] ?? false, FILTER_VALIDATE_BOOLEAN);
-
-                            // CORREGIDO: Obtener el ID del catálogo
-                            $catalogoRequisito = RequisitoEmpresaCatalogo::where('codigo', strtoupper($codigoRequisito))->first();
+                            // CORREGIDO: buscar por ID (único) en lugar de por código
+                            $catalogoRequisito = RequisitoEmpresaCatalogo::find((int) $requisitoId);
                             
-                            if ($catalogoRequisito) {
-                                $empresa->documentosExpediente()->updateOrCreate(
-                                    ['requisito_id' => $catalogoRequisito->id], // <-- BUSCAMOS POR ID
-                                    [
-                                        'archivo_path'      => $path,
-                                        'fecha_emision'     => $fechasEmision[$codigoRequisito] ?? null,
-                                        'fecha_vencimiento' => $vitalicio ? null : ($fechasVencimiento[$codigoRequisito] ?? null),
-                                        'es_vitalicio'      => $vitalicio,
-                                        'estado_revision'   => 'OBSERVADO', // <-- CORREGIDO (PENDIENTE no existe)
-                                    ]
-                                );
+                            if (!$catalogoRequisito) {
+                                continue; // Requisito inexistente, saltar
                             }
+
+                            $vitalicio = filter_var($esVitalicio[$requisitoId] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+                            $empresa->documentosExpediente()->updateOrCreate(
+                                ['requisito_id' => $catalogoRequisito->id],
+                                [
+                                    'archivo_path'      => $path,
+                                    'fecha_emision'     => $fechasEmision[$requisitoId] ?? null,
+                                    'fecha_vencimiento' => $vitalicio ? null : ($fechasVencimiento[$requisitoId] ?? null),
+                                    'es_vitalicio'      => $vitalicio,
+                                    'estado_revision'   => 'OBSERVADO',
+                                ]
+                            );
                         }
                     }
                 }
@@ -300,5 +355,54 @@ class EmpresaController extends Controller
         ]);
 
         return redirect()->route('ciudadano.empresas')->with('success', 'Documento actualizado y enviado a revisión correctamente.');
+    }
+
+    /**
+     * Determina qué requisitos aplican según el perfil ambiental y el RIF de la empresa.
+     * Devuelve los IDs de todos los aplicables y la colección de los obligatorios.
+     */
+    private function getRequisitosEsperados(array $perfilData, string $rif): array
+    {
+        $rol = $perfilData['rol_ambiental'] ?? 'GENERADOR';
+        $rifPrefix = strtoupper(substr(trim($rif), 0, 1));
+        $esPersonaJuridica = in_array($rifPrefix, ['J', 'G']);
+
+        $todos = RequisitoEmpresaCatalogo::where('activo', true)->get();
+
+        $obligatorios = collect();
+
+        foreach ($todos as $req) {
+            // 1. Filtrar por rol
+            $roles = array_map('trim', explode(',', $req->aplica_a_rol ?? 'TODOS'));
+            if (!in_array('TODOS', $roles) && !in_array($rol, $roles)) {
+                continue;
+            }
+
+            // 2. Filtrar por condicion_flag
+            if ($req->condicion_flag) {
+                $aplica = match ($req->condicion_flag) {
+                    'genera_peligrosos'      => filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_efluentes'       => filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_emisiones'       => filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'usa_pozo_agua'          => filter_var($perfilData['usa_pozo_agua'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'genera_riesgo_ambiental' => (
+                        filter_var($perfilData['genera_peligrosos'] ?? false, FILTER_VALIDATE_BOOLEAN)
+                        || filter_var($perfilData['genera_efluentes'] ?? false, FILTER_VALIDATE_BOOLEAN)
+                        || filter_var($perfilData['genera_emisiones'] ?? false, FILTER_VALIDATE_BOOLEAN)
+                    ),
+                    'modalidad_externa'      => ($perfilData['modalidad_manejadora'] ?? '') === 'EXTERNA',
+                    'es_persona_juridica'    => $esPersonaJuridica,
+                    default                  => true,
+                };
+
+                if (!$aplica) continue;
+            }
+
+            if ($req->tipo_requisito === 'OBLIGATORIO') {
+                $obligatorios->push($req);
+            }
+        }
+
+        return ['obligatorios' => $obligatorios];
     }
 }

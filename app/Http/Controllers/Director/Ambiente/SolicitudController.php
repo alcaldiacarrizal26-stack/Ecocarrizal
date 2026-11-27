@@ -21,15 +21,16 @@ class SolicitudController extends Controller
 
         $stats = [
             'total_solicitudes'  => array_sum($rawStats),
-            'incompleta'         => $rawStats['INCOMPLETA'] ?? 0, // <-- MAYÚSCULAS
+            'incompleta'         => $rawStats['INCOMPLETA'] ?? 0,
             'pendiente'          => $rawStats['PENDIENTE'] ?? 0,
             'inspector_asignado' => $rawStats['INSPECTOR_ASIGNADO'] ?? 0,
             'en_inspeccion'      => $rawStats['EN_INSPECCION'] ?? 0,
-            'aprobada'           => $rawStats['APROBADO'] ?? 0, // <-- Es APROBADO, no APROBADA
-            'rechazada'          => $rawStats['RECHAZADO'] ?? 0, // <-- Es RECHAZADO
+            'aprobada'           => $rawStats['APROBADO'] ?? 0,
+            'rechazada'          => $rawStats['RECHAZADO'] ?? 0,
         ];
 
-        $query = Solicitud::with(['usuario', 'inspector', 'recaudos.recaudoCatalogo']);
+        // CORREGIDO: Se agregó 'tipoTramite' al Eager Loading para evitar N+1
+        $query = Solicitud::with(['usuario', 'inspector', 'recaudos.recaudoCatalogo', 'tipoTramite']);
 
         if ($request->filled('estado') && $request->estado !== 'todos') {
             $query->where('estado', $request->estado);
@@ -41,7 +42,7 @@ class SolicitudController extends Controller
                 $q->whereIn('nombre', ['director', 'inspector']);
             })
             ->where('is_active', true)
-            ->with(['role', 'direccion', 'credencialInspector']) // <-- Corregido
+            ->with(['role', 'direccion', 'credencialInspector'])
             ->get();
 
         return view('director.ambiente.solicitudes', compact('solicitudes', 'stats', 'funcionarios'));
@@ -51,7 +52,7 @@ class SolicitudController extends Controller
     {
         $solicitud = Solicitud::with('usuario')->findOrFail($id);
 
-        if (!in_array($solicitud->estado, ['PENDIENTE', 'INSPECTOR_ASIGNADO'])) { // <-- MAYÚSCULAS
+        if (!in_array($solicitud->estado, ['PENDIENTE', 'INSPECTOR_ASIGNADO'])) {
             return redirect()->back()->with('error', 'Solo se pueden asignar funcionarios a solicitudes pendientes o con inspector asignado.');
         }
 
@@ -87,7 +88,7 @@ class SolicitudController extends Controller
                 'user_id'  => $solicitud->user_id,
                 'titulo'   => 'Solicitud en Inspección',
                 'mensaje'  => 'Se ha asignado un funcionario inspector a tu solicitud ambiental para su revisión en campo.',
-                'tipo'     => 'INFORMACION', // <-- MAYÚSCULAS
+                'tipo'     => 'INFORMACION',
                 'link_url' => '#',
             ]);
         }
@@ -110,7 +111,7 @@ class SolicitudController extends Controller
     {
         $solicitud = Solicitud::with('usuario')->findOrFail($id);
 
-        if ($solicitud->estado !== 'PENDIENTE') { // <-- MAYÚSCULAS
+        if ($solicitud->estado !== 'PENDIENTE') {
             return redirect()->back()->with('error', 'Solo se pueden rechazar solicitudes que se encuentren en estatus pendiente.');
         }
 
@@ -118,7 +119,7 @@ class SolicitudController extends Controller
             'motivo_rechazo' => 'required|string|max:500',
         ]);
 
-        $solicitud->estado        = 'RECHAZADO'; // <-- MAYÚSCULAS
+        $solicitud->estado        = 'RECHAZADO';
         $solicitud->observaciones = $request->motivo_rechazo;
         $solicitud->fecha_cierre  = now();
         $solicitud->save();
@@ -128,7 +129,7 @@ class SolicitudController extends Controller
                 'user_id'  => $solicitud->user_id,
                 'titulo'   => 'Solicitud de Trámite Rechazada',
                 'mensaje'  => 'Tu solicitud de trámite ambiental ha sido rechazada. Motivo: ' . $request->motivo_rechazo,
-                'tipo'     => 'ERROR', // <-- MAYÚSCULAS
+                'tipo'     => 'ERROR',
                 'link_url' => '#',
             ]);
         }

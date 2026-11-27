@@ -197,9 +197,10 @@ class SolicitudController extends Controller
         $solicitud = Solicitud::with('recaudos')->where('user_id', auth()->id())->findOrFail($id);
 
         if ($solicitud->fecha_limite_documentos && Carbon::now()->gt(Carbon::parse($solicitud->fecha_limite_documentos))) {
-            $solicitud->estado = 'CANCELADO'; // Asumiendo que este estado existe
+            $solicitud->estado = 'RECHAZADO';
+            $solicitud->observaciones = 'Plazo de consignación de documentos vencido.';
             $solicitud->save();
-            return redirect()->route('ciudadano.solicitudes')->with('error', 'El plazo límite ha expirado.');
+            return redirect()->route('ciudadano.solicitudes')->with('error', 'El plazo límite ha expirado. La solicitud ha sido rechazada.');
         }
 
         $request->validate([
@@ -221,7 +222,7 @@ class SolicitudController extends Controller
                             SolicitudRecaudo::updateOrCreate(
                                 [
                                     'solicitud_id' => $solicitud->id,
-                                    'recaudo_catalogo_id' => $recaudoCatalogo->id, // <-- CORREGIDO
+                                    'recaudo_catalogo_id' => $recaudoCatalogo->id,
                                 ],
                                 [
                                     'id'             => (string) Str::uuid(),
@@ -241,7 +242,6 @@ class SolicitudController extends Controller
                 ? $solicitud->datos_especificos 
                 : (json_decode($solicitud->datos_especificos, true) ?? []);
 
-            // Usamos el slug del trámite para buscar las keys esperadas
             $keysEsperadas = $this->getKeysEsperadasParaSolicitud($solicitud->tipoTramite->slug, $datosEspecificos);
             
             $consignados = $solicitud->recaudos->map(function($rec) {

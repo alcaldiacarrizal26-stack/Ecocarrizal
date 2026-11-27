@@ -44,6 +44,8 @@
             $currentActive = 'residuos_sanciones';
         } elseif (request()->routeIs('director.residuos.declaraciones*') || request()->is('director/residuos/declaraciones*')) {
             $currentActive = 'residuos_declaraciones';
+        } elseif (request()->routeIs('director.residuos.catalogo*') || request()->is('director/residuos/catalogo*')) {
+            $currentActive = 'residuos_catalogo';
         } elseif (request()->routeIs('director.residuos.empresas*') || request()->is('director/residuos/empresas*')) {
             $currentActive = 'residuos_empresas';
         } elseif (request()->routeIs('*declaraciones*') || request()->is('*/declaraciones*')) {
@@ -52,6 +54,8 @@
             $currentActive = 'inspecciones';
         } elseif (request()->routeIs('*empresas*') || request()->is('*/empresas*')) {
             $currentActive = $prefix === 'ciudadano' ? 'empresas' : 'residuos_empresas';
+        } elseif (request()->routeIs('*ambiente.catalogo*') || request()->is('*/ambiente/catalogo*')) {
+            $currentActive = 'ambiente_catalogo';
         } elseif (request()->routeIs('*ambiente.denuncias*') || request()->routeIs('*denuncias*') || request()->is('*/ambiente/denuncias*')) {
             $currentActive = 'ambiente_denuncias';
         } elseif (request()->routeIs('*ambiente.solicitudes*') || request()->is('*/ambiente/solicitudes*')) {
@@ -190,7 +194,7 @@
                     Administración Sistema
                 </div>
                 <a href="{{ Route::has('admin.almacenamiento') ? route('admin.almacenamiento') : url('/admin/almacenamiento') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'admin_almacenamiento' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
                     <span>Almacenamiento y Recursos</span>
                 </a>
                 <a href="{{ Route::has('admin.bitacora') ? route('admin.bitacora') : url('/admin/bitacora') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'admin_bitacora' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
@@ -198,7 +202,7 @@
                     <span>Bitácora Auditoría</span>
                 </a>
                 <a href="{{ Route::has('admin.respaldos') ? route('admin.respaldos') : url('/admin/respaldos') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'admin_respaldos' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
-                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
                     <span>Respaldos Base de Datos</span>
                 </a>
                 <a href="{{ route('admin.usuarios.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'admin_usuarios' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
@@ -266,6 +270,13 @@
                             </span>
                         @endif
                     </a>
+
+                    <a href="{{ Route::has('director.ambiente.catalogo.index') ? route('director.ambiente.catalogo.index') : url('/director/ambiente/catalogo-tramites') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'ambiente_catalogo' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                            <span class="truncate">Catálogo de Trámites</span>
+                        </div>
+                    </a>
                 @endif
 
                 @if($verResiduos)
@@ -294,6 +305,15 @@
                                 {{ $countDeclaraciones }}
                             </span>
                         @endif
+                    </a>
+
+                    <a href="{{ Route::has('director.residuos.catalogo.index') ? route('director.residuos.catalogo.index') : url('/director/residuos/catalogo') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ $currentActive === 'residuos_catalogo' ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/25' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                            </svg>
+                            <span class="truncate">Catálogo de Requisitos</span>
+                        </div>
                     </a>
                 @endif
             @endif

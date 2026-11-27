@@ -8,6 +8,8 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 // Modelos Utilizados
 use App\Models\Inspector;
+use App\Models\RequisitoEmpresaCatalogo;
+use App\Models\TipoTramite;
 use App\Models\User;
 
 // Controladores Generales
@@ -30,6 +32,7 @@ use App\Http\Controllers\Director\Ambiente\InspectorController as AmbienteInspec
 use App\Http\Controllers\Director\Ambiente\DenunciaController as AmbienteDenunciaController;
 use App\Http\Controllers\Director\Ambiente\SolicitudController as AmbienteSolicitudController;
 use App\Http\Controllers\Director\Ambiente\CompensacionController as AmbienteCompensacionController;
+use App\Http\Controllers\Director\Ambiente\CatalogoTramiteController as AmbienteCatalogoTramiteController;
 use App\Http\Controllers\Director\Ambiente\AmbienteDashboardController;
 use App\Http\Controllers\Director\Residuos\EmpresaController as ResiduosEmpresaController;
 use App\Http\Controllers\Director\Residuos\DeclaracionResiduoController as ResiduosDeclaracionResiduoController;
@@ -49,7 +52,7 @@ use App\Http\Controllers\Admin\UsuarioController;
 
 Route::get('/validar-expediente/{codigo}', function ($codigo) {
     $solicitud = \App\Models\Solicitud::with(['usuario', 'recaudos', 'inspector.user'])
-        ->where('codigo_expediente', $codigo)
+        ->where('codigo_solicitud', $codigo)
         ->first();
 
     return view('public.validar-expediente', compact('solicitud', 'codigo'));
@@ -57,7 +60,7 @@ Route::get('/validar-expediente/{codigo}', function ($codigo) {
 
 // Ruta Pública para validar la autenticidad del Acta de Inspección por QR
 Route::get('/validar-acta/{codigo}', function ($codigo) {
-    $inspeccion = \App\Models\Inspeccion::with(['inspector.inspector', 'ordenInspeccion.empresa', 'empresa'])
+    $inspeccion = \App\Models\Inspeccion::with(['inspector.credencialInspector', 'ordenInspeccion.empresa', 'empresa'])
         ->where('codigo_acta', $codigo)
         ->first();
 
@@ -237,6 +240,18 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
         // Compensación Ambiental
         Route::get('/compensacion', [AmbienteCompensacionController::class, 'index'])->name('compensacion');
         Route::post('/compensacion/entregas/{entrega}/evaluar', [AmbienteCompensacionController::class, 'evaluarEntrega'])->name('compensacion.evaluar');
+
+        // Catálogo de Trámites y Recaudos
+        Route::prefix('catalogo-tramites')->name('catalogo.')->group(function () {
+            Route::get('/', [AmbienteCatalogoTramiteController::class, 'index'])->name('index');
+            Route::post('/tramites', [AmbienteCatalogoTramiteController::class, 'storeTramite'])->name('tramites.store');
+            Route::put('/tramites/{tramite}', [AmbienteCatalogoTramiteController::class, 'updateTramite'])->name('tramites.update');
+            Route::delete('/tramites/{tramite}', [AmbienteCatalogoTramiteController::class, 'destroyTramite'])->name('tramites.destroy');
+
+            Route::post('/tramites/{tramite}/recaudos', [AmbienteCatalogoTramiteController::class, 'storeRecaudo'])->name('recaudos.store');
+            Route::put('/recaudos/{recaudo}', [AmbienteCatalogoTramiteController::class, 'updateRecaudo'])->name('recaudos.update');
+            Route::delete('/recaudos/{recaudo}', [AmbienteCatalogoTramiteController::class, 'destroyRecaudo'])->name('recaudos.destroy');
+        });
     });
 
     // ---------------------------------------------------------
@@ -256,20 +271,25 @@ Route::middleware(['auth', 'role:director,admin'])->prefix('director')->name('di
             Route::get('/', [ResiduosEmpresaController::class, 'index'])->name('index');
             Route::get('/{empresa}', [ResiduosEmpresaController::class, 'show'])->name('show');
             Route::post('/{empresa}/evaluar', [ResiduosEmpresaController::class, 'evaluar'])->name('evaluar');
-            Route::patch('/{empresa}/estatus', [ResiduosEmpresaController::class, 'updateEstatus'])->name('updateEstatus');
 
             // Fiscalización e Inspecciones
             Route::get('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'inspecciones'])->name('inspecciones.index');
             Route::post('/{empresa}/inspecciones', [ResiduosEmpresaController::class, 'asignarInspeccion'])->name('inspecciones.store');
             Route::delete('/inspecciones/{orden}/eliminar', [ResiduosEmpresaController::class, 'eliminarInspeccion'])->name('inspecciones.destroy');
 
-            // Monitoreo de Declaraciones por Empresa
-            Route::get('/{empresa}/declaraciones', [ResiduosEmpresaController::class, 'declaraciones'])->name('declaraciones');
-
             // Citaciones y Sanciones Administrativas
             Route::get('/{empresa}/sanciones', [ResiduosEmpresaController::class, 'sanciones'])->name('sanciones.index');
             Route::post('/{empresa}/sanciones', [ResiduosEmpresaController::class, 'asignarSancion'])->name('sanciones.store');
             Route::patch('/sanciones/{sancion}/resolver', [ResiduosEmpresaController::class, 'resolverSancion'])->name('sanciones.resolver');
+        });
+
+        // Catálogo de Requisitos Empresariales
+        Route::prefix('catalogo')->name('catalogo.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Director\Residuos\CatalogoRequisitoController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Director\Residuos\CatalogoRequisitoController::class, 'store'])->name('store');
+            Route::put('/{requisito}', [\App\Http\Controllers\Director\Residuos\CatalogoRequisitoController::class, 'update'])->name('update');
+            Route::delete('/{requisito}', [\App\Http\Controllers\Director\Residuos\CatalogoRequisitoController::class, 'destroy'])->name('destroy');
+            Route::patch('/{requisito}/toggle', [\App\Http\Controllers\Director\Residuos\CatalogoRequisitoController::class, 'toggleActivo'])->name('toggle');
         });
     });
 
@@ -369,7 +389,7 @@ Route::middleware(['auth', 'role:director,admin'])->group(function () {
                     'id' => $user->id,
                     'nombre' => $nombreCompleto ?: 'Usuario #' . $user->id,
                     'cedula' => $user->cedula ?? 'S/C',
-                    'credencial' => $user->inspector->codigo_credencial ?? $rolNombre,
+                    'credencial' => $user->inspector->credencialInspector ?? $rolNombre,
                     'especialidad' => $user->inspector->especialidad ?? ($user->direccion->nombre_direc ?? $rolNombre),
                     'rol' => $rolNombre,
                 ];

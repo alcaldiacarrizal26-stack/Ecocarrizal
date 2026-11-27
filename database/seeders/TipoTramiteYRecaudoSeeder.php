@@ -36,7 +36,7 @@ class TipoTramiteYRecaudoSeeder extends Seeder
                         ['key' => 'registro_mercantil', 'label' => 'Copia del Registro Mercantil', 'hint' => 'Requerido para Personas Jurídicas'],
                         ['key' => 'rif_empresa', 'label' => 'Copia del RIF Vigente de la Empresa', 'hint' => 'Requerido para Personas Jurídicas']
                     ],
-                    'OPCIONAL' => [
+                    'DIFERIDO' => [
                         ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                         ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                         ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
@@ -60,7 +60,7 @@ class TipoTramiteYRecaudoSeeder extends Seeder
                         ['key' => 'registro_mercantil', 'label' => 'Copia del Registro Mercantil', 'hint' => 'Requerido para Personas Jurídicas'],
                         ['key' => 'rif_empresa', 'label' => 'Copia del RIF Vigente de la Empresa', 'hint' => 'Requerido para Personas Jurídicas']
                     ],
-                    'OPCIONAL' => [
+                    'DIFERIDO' => [
                         ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                         ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                         ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],
@@ -83,7 +83,7 @@ class TipoTramiteYRecaudoSeeder extends Seeder
                         ['key' => 'registro_mercantil', 'label' => 'Copia del Registro Mercantil', 'hint' => 'Requerido para Personas Jurídicas'],
                         ['key' => 'rif_empresa', 'label' => 'Copia del RIF Vigente de la Empresa', 'hint' => 'Requerido para Personas Jurídicas']
                     ],
-                    'OPCIONAL' => [
+                    'DIFERIDO' => [
                         ['key' => 'doc_propiedad', 'label' => 'Documento de Propiedad Registrado', 'hint' => 'Título o documento legal'],
                         ['key' => 'plano_ubicacion', 'label' => 'Plano de Ubicación del Terreno', 'hint' => 'Croquis o plano de mensura'],
                         ['key' => 'solvencia_municipal', 'label' => 'Solvencia Municipal Vigente', 'hint' => 'Emitida por la Alcaldía'],

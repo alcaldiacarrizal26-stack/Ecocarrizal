@@ -75,8 +75,11 @@
     {{-- BLOQUE 2: Perfil Ambiental Dinámico --}}
     @if($empresa->perfilAmbiental)
     @php
-        $perfil = $empresa->perfilAmbiental;
-        $esManejador = strtoupper($perfil->rol_ambiental ?? '') === 'MANEJADOR';
+        $perfil        = $empresa->perfilAmbiental;
+        $rolAmbiental  = strtoupper($perfil->rol_ambiental ?? '');
+        $esManejador   = $rolAmbiental === 'MANEJADOR';
+        $esGenerador   = $rolAmbiental === 'GENERADOR';
+        $esNoAplica    = $rolAmbiental === 'NO_APLICA';
     @endphp
     <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
@@ -84,29 +87,35 @@
                 <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Perfil y Diagnóstico Ambiental</h2>
                 <p class="text-xs text-slate-600 mt-0.5">Clasificación operativa y parámetros de control ecológico</p>
             </div>
-            <span class="px-3 py-1 text-xs font-extrabold rounded-full border self-start sm:self-auto {{ $esManejador ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200' }}">
+            <span class="px-3 py-1 text-xs font-extrabold rounded-full border self-start sm:self-auto
+                {{ $esManejador ? 'bg-amber-50 text-amber-700 border-amber-200' : '' }}
+                {{ $esGenerador ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : '' }}
+                {{ $esNoAplica ? 'bg-slate-100 text-slate-700 border-slate-300' : '' }}">
                 ROL: {{ $perfil->rol_ambiental ?? 'GENERADOR' }}
             </span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            @if(!$esManejador)
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Clasificación Generador</span>
-                    <span class="block text-sm font-bold text-slate-800 mt-1">{{ $perfil->subtipo_generador ?? 'No especificado' }}</span>
+        {{-- ============================================ --}}
+        {{-- CASO 1: NO_APLICA (Bajo Impacto)           --}}
+        {{-- ============================================ --}}
+        @if($esNoAplica)
+            <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
+                <div class="mx-auto w-12 h-12 bg-slate-200 rounded-2xl flex items-center justify-center text-slate-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">N° RACDA Principal</span>
-                    <span class="block text-sm font-bold text-emerald-700 font-mono mt-1">{{ $perfil->numero_racda ?? 'N/A' }}</span>
-                </div>
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Modalidad de Manejo</span>
-                    <span class="block text-sm font-bold text-slate-800 mt-1">{{ $perfil->modalidad_manejadora ?? 'Externa' }}</span>
-                    @if($perfil->manejadora_nombre)
-                        <span class="block text-[11px] text-slate-500 mt-0.5">Contratada: <strong class="text-slate-700">{{ $perfil->manejadora_nombre }}</strong> (RIF: {{ $perfil->manejadora_rif }})</span>
-                    @endif
-                </div>
-            @else
+                <h3 class="text-sm font-bold text-slate-800">Categoría de Bajo Impacto Ambiental</h3>
+                <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    Actividad administrativa o comercial <strong>sin generación de residuos peligrosos</strong>,
+                    sin efluentes industriales, emisiones atmosféricas controladas ni uso de pozo de agua.
+                    <br>No requiere Registro RACDA según la normativa vigente.
+                </p>
+            </div>
+
+        {{-- ============================================ --}}
+        {{-- CASO 2: MANEJADOR                          --}}
+        {{-- ============================================ --}}
+        @elseif($esManejador)
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
                     <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">N° RACDA Manejador</span>
                     <span class="block text-sm font-bold text-amber-700 font-mono mt-1">{{ $perfil->numero_racda ?? 'N/A' }}</span>
@@ -122,11 +131,45 @@
                         <span class="block text-[11px] text-slate-500 mt-0.5">Exclusivo para: <strong class="text-slate-700">{{ $perfil->generador_exclusivo_nombre }}</strong></span>
                     @endif
                 </div>
-            @endif
-        </div>
+            </div>
 
-        {{-- Parámetros según Rol --}}
-        @if(!$esManejador)
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Actividades de Manejo Autorizadas</span>
+                <div class="flex flex-wrap gap-2">
+                    @if(!empty($perfil->actividades_manejador))
+                        @foreach($perfil->actividades_manejador as $actividad)
+                            <span class="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold uppercase">
+                                {{ str_replace('_', ' ', $actividad) }}
+                            </span>
+                        @endforeach
+                    @else
+                        <span class="text-xs text-slate-400 italic">No se especificaron actividades secundarias de manejo.</span>
+                    @endif
+                </div>
+            </div>
+
+        {{-- ============================================ --}}
+        {{-- CASO 3: GENERADOR (default)                --}}
+        {{-- ============================================ --}}
+        @else
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Clasificación Generador</span>
+                    <span class="block text-sm font-bold text-slate-800 mt-1">{{ $perfil->subtipo_generador ?? 'No especificado' }}</span>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">N° RACDA Principal</span>
+                    <span class="block text-sm font-bold text-emerald-700 font-mono mt-1">{{ $perfil->numero_racda ?? 'N/A' }}</span>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Modalidad de Manejo</span>
+                    <span class="block text-sm font-bold text-slate-800 mt-1">{{ $perfil->modalidad_manejadora ?? 'Externa' }}</span>
+                    @if($perfil->manejadora_nombre)
+                        <span class="block text-[11px] text-slate-500 mt-0.5">Contratada: <strong class="text-slate-700">{{ $perfil->manejadora_nombre }}</strong> (RIF: {{ $perfil->manejadora_rif }})</span>
+                    @endif
+                </div>
+            </div>
+
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
                 <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                     <span class="text-slate-500 font-medium">Efluentes Líquidos</span>
@@ -145,21 +188,6 @@
                     <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {{ $perfil->usa_pozo_agua ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600' }}">{{ $perfil->usa_pozo_agua ? 'SÍ' : 'NO' }}</span>
                 </div>
             </div>
-        @else
-            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Actividades de Manejo Autorizadas</span>
-                <div class="flex flex-wrap gap-2">
-                    @if(!empty($perfil->actividades_manejador))
-                        @foreach($perfil->actividades_manejador as $actividad)
-                            <span class="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold uppercase">
-                                {{ str_replace('_', ' ', $actividad) }}
-                            </span>
-                        @endforeach
-                    @else
-                        <span class="text-xs text-slate-400 italic">No se especificaron actividades secundarias de manejo.</span>
-                    @endif
-                </div>
-            </div>
         @endif
     </div>
     @endif
@@ -171,18 +199,23 @@
         @if($empresa->documentosExpediente && $empresa->documentosExpediente->count() > 0)
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 @foreach($empresa->documentosExpediente as $doc)
+                    {{-- CORREGIDO: usar la relación requisito --}}
+                    @php
+                        $nombreReq = $doc->requisito->nombre ?? 'Documento';
+                        $codigoReq = $doc->requisito->codigo ?? 'N/A';
+                    @endphp
                     <div class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 rounded-2xl">
                         <div class="truncate mr-3">
                             <div class="flex items-center gap-2">
-                                <p class="text-xs font-bold text-slate-800 truncate" title="{{ $doc->nombre_requisito }}">
-                                    {{ $doc->nombre_requisito }}
+                                <p class="text-xs font-bold text-slate-800 truncate" title="{{ $nombreReq }}">
+                                    {{ $nombreReq }}
                                 </p>
                                 <span class="px-2 py-0.5 text-[9px] font-bold uppercase rounded-md border 
-                                    {{ in_array(strtoupper($doc->estado_revision ?? $doc->estado ?? ''), ['VALIDO', 'APROBADO']) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200' }}">
-                                    {{ $doc->estado_revision ?? $doc->estado ?? 'PENDIENTE' }}
+                                    {{ in_array(strtoupper($doc->estado_revision ?? ''), ['VALIDO']) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200' }}">
+                                    {{ $doc->estado_revision ?? 'PENDIENTE' }}
                                 </span>
                             </div>
-                            <p class="text-[11px] text-slate-400 mt-0.5 font-mono">Cod: {{ $doc->codigo_requisito }}</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5 font-mono">Cod: {{ $codigoReq }}</p>
                         </div>
                         @if($doc->archivo_path)
                             @php
@@ -218,7 +251,7 @@
                     <thead>
                         <tr class="border-b border-slate-100 text-slate-400 uppercase text-[10px] font-bold">
                             <th class="py-2 px-3">Periodo</th>
-                            <th class="py-2 px-3">Frecuencia</th>
+                            {{-- CORREGIDO: columna Frecuencia eliminada --}}
                             <th class="py-2 px-3">Comunes (TON)</th>
                             <th class="py-2 px-3">Reciclables (TON)</th>
                             <th class="py-2 px-3">Peligrosas (TON)</th>
@@ -229,7 +262,7 @@
                         @foreach($empresa->declaracionesResiduos as $decl)
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="py-3 px-3 font-bold font-mono text-indigo-600">{{ $decl->periodo }}</td>
-                                <td class="py-3 px-3 uppercase text-[11px]">{{ $decl->frecuencia }}</td>
+                                {{-- CORREGIDO: sin frecuencia --}}
                                 <td class="py-3 px-3 font-mono">{{ number_format((float) $decl->toneladas_comunes, 3) }}</td>
                                 <td class="py-3 px-3 font-mono text-emerald-600 font-bold">{{ number_format((float) $decl->toneladas_reciclables, 3) }}</td>
                                 <td class="py-3 px-3 font-mono text-rose-600 font-bold">{{ number_format((float) $decl->toneladas_peligrosas, 3) }}</td>
@@ -270,10 +303,11 @@
                     <tbody class="divide-y divide-slate-50 text-slate-700">
                         @foreach($empresa->sanciones as $sancion)
                             <tr class="hover:bg-slate-50/50 transition">
-                                <td class="py-3 px-3 font-bold font-mono text-rose-600">{{ $sancion->codigo_expediente ?? 'N/A' }}</td>
+                                {{-- CORREGIDO: codigo_expediente → codigo_sancion --}}
+                                <td class="py-3 px-3 font-bold font-mono text-rose-600">{{ $sancion->codigo_sancion ?? 'N/A' }}</td>
                                 <td class="py-3 px-3">
-                                    <strong class="block text-slate-800">{{ $sancion->tipo_infraccion }}</strong>
-                                    <span class="text-[11px] text-slate-500">{{ $sancion->motivo_descripcion }}</span>
+                                    <strong class="block text-slate-800">{{ str_replace('_', ' ', $sancion->tipo_infraccion) }}</strong>
+                                    <span class="text-[11px] text-slate-500 line-clamp-1">{{ $sancion->motivo_descripcion }}</span>
                                 </td>
                                 <td class="py-3 px-3">
                                     <span class="px-2 py-0.5 text-[10px] font-bold rounded uppercase bg-rose-100 text-rose-800">
@@ -283,7 +317,7 @@
                                 <td class="py-3 px-3 text-slate-500">{{ $sancion->fecha_incidencia ? \Carbon\Carbon::parse($sancion->fecha_incidencia)->format('d/m/Y') : 'N/A' }}</td>
                                 <td class="py-3 px-3">
                                     <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-rose-50 text-rose-700">
-                                        {{ $sancion->estatus ?? 'ACTIVA' }}
+                                        {{ $sancion->estatus }}
                                     </span>
                                 </td>
                             </tr>
@@ -310,8 +344,9 @@
                 </div>
                 <div>
                     <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Dictamen Registrado:</span>
+                    {{-- CORREGIDO: observaciones_fiscalia → observaciones_administrativas --}}
                     <p class="text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-200 italic">
-                        {{ $empresa->observaciones_fiscalia ?? 'Sin observaciones especificadas.' }}
+                        {{ $empresa->observaciones_administrativas ?? 'Sin observaciones especificadas.' }}
                     </p>
                 </div>
             </div>
@@ -325,10 +360,11 @@
                 <input type="hidden" name="estatus" x-model="estatusSeleccionado">
 
                 <div>
-                    <label for="observaciones_fiscalia" class="block text-xs font-bold text-slate-700 mb-1">Observaciones / Dictamen Técnico</label>
-                    <textarea id="observaciones_fiscalia" name="observaciones_fiscalia" rows="3" 
+                    {{-- CORREGIDO: name e id → observaciones_administrativas --}}
+                    <label for="observaciones_administrativas" class="block text-xs font-bold text-slate-700 mb-1">Observaciones / Dictamen Técnico</label>
+                    <textarea id="observaciones_administrativas" name="observaciones_administrativas" rows="3" 
                               class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:bg-white transition outline-none"
-                              placeholder="Ingrese los comentarios o justificaciones de la decisión...">{{ old('observaciones_fiscalia', $empresa->observaciones_fiscalia) }}</textarea>
+                              placeholder="Ingrese los comentarios o justificaciones de la decisión...">{{ old('observaciones_administrativas', $empresa->observaciones_administrativas) }}</textarea>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-2.5 pt-2">

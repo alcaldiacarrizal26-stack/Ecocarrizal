@@ -12,7 +12,6 @@ class DocumentoExpediente extends Model
     use HasUuids, Auditable;
     protected string $moduloBitacora = 'documentos_expediente';
     protected $table = 'documentos_expediente';
-    const UPDATED_AT = null;
 
     protected $fillable = [
         'empresa_id',

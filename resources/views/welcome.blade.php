@@ -63,6 +63,11 @@
             <x-welcome.servicios />
         </div>
 
+        <div x-show="activeTab === 'recaudos'" x-cloak>
+            <x-welcome.recaudos-ciudadanos :tramites="$tramitesCiviles" 
+                                           :requisitos-empresas="$requisitosEmpresas"/>
+        </div>
+
         <div x-show="activeTab === 'marco-legal'" x-cloak x-transition.opacity>
             <x-welcome.marco-legal />
         </div>
