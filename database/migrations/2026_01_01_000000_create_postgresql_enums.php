@@ -22,7 +22,7 @@ return new class extends Migration
             "gravedad_sancion_enum"        => "'LEVE', 'MEDIA', 'GRAVE'",
             "estatus_sancion_enum"         => "'NOTIFICADA', 'EN_SUBSANACION', 'RESUELTA', 'PAGADA', 'CONDONADA', 'ARCHIVADA'",
             "estado_inspeccion_enum"       => "'PROGRAMADA', 'EN_CURSO', 'FINALIZADA', 'CANCELADA', 'REQUIERE_REINSPECCION'",
-            "tipo_requisito_enum"          => "'OBLIGATORIO', 'CONDICIONAL', 'OPCIONAL'",
+            "tipo_requisito_enum"          => "'OBLIGATORIO', 'CONDICIONAL', 'DIFERIDO'",
             "estatus_empresa_enum"         => "'PENDIENTE_APROBACION', 'OBSERVADO', 'APROBADO', 'RECHAZADO'",
             "prioridad_ticket_enum"        => "'BAJA', 'MEDIA', 'ALTA'",
             "estatus_ticket_enum"          => "'ABIERTO', 'EN_PROCESO', 'RESUELTO'",

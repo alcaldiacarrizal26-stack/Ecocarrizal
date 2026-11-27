@@ -21,23 +21,6 @@
 
     abrirModalInspeccion() {
         this.modalNuevaInspeccion = true;
-        fetch('/api/inspectores/disponibles', {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(async res => {
-            const data = await res.json();
-            if (!res.ok || !Array.isArray(data)) {
-                throw new Error(data.detalle || data.message || data.error || 'Error al obtener funcionarios');
-            }
-            return data;
-        })
-        .then(data => {
-            window.dispatchEvent(new CustomEvent('cargar-inspectores-select', { detail: data }));
-        })
-        .catch(err => console.error('Error al cargar inspectores:', err));
     }
 }">
 
@@ -96,12 +79,13 @@
                             {{ $orden->tipo_inspeccion === 'DE_OFICIO' ? 'De Oficio / Sorpresa' : 'Ordinaria' }}
                         </span>
                         
+                        {{-- CORREGIDO: valores en UPPERCASE según el enum --}}
                         @php
                             $estatusClasses = match($orden->estatus) {
-                                'en_inspeccion' => 'bg-indigo-100 text-indigo-800 border border-indigo-200',
-                                'inspector_asignado' => 'bg-sky-100 text-sky-800 border border-sky-200',
-                                'atendido' => 'bg-emerald-100 text-emerald-800 border border-emerald-200',
-                                'requiere_reinspeccion' => 'bg-purple-100 text-purple-800 border border-purple-200',
+                                'EN_INSPECCION' => 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+                                'INSPECTOR_ASIGNADO' => 'bg-sky-100 text-sky-800 border border-sky-200',
+                                'ATENDIDO' => 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+                                'REQUIERE_REINSPECCION' => 'bg-purple-100 text-purple-800 border border-purple-200',
                                 default => 'bg-slate-100 text-slate-800'
                             };
                         @endphp
@@ -115,7 +99,8 @@
                             Programada: {{ $orden->fecha_visita_programada ? \Carbon\Carbon::parse($orden->fecha_visita_programada)->format('d/m/Y') : 'N/A' }}
                         </span>
 
-                        @if(in_array($orden->estatus, ['pendiente', 'inspector_asignado']))
+                        {{-- CORREGIDO: valores en UPPERCASE --}}
+                        @if(in_array($orden->estatus, ['PENDIENTE', 'INSPECTOR_ASIGNADO']))
                             <form action="{{ route('director.residuos.empresas.inspecciones.destroy', $orden->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta orden de inspección?');">
                                 @csrf
                                 @method('DELETE')
@@ -129,11 +114,10 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                     <div class="md:col-span-2 space-y-1">
-                        <span class="text-slate-400 font-bold uppercase text-[10px] block">Motivo / Observaciones de Orden</span>
-                        <p class="text-slate-700 leading-relaxed">{{ $orden->observaciones_campo }}</p>
-                        @if($orden->base_legal_inspeccion)
-                            <p class="text-slate-500 italic pt-1"><strong>Base Legal:</strong> {{ $orden->base_legal_inspeccion }}</p>
-                        @endif
+                        {{-- CORREGIDO: observaciones_campo ya no existe, usamos base_legal_inspeccion --}}
+                        <span class="text-slate-400 font-bold uppercase text-[10px] block">Base Legal y Fundamento</span>
+                        <p class="text-slate-700 leading-relaxed">{{ $orden->base_legal_inspeccion }}</p>
+                        
                         @if($orden->orden_adjunta_path)
                             <div class="pt-2">
                                 <a href="{{ asset('storage/' . ltrim($orden->orden_adjunta_path, '/')) }}" target="_blank" class="text-emerald-600 hover:underline font-bold flex items-center gap-1">
@@ -150,13 +134,16 @@
                             <span class="font-bold text-slate-800">{{ $orden->inspector->nombre ?? 'N/A' }} {{ $orden->inspector->apellido ?? '' }}</span>
                         </div>
 
-                        <!-- Veredicto / Acta Asociada si ya fue atendida -->
-                        @if($orden->inspeccion)
+                        {{-- CORREGIDO: relación cambió de inspeccion (singular) a inspecciones (plural) --}}
+                        @if($orden->inspecciones->isNotEmpty())
+                            @php 
+                                $ultimaInspeccion = $orden->inspecciones->sortByDesc('created_at')->first(); 
+                            @endphp
                             <div class="pt-2 border-t border-slate-200">
-                                <span class="text-emerald-700 font-bold uppercase text-[10px] block">Acta Realizada: {{ $orden->inspeccion->codigo_acta }}</span>
-                                <span class="font-extrabold text-slate-800">Dictamen: {{ str_replace('_', ' ', $orden->inspeccion->dictamen) }}</span>
+                                <span class="text-emerald-700 font-bold uppercase text-[10px] block">Acta Realizada: {{ $ultimaInspeccion->codigo_acta }}</span>
+                                <span class="font-extrabold text-slate-800">Dictamen: {{ str_replace('_', ' ', $ultimaInspeccion->dictamen ?? 'PENDIENTE') }}</span>
                                 <div class="mt-1">
-                                    <a href="{{ route('inspecciones.show', $orden->inspeccion->id) }}" class="text-xs font-bold text-emerald-600 hover:underline">
+                                    <a href="{{ route('inspecciones.show', $ultimaInspeccion->id) }}" class="text-xs font-bold text-emerald-600 hover:underline">
                                         Ver Informe Técnico →
                                     </a>
                                 </div>
@@ -223,9 +210,9 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Motivo u Objetivo de la Fiscalización *</label>
-                            <textarea name="observaciones_campo" rows="4" required placeholder="Describa el motivo específico de la visita..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800"></textarea>
+                        {{-- CORREGIDO: eliminado el textarea de "observaciones_campo" que ya no existe en la DB --}}
+                        <div class="p-3 bg-blue-50 rounded-2xl border border-blue-200 text-blue-900 text-[11px]">
+                            <strong>Nota:</strong> El motivo específico se registra durante la inspección en el acta correspondiente.
                         </div>
                     </div>
 

@@ -23,8 +23,8 @@ class AppServiceProvider extends ServiceProvider
         View::composer('director.*', function ($view) {
             $view->with([
                 'countDeclaraciones'  => DeclaracionResiduo::where('estatus', 'PRESENTADA')->count(),
-                'countSolicitudes'    => Solicitud::where('estado', 'pendiente')->count(),
-                'countDenuncias'      => Denuncia::where('estatus', 'pendiente')->count(),
+                'countSolicitudes'    => Solicitud::where('estado', 'PENDIENTE')->count(),
+                'countDenuncias'      => Denuncia::where('estado', 'PENDIENTE')->count(),
                 'countCompensaciones' => EntregaCompensacion::where('estatus', 'PENDIENTE')->count(),
                 'countEmpresas'       => Empresa::where('estatus', 'PENDIENTE_APROBACION')->count(),
             ]);

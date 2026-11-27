@@ -25,7 +25,7 @@ return new class extends Migration {
 
         DB::statement("ALTER TABLE recaudos_catalogo
             ADD CONSTRAINT chk_tipo_requisito
-            CHECK (tipo_requisito IN ('OBLIGATORIO','CONDICIONAL','OPCIONAL'))");
+            CHECK (tipo_requisito IN ('OBLIGATORIO','CONDICIONAL','DIFERIDO'))");
 
         DB::statement("ALTER TABLE recaudos_catalogo
             ADD CONSTRAINT chk_tipo_documento

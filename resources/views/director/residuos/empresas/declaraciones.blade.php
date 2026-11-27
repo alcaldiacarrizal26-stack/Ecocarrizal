@@ -33,16 +33,18 @@
                     <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Estatus</label>
                     <select name="estatus" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         <option value="">-- Todos los Estatus --</option>
+                        {{-- CORREGIDO: ajustado a los valores reales del enum --}}
                         <option value="PRESENTADA" {{ request('estatus') === 'PRESENTADA' ? 'selected' : '' }}>Presentada</option>
-                        <option value="EN_REVISION" {{ request('estatus') === 'EN_REVISION' ? 'selected' : '' }}>En Revisión</option>
-                        <option value="APROBADA" {{ request('estatus') === 'APROBADA' ? 'selected' : '' }}>Aprobada</option>
                         <option value="OBSERVADA" {{ request('estatus') === 'OBSERVADA' ? 'selected' : '' }}>Observada</option>
+                        <option value="CONFORME" {{ request('estatus') === 'CONFORME' ? 'selected' : '' }}>Conforme</option>
+                        <option value="APROBADA" {{ request('estatus') === 'APROBADA' ? 'selected' : '' }}>Aprobada</option>
+                        <option value="RECHAZADA" {{ request('estatus') === 'RECHAZADA' ? 'selected' : '' }}>Rechazada</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Período</label>
-                    <input type="text" name="periodo" value="{{ request('periodo') }}" placeholder="Ej: 2026-03 o 2026-ANUAL"
+                    <input type="text" name="periodo" value="{{ request('periodo') }}" placeholder="Ej: 2026-W12"
                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
 
@@ -65,7 +67,7 @@
                         <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
                             <th class="p-4">Empresa / RIF</th>
                             <th class="p-4">Rol</th>
-                            <th class="p-4">Período / Frecuencia</th>
+                            <th class="p-4">Período</th>
                             <th class="p-4">Resumen Desechos (TON)</th>
                             <th class="p-4">Fecha Presentación</th>
                             <th class="p-4">Estatus</th>
@@ -98,10 +100,15 @@
                                     @endif
                                 </td>
 
-                                <!-- Período -->
+                                <!-- Período (sin frecuencia, que fue eliminada del esquema) -->
                                 <td class="p-4">
                                     <div class="font-medium text-slate-700">{{ $item->periodo }}</div>
-                                    <div class="text-xs text-slate-400">{{ $item->frecuencia }}</div>
+                                    <div class="text-xs text-slate-400">
+                                        {{ $item->fecha_inicio_periodo ? \Carbon\Carbon::parse($item->fecha_inicio_periodo)->format('d/m/Y') : '' }}
+                                        @if($item->fecha_fin_periodo)
+                                            al {{ \Carbon\Carbon::parse($item->fecha_fin_periodo)->format('d/m/Y') }}
+                                        @endif
+                                    </div>
                                 </td>
 
                                 <!-- Resumen Toneladas -->
@@ -120,12 +127,17 @@
                                     {{ $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d/m/Y h:i A') : 'N/A' }}
                                 </td>
 
-                                <!-- Estatus -->
+                                <!-- Estatus: incluye CONFORME y RECHAZADA -->
                                 <td class="p-4">
                                     @switch(strtoupper($item->estatus ?? 'PRESENTADA'))
                                         @case('APROBADA')
                                             <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                                                 Aprobada
+                                            </span>
+                                            @break
+                                        @case('CONFORME')
+                                            <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                Conforme
                                             </span>
                                             @break
                                         @case('OBSERVADA')

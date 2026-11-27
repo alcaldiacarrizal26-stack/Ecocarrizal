@@ -11,7 +11,6 @@
             
             territorios: {{ json_encode($territorios) }},
             
-            // AQUÍ ESTÁ LA MAGIA: Todo viene dinámico desde el Controlador
             tiposTramites: {{ json_encode($tiposTramites) }},
             
             selectedComuna: '',
@@ -80,8 +79,8 @@
 
             get clavesRecaudosConsignados() {
                 if (!this.solicitudSeleccionada || !this.solicitudSeleccionada.recaudos) return [];
-                // CORREGIDO: Buscar en la relación recaudo_catalogo
-                return this.solicitudSeleccionada.recaudos.map(r => r.recaudo_catalogo?.key).filter(Boolean);
+                // CORREGIDO: recaudoCatalogo en camelCase
+                return this.solicitudSeleccionada.recaudos.map(r => r.recaudoCatalogo?.key).filter(Boolean);
             },
 
             get datosEspecificosModal() {
@@ -96,8 +95,8 @@
             get requisitosPendientesModal() {
                 if (!this.solicitudSeleccionada) return [];
                 
-                // CORREGIDO: tipo_tramite es ahora un objeto (relación)
-                const slugTramite = this.solicitudSeleccionada.tipo_tramite?.slug || this.solicitudSeleccionada.tipo_tramite;
+                // CORREGIDO: tipoTramite en camelCase
+                const slugTramite = this.solicitudSeleccionada.tipoTramite?.slug || this.solicitudSeleccionada.tipoTramite;
                 const config = this.tiposTramites[slugTramite];
                 
                 if (!config) return [];
@@ -119,7 +118,7 @@
             get requisitosConsignadosModal() {
                 if (!this.solicitudSeleccionada || !this.solicitudSeleccionada.recaudos) return [];
                 
-                const slugTramite = this.solicitudSeleccionada.tipo_tramite?.slug || this.solicitudSeleccionada.tipo_tramite;
+                const slugTramite = this.solicitudSeleccionada.tipoTramite?.slug || this.solicitudSeleccionada.tipoTramite;
                 const config = this.tiposTramites[slugTramite];
                 
                 const todosRequisitos = config 
@@ -127,7 +126,8 @@
                     : [];
 
                 return this.solicitudSeleccionada.recaudos.map(recaudo => {
-                    const key = recaudo.recaudo_catalogo?.key; // CORREGIDO
+                    // CORREGIDO: recaudoCatalogo en camelCase
+                    const key = recaudo.recaudoCatalogo?.key;
                     const reqConfig = todosRequisitos.find(r => r.key === key);
                     return {
                         id: recaudo.id,
@@ -238,16 +238,13 @@
                         <tbody class="divide-y divide-slate-100 font-medium">
                             @foreach ($tramites as $tramite)
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    {{-- CORREGIDO: codigo_solicitud --}}
                                     <td class="p-4 font-bold text-slate-800">{{ $tramite->codigo_solicitud ?? '#' . $tramite->id }}</td>
                                     <td class="p-4 text-slate-700 font-semibold">
-                                        {{-- CORREGIDO: Usar la relación tipoTramite --}}
                                         {{ $tramite->tipoTramite->nombre ?? 'Trámite' }}
                                     </td>
                                     <td class="p-4">{{ $tramite->comuna }} — {{ $tramite->sector }}</td>
                                     <td class="p-4 text-slate-400">{{ $tramite->created_at->format('d/m/Y') }}</td>
                                     <td class="p-4">
-                                        {{-- CORREGIDO: Mayúsculas --}}
                                         @if($tramite->estado === 'INCOMPLETA')
                                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block border bg-amber-50 text-amber-700 border-amber-200">
                                                 Documentación Incompleta
@@ -270,7 +267,6 @@
                                     {{-- COLUMNA DE TIMER/PLAZO --}}
                                     <td class="p-4 text-center">
                                         @php
-                                            // CORREGIDO: Usar relación para el slug
                                             $slugTramite = $tramite->tipoTramite->slug ?? '';
                                             $plazosDias = [
                                                 'poda_deshierbe' => 31,
@@ -332,7 +328,6 @@
                     <button @click="openModalCrear = false" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer leading-none">&times;</button>
                 </div>
 
-                {{-- Bloque de errores para evitar fallos silenciosos --}}
                 @if($errors->any())
                     <div class="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl text-xs space-y-1">
                         <strong class="font-bold">Por favor corrige los siguientes errores:</strong>
@@ -515,9 +510,9 @@
                     <div class="space-y-6">
                         <div class="flex items-start justify-between border-b border-slate-100 pb-4">
                             <div>
-                                {{-- CORREGIDO: codigo_solicitud --}}
                                 <span class="text-xs font-bold text-indigo-600 tracking-wide uppercase" x-text="solicitudSeleccionada.codigo_solicitud"></span>
-                                <h3 class="text-base font-bold text-slate-800" x-text="solicitudSeleccionada.tipo_tramite?.nombre || 'Trámite'"></h3>
+                                {{-- CORREGIDO: tipoTramite en camelCase --}}
+                                <h3 class="text-base font-bold text-slate-800" x-text="solicitudSeleccionada.tipoTramite?.nombre || 'Trámite'"></h3>
                                 <p class="text-xs text-slate-400" x-text="solicitudSeleccionada.comuna + ' — ' + solicitudSeleccionada.sector"></p>
                             </div>
                             <button @click="openModalDetalle = false" type="button" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer leading-none">&times;</button>
@@ -530,7 +525,6 @@
                             </div>
                             <div>
                                 <span class="text-slate-400 font-semibold block text-[10px] uppercase">Estatus Actual:</span>
-                                {{-- CORREGIDO: 'RECHAZADO' --}}
                                 <span class="font-bold inline-block mt-0.5 capitalize" :class="solicitudSeleccionada.estado === 'RECHAZADO' ? 'text-rose-700' : 'text-indigo-700'" x-text="solicitudSeleccionada.estado || 'PENDIENTE'"></span>
                             </div>
                             <div class="sm:col-span-2">
@@ -671,7 +665,6 @@
                             * El comprobante oficial incluye código QR de autenticidad municipal.
                         </span>
 
-                        {{-- CORREGIDO: 'INCOMPLETA' --}}
                         <template x-if="solicitudSeleccionada.estado !== 'INCOMPLETA'">
                             <button 
                                 type="button"

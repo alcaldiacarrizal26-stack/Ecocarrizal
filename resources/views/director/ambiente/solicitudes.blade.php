@@ -35,7 +35,8 @@
         },
 
         obtenerEtiquetaRecaudo(recaudo) {
-            return recaudo.catalogo?.label || recaudo.recaudo_catalogo?.label || recaudo.catalogo?.key || recaudo.nombre_archivo || 'Documento adjunto';
+            // CORREGIDO: Usar la relación correcta recaudoCatalogo
+            return recaudo.recaudoCatalogo?.label || recaudo.recaudoCatalogo?.key || recaudo.nombre_archivo || 'Documento adjunto';
         },
 
         puedeReasignar(estado) {
@@ -275,7 +276,8 @@
                                     <button 
                                         type="button"
                                         title="{{ $solicitud->inspector ? 'Reasignar Inspector' : 'Asignar Inspector' }}"
-                                        @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos.catalogo', 'tipoTramite'])) }}; modalAsignarOpen = true"
+                                        {{-- CORREGIDO: recaudos.recaudoCatalogo --}}
+                                        @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos.recaudoCatalogo', 'tipoTramite'])) }}; modalAsignarOpen = true"
                                         class="p-2 text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                     >
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
@@ -285,7 +287,8 @@
                                 <button 
                                     type="button"
                                     title="Ver Detalles"
-                                    @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos.catalogo', 'tipoTramite'])) }}; modalOpen = true"
+                                    {{-- CORREGIDO: recaudos.recaudoCatalogo --}}
+                                    @click="solicitudActual = {{ json_encode($solicitud->load(['usuario', 'inspector', 'recaudos.recaudoCatalogo', 'tipoTramite'])) }}; modalOpen = true"
                                     class="p-2 text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors inline-flex items-center cursor-pointer shadow-sm"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>

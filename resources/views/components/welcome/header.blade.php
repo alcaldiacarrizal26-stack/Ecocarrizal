@@ -16,6 +16,7 @@
         <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
             <a href="#" @click.prevent="activeTab = 'inicio'" :class="activeTab === 'inicio' ? 'text-primary font-bold' : 'hover:text-primary'" class="transition-colors">Inicio</a>
             <a href="#" @click.prevent="activeTab = 'servicios'" :class="activeTab === 'servicios' ? 'text-primary font-bold' : 'hover:text-primary'" class="transition-colors">Servicios</a>
+            <a href="#" @click.prevent="activeTab = 'recaudos'" :class="activeTab === 'recaudos' ? 'text-primary font-bold' : 'hover:text-primary'" class="transition-colors">Recaudos</a>
             <a href="#" @click.prevent="activeTab = 'marco-legal'" :class="activeTab === 'marco-legal' ? 'text-primary font-bold' : 'hover:text-primary'" class="transition-colors">Marco Legal</a>
             <a href="#" @click.prevent="activeTab = 'especies'" :class="activeTab === 'especies' ? 'text-primary font-bold' : 'hover:text-primary'" class="transition-colors">Especies Protegidas</a>
             <a href="#" @click.prevent="activeTab = 'contacto'" :class="activeTab === 'contacto' ? 'text-primary font-bold' : 'hover:text-primary'" class="transition-colors">Contacto</a>
@@ -43,6 +44,7 @@
     <div x-show="mobileMenu" x-cloak class="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg">
         <a href="#" @click.prevent="activeTab = 'inicio'; mobileMenu = false" class="block text-slate-700 hover:text-primary text-sm font-medium">Inicio</a>
         <a href="#" @click.prevent="activeTab = 'servicios'; mobileMenu = false" class="block text-slate-700 hover:text-primary text-sm font-medium">Servicios</a>
+        <a href="#" @click.prevent="activeTab = 'recaudos'; mobileMenu = false" class="block text-slate-700 hover:text-primary text-sm font-medium">Recaudos</a>
         <a href="#" @click.prevent="activeTab = 'marco-legal'; mobileMenu = false" class="block text-slate-700 hover:text-primary text-sm font-medium">Marco Legal</a>
         <a href="#" @click.prevent="activeTab = 'especies'; mobileMenu = false" class="block text-slate-700 hover:text-primary text-sm font-medium">Especies Protegidas</a>
         <a href="#" @click.prevent="activeTab = 'contacto'; mobileMenu = false" class="block text-slate-700 hover:text-primary text-sm font-medium">Contacto</a>

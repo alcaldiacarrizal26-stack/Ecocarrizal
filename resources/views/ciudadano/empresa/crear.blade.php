@@ -537,35 +537,68 @@
             <div x-show="step === 3" x-transition.opacity class="space-y-5">
                 <div class="border-b border-gray-100 pb-3">
                     <h4 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">3. Documentación, Fechas de Emisión y Vigencia</h4>
-                    <p class="text-[11px] text-gray-500 mt-0.5">Adjunte en digital (PDF/Imagen) los recaudos y especifique sus fechas para el control de renovación.</p>
+                    <p class="text-[11px] text-gray-500 mt-0.5">Adjunte en digital (PDF/Imagen) los recaudos aplicables a su empresa y especifique sus fechas.</p>
                 </div>
 
+                <!-- Indicador de requisitos aplicables -->
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                    <span class="text-slate-600">
+                        <strong class="text-indigo-700" x-text="requisitosFiltrados.length"></strong> requisito(s) aplicable(s) para su perfil
+                    </span>
+                    <span class="text-slate-500">
+                        Obligatorios pendientes: 
+                        <strong :class="requisitosObligatoriosFaltantes.length > 0 ? 'text-rose-600' : 'text-emerald-600'" 
+                                x-text="requisitosObligatoriosFaltantes.length"></strong>
+                    </span>
+                </div>
+
+                <template x-if="requisitosFiltrados.length === 0">
+                    <div class="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center text-xs text-emerald-800">
+                        <strong>No aplica documentación adicional</strong>
+                        <p class="text-[11px] mt-1">Según el rol seleccionado (NO APLICA), no se requieren recaudos adicionales.</p>
+                    </div>
+                </template>
+
                 <div class="grid grid-cols-1 gap-4">
-                    <template x-for="(req, index) in requisitos" :key="req.codigo">
-                        <div class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                    <template x-for="(req, index) in requisitosFiltrados" :key="req.id">
+                        <div class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3"
+                            :class="files[req.id] ? 'border-emerald-400 bg-emerald-50/30' : ''">
+                            
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="space-y-0.5">
-                                    <span class="text-xs font-bold text-gray-800 block" x-text="(index + 1) + '. ' + req.nombre"></span>
-                                    <span class="text-[10px] text-gray-500 block" x-text="req.descripcion || 'Documento requerido para el expediente comercial'"></span>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-xs font-bold text-gray-800" x-text="(index + 1) + '. ' + req.nombre"></span>
+                                        
+                                        <!-- Badge de tipo de requisito -->
+                                        <span class="px-1.5 py-0.5 text-[9px] font-bold rounded uppercase"
+                                            :class="{
+                                                'bg-rose-100 text-rose-800': req.tipo_requisito === 'OBLIGATORIO',
+                                                'bg-amber-100 text-amber-800': req.tipo_requisito === 'CONDICIONAL',
+                                                'bg-slate-100 text-slate-600': req.tipo_requisito === 'OPCIONAL'
+                                            }"
+                                            x-text="req.tipo_requisito"></span>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 block" x-text="req.descripcion || 'Documento requerido'"></span>
                                 </div>
                                 <label class="relative flex items-center justify-center px-4 py-2 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#0d5238] hover:bg-emerald-50/30 transition-all shrink-0">
-                                    <span x-text="files[req.codigo.toLowerCase()] ? files[req.codigo.toLowerCase()].name : 'Actualizar / Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
-                                    <input type="file" @change="handleFileUpload($event, req.codigo.toLowerCase())" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                    <span x-text="files[req.id] ? files[req.id].name : 'Seleccionar Archivo'" class="text-xs font-semibold text-gray-600 truncate max-w-[180px]"></span>
+                                    <input type="file" @change="handleFileUpload($event, req.id)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                                 </label>
                             </div>
+                            
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-xs">
                                 <div>
                                     <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Emisión</label>
-                                    <input type="date" x-model="fechasEmision[req.codigo.toLowerCase()]" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
+                                    <input type="date" x-model="fechasEmision[req.id]" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white">
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Fecha Vencimiento</label>
-                                    <input type="date" x-model="fechasVencimiento[req.codigo.toLowerCase()]" :disabled="esVitalicio[req.codigo.toLowerCase()]" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                                    <input type="date" x-model="fechasVencimiento[req.id]" :disabled="esVitalicio[req.id]" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
                                 </div>
                                 <div class="flex items-center pt-5">
                                     <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" x-model="esVitalicio[req.codigo.toLowerCase()]" @change="if(esVitalicio[req.codigo.toLowerCase()]) fechasVencimiento[req.codigo.toLowerCase()] = ''" class="rounded text-[#0d5238]">
-                                        <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio / Indefinido?</span>
+                                        <input type="checkbox" x-model="esVitalicio[req.id]" @change="if(esVitalicio[req.id]) fechasVencimiento[req.id] = ''" class="rounded text-[#0d5238]">
+                                        <span class="font-semibold text-gray-700 text-[11px]">¿Es Vitalicio?</span>
                                     </label>
                                 </div>
                             </div>
@@ -657,19 +690,16 @@
 
 <script>
 function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) {
-    // Inicializar objetos dinámicamente basados en los códigos de la BD
     let initialFiles = {};
     let initialEmision = {};
     let initialVencimiento = {};
     let initialVitalicio = {};
 
     (requisitosCatalogo || []).forEach(req => {
-        let code = req.codigo.toLowerCase();
-        initialFiles[code] = null;
-        initialEmision[code] = '';
-        initialVencimiento[code] = '';
-        // Por defecto, marcamos como vitalicios el plan de desechos y de emergencia si existen, o false
-        initialVitalicio[code] = code.includes('plan_') ? true : false;
+        initialFiles[req.id] = null;
+        initialEmision[req.id] = '';
+        initialVencimiento[req.id] = '';
+        initialVitalicio[req.id] = !!req.es_vitalicio_default;
     });
 
     return {
@@ -742,6 +772,63 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
             this.formatRacda();
         },
 
+        // ============================================
+        // GETTERS REACTIVOS PARA FILTRADO DINÁMICO
+        // ============================================
+        
+        get requisitosFiltrados() {
+            return this.requisitos.filter(req => {
+                // 1. Filtro por rol
+                const roles = (req.aplica_a_rol || 'TODOS').split(',').map(r => r.trim());
+                const rolActual = this.form.perfil.rol_ambiental || 'GENERADOR';
+                if (!roles.includes('TODOS') && !roles.includes(rolActual)) {
+                    return false;
+                }
+
+                // 2. DEFENSA: Si es NO_APLICA, NUNCA mostrar requisitos condicionales
+                //    (porque NO_APLICA significa bajo impacto sin residuos peligrosos)
+                if (rolActual === 'NO_APLICA' && req.condicion_flag) {
+                    return false;
+                }
+
+                // 3. Filtro por condicion_flag
+                if (req.condicion_flag) {
+                    const perfil = this.form.perfil;
+                    switch (req.condicion_flag) {
+                        case 'genera_peligrosos':
+                            return !!perfil.genera_peligrosos;
+                        case 'genera_efluentes':
+                            return !!perfil.genera_efluentes;
+                        case 'genera_emisiones':
+                            return !!perfil.genera_emisiones;
+                        case 'usa_pozo_agua':
+                            return !!perfil.usa_pozo_agua;
+                        case 'genera_riesgo_ambiental':
+                            return !!(perfil.genera_peligrosos || perfil.genera_efluentes || perfil.genera_emisiones);
+                        case 'modalidad_externa':
+                            return perfil.modalidad_manejadora === 'EXTERNA';
+                        case 'es_persona_juridica':
+                            return ['J', 'G'].includes(this.rifInput.tipo);
+                        default:
+                            return true;
+                    }
+                }
+
+                return true;
+            });
+        },
+
+        get requisitosObligatoriosFaltantes() {
+            return this.requisitosFiltrados.filter(req => {
+                if (req.tipo_requisito !== 'OBLIGATORIO') return false;
+                return !this.files[req.id];
+            });
+        },
+
+        // ============================================
+        // MÉTODOS EXISTENTES (sin cambios)
+        // ============================================
+
         showModal(msg) {
             this.alertMessage = msg;
             this.showAlertModal = true;
@@ -758,6 +845,7 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
         },
 
         loadEmpresaData(data) {
+            // ... (igual que antes, sin cambios) ...
             this.form.razon_social = data.razon_social || '';
             this.form.nombre_comercial = data.nombre_comercial || '';
             this.form.correo_comercial = data.correo_comercial || '';
@@ -784,7 +872,6 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
             this.form.numero_cuenta_patente = data.numero_cuenta_patente || '';
             this.patenteInput.correlativo = data.numero_cuenta_patente ? data.numero_cuenta_patente.replace('CZ-AE-', '') : '';
 
-            // Precarga del Bloque 2: Perfil Ambiental
             if (data.perfil_ambiental) {
                 const p = data.perfil_ambiental;
                 this.form.perfil.rol_ambiental = p.rol_ambiental || 'GENERADOR';
@@ -804,19 +891,16 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
                 this.form.perfil.actividades_manejador = p.actividades_manejador || [];
                 this.form.perfil.residuos_tipos = p.residuos_tipos || [];
 
-                // Extraer correlativo RACDA si existe
                 if (p.numero_racda) {
                     const cleanRacda = p.numero_racda.replace(/^(RACDA-[GM]-)/i, '');
                     this.racdaInput.correlativo = cleanRacda;
                 }
             }
 
-            // Precarga del Bloque 3: Fechas y Vigencias de Documentos del Expediente
+            // CORREGIDO: ahora usa requisito_id (que es el ID numérico)
             if (data.documentos_expediente && Array.isArray(data.documentos_expediente)) {
                 data.documentos_expediente.forEach(doc => {
-                    // CORREGIDO: Mapeo inverso usando el requisito_id para buscar el código
-                    const reqMatch = this.requisitos.find(r => r.id === doc.requisito_id);
-                    const key = reqMatch ? reqMatch.codigo.toLowerCase() : '';
+                    const key = doc.requisito_id;
                     
                     if (key && this.fechasEmision.hasOwnProperty(key)) {
                         this.fechasEmision[key] = doc.fecha_emision ? doc.fecha_emision.substring(0, 10) : '';
@@ -833,6 +917,63 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
 
         onRolChange(nuevoRol) {
             this.form.perfil.rol_ambiental = nuevoRol;
+            
+            // ============================================
+            // LIMPIEZA DE FLAGS SEGÚN EL NUEVO ROL
+            // ============================================
+            
+            if (nuevoRol === 'NO_APLICA') {
+                // NO_APLICA = bajo impacto, sin residuos peligrosos
+                // Se limpian TODOS los flags de impacto
+                this.form.perfil.genera_efluentes = false;
+                this.form.perfil.genera_emisiones = false;
+                this.form.perfil.genera_peligrosos = false;
+                this.form.perfil.genera_ruidos = false;
+                this.form.perfil.usa_pozo_agua = false;
+                this.form.perfil.subtipo_generador = 'PEQUENO';
+                
+                // Limpiar modalidades
+                this.form.perfil.modalidad_manejadora = 'INTERNA';
+                this.form.perfil.modalidad_atencion_manejador = 'MULTICLIENTE';
+                
+                // Limpiar manejadora
+                this.form.perfil.manejadora_nombre = '';
+                this.form.perfil.manejadora_rif = '';
+                this.form.perfil.manejadora_racda = '';
+                this.manejadoraRifInput = { tipo: 'J', numero: '', digito: '' };
+                this.manejadoraRacdaInput = { correlativo: '' };
+                
+                // Limpiar generador exclusivo
+                this.form.perfil.generador_exclusivo_nombre = '';
+                this.form.perfil.generador_exclusivo_rif = '';
+                this.form.perfil.generador_exclusivo_racda = '';
+                this.generadorRifInput = { tipo: 'J', numero: '', digito: '' };
+                this.generadorRacdaInput = { correlativo: '' };
+                
+                // Limpiar RACDA
+                this.racdaInput.correlativo = '';
+            }
+            
+            if (nuevoRol === 'MANEJADOR') {
+                // Limpiar campos exclusivos de GENERADOR
+                this.form.perfil.modalidad_manejadora = 'INTERNA';
+                this.form.perfil.manejadora_nombre = '';
+                this.form.perfil.manejadora_rif = '';
+                this.form.perfil.manejadora_racda = '';
+                this.manejadoraRifInput = { tipo: 'J', numero: '', digito: '' };
+                this.manejadoraRacdaInput = { correlativo: '' };
+            }
+            
+            if (nuevoRol === 'GENERADOR') {
+                // Limpiar campos exclusivos de MANEJADOR
+                this.form.perfil.modalidad_atencion_manejador = 'MULTICLIENTE';
+                this.form.perfil.generador_exclusivo_nombre = '';
+                this.form.perfil.generador_exclusivo_rif = '';
+                this.form.perfil.generador_exclusivo_racda = '';
+                this.generadorRifInput = { tipo: 'J', numero: '', digito: '' };
+                this.generadorRacdaInput = { correlativo: '' };
+            }
+            
             this.formatRacda();
         },
 
@@ -918,9 +1059,12 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
             this.form.sector = '';
         },
 
-        handleFileUpload(event, key) {
+        // CORREGIDO: recibe el ID del requisito en lugar del código
+        handleFileUpload(event, requisitoId) {
             if (event.target.files.length > 0) {
-                this.files[key] = event.target.files[0];
+                this.files[requisitoId] = event.target.files[0];
+            } else {
+                this.files[requisitoId] = null;
             }
         },
 
@@ -947,17 +1091,12 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
                 }
             }
 
+            // CORREGIDO: validación dinámica del Paso 3
             if (this.step === 3) {
-                if (!this.files.doc_renma) {
-                    this.showModal('El registro RENMA es un recaudo obligatorio. Por favor adjunte el archivo PDF o imagen.');
-                    return;
-                }
-                if (this.form.perfil.rol_ambiental !== 'NO_APLICA' && !this.files.doc_racda) {
-                    this.showModal('El certificado RACDA es obligatorio para empresas Generadoras o Manejadoras.');
-                    return;
-                }
-                if (this.form.perfil.rol_ambiental === 'MANEJADOR' && !this.files.doc_poliza) {
-                    this.showModal('La Póliza de Seguro de Responsabilidad Ambiental es obligatoria para empresas Manejadoras.');
+                const faltantes = this.requisitosObligatoriosFaltantes;
+                if (faltantes.length > 0) {
+                    const nombres = faltantes.map(r => '• ' + r.nombre).join('\n');
+                    this.showModal('Los siguientes recaudos obligatorios no han sido adjuntados:\n\n' + nombres);
                     return;
                 }
             }
@@ -968,6 +1107,14 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
         },
 
         async submitForm() {
+            // CORREGIDO: validar antes de enviar
+            const faltantes = this.requisitosObligatoriosFaltantes;
+            if (faltantes.length > 0) {
+                const nombres = faltantes.map(r => '• ' + r.nombre).join('\n');
+                this.showModal('Los siguientes recaudos obligatorios no han sido adjuntados:\n\n' + nombres);
+                return;
+            }
+
             this.submitting = true;
             
             this.formatRif();
@@ -1003,6 +1150,7 @@ function vincularEmpresaForm(territorios, empresaExistente, requisitosCatalogo) 
                 }
             });
 
+            // CORREGIDO: usar ID del requisito
             Object.keys(this.files).forEach(key => {
                 if (this.files[key]) {
                     formData.append(`documentos[${key}]`, this.files[key]);
